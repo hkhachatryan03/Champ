@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+:root {
+  --ink: #171A1F;
+  --paper: #FAF6EE;
+  --paper-dim: #F1EADA;
+  --apricot: #EA9A2E;
+  --apricot-deep: #C97D1B;
+  --stone: #B98B7C;
+  --moss: #5C7A5E;
+  --line: #DCD2BA;
+  --muted: #726A5B;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-paper-dim: var(--paper-dim);
+  --color-apricot: var(--apricot);
+  --color-apricot-deep: var(--apricot-deep);
+  --color-stone: var(--stone);
+  --color-moss: var(--moss);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+}
+
+.font-display {
+  font-family: 'Fraunces', serif;
+}
+
+.font-mono-num {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.file-input::file-selector-button {
+  background: var(--apricot);
+  color: var(--ink);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.file-input::file-selector-button:hover {
+  opacity: 0.9;
+}
