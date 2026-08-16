@@ -54,7 +54,12 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
   const skills = parseSkills(profile.skills);
   const experiences = await listExperiences(candidateUserId);
-  const myJobs = (await listJobsForCompany(session.userId)).filter((j) => j.active);
+  const activeJobs = (await listJobsForCompany(session.userId)).filter((j) => j.active);
+  const myJobs = [];
+  for (const j of activeJobs) {
+    const existing = await findApplication(j.id, candidateUserId);
+    if (!existing) myJobs.push(j);
+  }
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
@@ -68,6 +73,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           {!!profile.remote_ok && <Tag tone="moss">Remote OK</Tag>}
         </div>
         <div className="mt-3"><Ledger min={profile.salary_min} max={profile.salary_max} /></div>
+        {JSON.parse(profile.languages || "[]").length > 0 && (
+          <p className="text-sm text-muted mt-2">
+            Languages: {JSON.parse(profile.languages || "[]").join(", ")}
+          </p>
+        )}
         {profile.about && <p className="text-sm mt-3">{profile.about}</p>}
         <div className="mt-3 flex flex-col gap-1">
           {profile.cv_filename && (
@@ -76,7 +86,14 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </a>
           )}
           {profile.linkedin_url && (
-            <span className="text-sm text-muted">LinkedIn: {profile.linkedin_url}</span>
+            <a
+              href={profile.linkedin_url.startsWith("http") ? profile.linkedin_url : `https://${profile.linkedin_url}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm underline text-apricot-deep"
+            >
+              🔗 {profile.linkedin_url}
+            </a>
           )}
         </div>
       </div>
@@ -98,8 +115,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
       <h2 className="font-display font-semibold text-lg mt-6 mb-2">Invite to a role</h2>
       {myJobs.length === 0 ? (
         <p className="text-sm text-muted">
-          You don&apos;t have any active roles to invite them to yet —{" "}
-          <Link href="/company/jobs/new" className="underline">post one first</Link>.
+          {activeJobs.length === 0 ? (
+            <>You don&apos;t have any active roles to invite them to yet — <Link href="/company/jobs/new" className="underline">post one first</Link>.</>
+          ) : (
+            "This candidate is already connected on all of your active roles."
+          )}
         </p>
       ) : (
         <form action={inviteAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3">

@@ -55,3 +55,12 @@ body {
 .file-input::file-selector-button:hover {
   opacity: 0.9;
 }
+
+/* Tailwind v4's base reset leaves buttons with the default arrow cursor
+   instead of a pointer — this restores the expected "clickable" cursor
+   across every button in the app, rather than patching each one by hand. */
+button:not(:disabled),
+[type="submit"]:not(:disabled),
+[type="button"]:not(:disabled) {
+  cursor: pointer;
+}

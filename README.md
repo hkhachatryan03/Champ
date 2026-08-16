@@ -19,11 +19,12 @@ not a redesign.
 
 ## Setting up before you can run this
 
-1. **Run the one-time database setup script** against your Neon database:
+1. **Run the database setup script** against your Neon database (safe to
+   run again even if you already ran it before — it now also adds several
+   new columns/tables this version needs):
    ```bash
    DATABASE_URL="your-neon-connection-string" node scripts/init-db.mjs
    ```
-   This creates all the tables. Safe to run more than once.
 
 2. **Create a `.env.local` file** (copy `.env.local.example` and fill in
    your real values):
@@ -31,13 +32,16 @@ not a redesign.
    cp .env.local.example .env.local
    ```
    You need `DATABASE_URL` (from Neon) and `SESSION_SECRET` (any long
-   random string) at minimum. `BLOB_READ_WRITE_TOKEN` is only needed
-   locally if you want to test CV uploads before deploying — grab it from
-   Vercel's dashboard (Project → Storage → your Blob store → the
-   `.env.local` tab shows it), or skip it and just test CV uploads after
-   deploying, where Vercel provides it automatically.
+   random string) at minimum.
 
-3. **Install and build:**
+3. **Optional but recommended: email sending, via [Resend](https://resend.com)**
+   (free tier available). This powers email verification, "Forgot
+   password," and any future emails. Add `RESEND_API_KEY` to `.env.local`
+   (and to Vercel's environment variables when deploying). **If you don't
+   set this, the app still works fine** — email verification simply stays
+   turned off until you do, so this won't block you from testing.
+
+4. **Install and build:**
    ```bash
    npm install
    npm run build
@@ -46,16 +50,12 @@ not a redesign.
 
 ## Deploying to Vercel
 
-1. Push this code to your GitHub repo (already done if you're reading
-   this from the repo).
-2. Import the repo into Vercel as a project.
-3. In that project: Storage tab → Create Database → Blob (this
-   auto-adds `BLOB_READ_WRITE_TOKEN` to the project — no manual copying).
-4. In Settings → Environment Variables, add `DATABASE_URL` (your Neon
-   connection string) and `SESSION_SECRET` (a long random string —
-   **different from any placeholder value**, this protects real user
-   sessions).
-5. Deploy.
+1. Push this code to your GitHub repo.
+2. In your Vercel project's Settings → Environment Variables, make sure
+   `DATABASE_URL` and `SESSION_SECRET` are set (and `RESEND_API_KEY` if
+   you're using email), plus `BLOB_READ_WRITE_TOKEN` (auto-added if you've
+   connected a Blob store under the Storage tab).
+3. Redeploy.
 
 ## What's still stubbed (clearly labeled in the UI, not hidden)
 

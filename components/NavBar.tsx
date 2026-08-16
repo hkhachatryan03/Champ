@@ -50,6 +50,14 @@ export default async function NavBar() {
           <Logo />
         </Link>
         <div className="flex items-center gap-3">
+          {session && (
+            <Link
+              href="/settings"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
+            >
+              Settings
+            </Link>
+          )}
           <Link
             href="/contact"
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"

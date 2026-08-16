@@ -43,6 +43,7 @@ export default async function ForYouPage() {
             <p className="text-sm text-muted mt-0.5">{job.company_name} · {job.location}</p>
             <div className="mt-4"><Ledger min={job.salary_min} max={job.salary_max} /></div>
             <div className="mt-3 flex flex-wrap gap-1.5">
+              {job.experience_level && <Tag>{job.experience_level}</Tag>}
               {parseSkills(job.skills).map((t) => <Tag key={t}>{t}</Tag>)}
             </div>
           </Link>

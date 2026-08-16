@@ -15,6 +15,8 @@ export default function JobForm({
     skills?: string;
     description?: string;
     active?: number;
+    experience_level?: string | null;
+    languages?: string;
   };
   isEdit?: boolean;
 }) {
@@ -41,6 +43,16 @@ export default function JobForm({
           </select>
         </div>
       </div>
+      <div>
+        <label className="text-xs font-medium text-muted">Experience level (optional)</label>
+        <select name="experienceLevel" defaultValue={d.experience_level || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none">
+          <option value="">Not specified</option>
+          <option>Junior</option>
+          <option>Mid</option>
+          <option>Senior</option>
+          <option>Lead</option>
+        </select>
+      </div>
       <div className="flex gap-3 items-end">
         <div className="flex-1">
           <label className="text-xs font-medium text-muted">Location</label>
@@ -53,6 +65,11 @@ export default function JobForm({
       <div>
         <label className="text-xs font-medium text-muted">Key skills (comma separated, optional)</label>
         <input name="skills" defaultValue={d.skills} placeholder="Go, PostgreSQL, AWS" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted">Languages needed (optional)</label>
+        <input name="languages" defaultValue={d.languages} placeholder="English:C1, Russian:B2" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        <p className="text-xs text-muted mt-1">Format: Language:Level, separated by commas.</p>
       </div>
       <div>
         <label className="text-xs font-medium text-muted">Description (required — this is what candidates see)</label>

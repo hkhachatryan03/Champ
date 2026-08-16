@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { getApplicationContext, listMessages, sendMessage, markMessagesRead, updateApplicationStatus } from "@/lib/queries";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { StatusPill } from "@/components/ui";
 
@@ -12,6 +13,10 @@ async function sendAction(formData: FormData) {
   const body = String(formData.get("body") || "").trim();
   if (!body) return;
   await sendMessage(applicationId, session.role, body);
+  revalidatePath(`/thread/${applicationId}`);
+  revalidatePath("/candidate/applications");
+  revalidatePath("/company/inbox");
+  revalidatePath("/");
 }
 
 async function statusAction(formData: FormData) {
@@ -21,6 +26,10 @@ async function statusAction(formData: FormData) {
   const applicationId = Number(formData.get("applicationId"));
   const status = String(formData.get("status") || "New");
   await updateApplicationStatus(applicationId, status);
+  revalidatePath(`/thread/${applicationId}`);
+  revalidatePath("/candidate/applications");
+  revalidatePath("/company/inbox");
+  revalidatePath(`/company/jobs/${applicationId}`);
 }
 
 export default async function ThreadPage({ params }: { params: Promise<{ id: string }> }) {
@@ -81,7 +90,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         {isCandidate && <StatusPill status={app.status} />}
       </div>
 
-      {(app.cv_filename || app.expected_salary) && (
+      {(app.cv_filename || app.expected_salary || app.candidate_linkedin_url) && (
         <div className="mt-3 p-3 rounded-lg bg-paper-dim flex flex-wrap items-center gap-3 text-sm">
           {app.cv_filename && (
             <a
@@ -91,6 +100,16 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
               className="underline text-apricot-deep"
             >
               📎 View CV
+            </a>
+          )}
+          {app.candidate_linkedin_url && isCompany && (
+            <a
+              href={app.candidate_linkedin_url.startsWith("http") ? app.candidate_linkedin_url : `https://${app.candidate_linkedin_url}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-apricot-deep"
+            >
+              🔗 LinkedIn
             </a>
           )}
           {app.expected_salary && (

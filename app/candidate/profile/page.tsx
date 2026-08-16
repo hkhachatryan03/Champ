@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, deleteExperience } from "@/lib/queries";
+import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Ledger, Tag } from "@/components/ui";
@@ -54,8 +55,13 @@ async function saveProfileAction(formData: FormData) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const languages = String(formData.get("languages") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const salaryMin = Number(formData.get("salaryMin") || 0);
   const salaryMax = Number(formData.get("salaryMax") || 0);
+  if (salaryMax < salaryMin) redirect("/candidate/profile?error=salary");
   const remoteOk = formData.get("remoteOk") ? 1 : 0;
   const about = String(formData.get("about") || "");
   const linkedinUrl = String(formData.get("linkedinUrl") || "").trim();
@@ -65,8 +71,13 @@ async function saveProfileAction(formData: FormData) {
   if (cvFile && cvFile.size > 0) {
     const buffer = Buffer.from(await cvFile.arrayBuffer());
     const safeName = `cv/${session.userId}_${Date.now()}_${cvFile.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
-    const blob = await put(safeName, buffer, { access: "public", contentType: "application/pdf" });
-    cvUpdate.cv_filename = blob.url;
+    try {
+      const blob = await put(safeName, buffer, { access: "public", contentType: "application/pdf" });
+      cvUpdate.cv_filename = blob.url;
+    } catch (err) {
+      console.error("Blob upload failed:", err);
+      redirect("/candidate/profile?error=uploadfailed");
+    }
     // Only overwrite the name if the person left the name field blank —
     // otherwise their manual edit here takes priority over a fresh guess.
     if (!name) {
@@ -85,6 +96,7 @@ async function saveProfileAction(formData: FormData) {
     title,
     years_experience: years,
     skills: JSON.stringify(skills),
+    languages: JSON.stringify(languages),
     salary_min: salaryMin,
     salary_max: salaryMax,
     remote_ok: remoteOk,
@@ -98,14 +110,15 @@ async function saveProfileAction(formData: FormData) {
 export default async function CandidateProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ expError?: string }>;
+  searchParams: Promise<{ expError?: string; error?: string }>;
 }) {
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
+  await requireOnboardedCandidate(session.userId);
   const profile = await getCandidateProfile(session.userId);
   const skills = parseSkills(profile.skills);
   const experiences = await listExperiences(session.userId);
-  const { expError } = await searchParams;
+  const { expError, error } = await searchParams;
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
@@ -141,6 +154,11 @@ export default async function CandidateProfilePage({
           {!!profile.remote_ok && <Tag tone="moss">Remote OK</Tag>}
         </div>
         <div className="mt-3"><Ledger min={profile.salary_min} max={profile.salary_max} /></div>
+        {JSON.parse(profile.languages || "[]").length > 0 && (
+          <p className="text-sm text-muted mt-2">
+            Languages: {JSON.parse(profile.languages || "[]").join(", ")}
+          </p>
+        )}
         {profile.cv_filename && (
           <p className="text-sm text-muted mt-3">
             <a href={profile.cv_filename} target="_blank" rel="noopener noreferrer" className="underline">View CV on file</a>
@@ -206,6 +224,15 @@ export default async function CandidateProfilePage({
           <label className="text-xs font-medium text-muted">Skills (comma separated)</label>
           <input name="skills" defaultValue={skills.join(", ")} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Languages (optional)</label>
+          <input name="languages" defaultValue={JSON.parse(profile.languages || "[]").join(", ")} placeholder="English:C1, Russian:Native" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        {error === "salary" && (
+          <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+            Max salary needs to be greater than or equal to min salary.
+          </div>
+        )}
         <div className="flex gap-3">
           <div className="flex-1">
             <label className="text-xs font-medium text-muted">Salary min ($/mo)</label>
@@ -227,6 +254,13 @@ export default async function CandidateProfilePage({
           <label className="text-xs font-medium text-muted">LinkedIn URL</label>
           <input name="linkedinUrl" defaultValue={profile.linkedin_url} placeholder="linkedin.com/in/yourname" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
+        {error === "uploadfailed" && (
+          <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+            Something went wrong uploading your CV — your other changes weren't saved either,
+            since this happened before we could save. Try again in a moment, or continue
+            without a CV update for now.
+          </div>
+        )}
         <div>
           <label className="text-xs font-medium text-muted">Replace CV (PDF)</label>
           <input name="cv" type="file" accept="application/pdf" className="file-input w-full mt-1 text-sm" />

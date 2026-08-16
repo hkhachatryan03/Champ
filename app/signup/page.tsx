@@ -1,5 +1,7 @@
 import sql from "@/lib/db";
 import { hashPassword, createSession } from "@/lib/auth";
+import { createEmailVerification } from "@/lib/queries";
+import { sendVerificationEmail } from "@/lib/email";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -35,6 +37,17 @@ async function signupAction(formData: FormData) {
   }
 
   await createSession({ userId, role: role as "candidate" | "company", email });
+
+  // Email verification only activates once RESEND_API_KEY is configured —
+  // this way, testing isn't blocked before that's set up, but the real
+  // flow is ready to go the moment it is.
+  if (process.env.RESEND_API_KEY) {
+    const token = await createEmailVerification(userId);
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    await sendVerificationEmail(email, `${baseUrl}/verify-email?token=${token}`);
+    redirect("/verify-email-pending");
+  }
+
   redirect(role === "candidate" ? "/candidate/onboarding" : "/company/onboarding");
 }
 

@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { getCompanyProfile, updateCompanyProfile } from "@/lib/queries";
+import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 
 async function saveAction(formData: FormData) {
@@ -7,11 +8,13 @@ async function saveAction(formData: FormData) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
   const name = String(formData.get("name") || "").trim();
+  const recruiterName = String(formData.get("recruiterName") || "").trim();
   const website = String(formData.get("website") || "").trim();
   const about = String(formData.get("about") || "").trim();
-  if (!name || !website || !about) redirect("/company/profile?error=1");
+  if (!name || !recruiterName || !website || !about) redirect("/company/profile?error=1");
   await updateCompanyProfile(session.userId, {
     name,
+    recruiter_name: recruiterName,
     industry: String(formData.get("industry") || ""),
     size: String(formData.get("size") || ""),
     website,
@@ -27,6 +30,7 @@ export default async function CompanyProfilePage({
 }) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
+  await requireOnboardedCompany(session.userId);
   const profile = await getCompanyProfile(session.userId);
   const { error } = await searchParams;
 
@@ -36,6 +40,7 @@ export default async function CompanyProfilePage({
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white mb-8">
         <div className="font-display font-semibold text-lg">{profile.name || "(unnamed company)"}</div>
+        {profile.recruiter_name && <div className="text-sm text-muted">Recruiter: {profile.recruiter_name}</div>}
         <div className="text-sm text-muted mt-1">
           {profile.industry} {profile.industry && "·"} {profile.size} {profile.website && "· " + profile.website}
         </div>
@@ -65,6 +70,10 @@ export default async function CompanyProfilePage({
       )}
 
       <form action={saveAction} className="flex flex-col gap-4">
+        <div>
+          <label className="text-xs font-medium text-muted">Your name (the recruiter)</label>
+          <input name="recruiterName" defaultValue={profile.recruiter_name} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
         <div>
           <label className="text-xs font-medium text-muted">Company name</label>
           <input name="name" defaultValue={profile.name} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />

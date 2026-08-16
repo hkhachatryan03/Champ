@@ -6,6 +6,7 @@ export type CandidateProfile = {
   title: string;
   years_experience: number;
   skills: string; // JSON array string
+  languages: string; // JSON array string, e.g. ["English:C1", "Russian:Native"]
   salary_min: number;
   salary_max: number;
   remote_ok: number;
@@ -19,6 +20,7 @@ export type CandidateProfile = {
 export type CompanyProfile = {
   user_id: number;
   name: string;
+  recruiter_name: string;
   industry: string;
   size: string;
   website: string;
@@ -41,6 +43,8 @@ export type Job = {
   description: string;
   active: number;
   created_at: string;
+  experience_level: string | null;
+  languages: string;
 };
 
 export type Application = {
@@ -87,7 +91,7 @@ export async function updateCandidateProfile(
   await sql`
     UPDATE candidate_profiles SET
       name = ${m.name}, title = ${m.title}, years_experience = ${m.years_experience},
-      skills = ${m.skills}, salary_min = ${m.salary_min}, salary_max = ${m.salary_max},
+      skills = ${m.skills}, languages = ${m.languages}, salary_min = ${m.salary_min}, salary_max = ${m.salary_max},
       remote_ok = ${m.remote_ok}, cv_filename = ${m.cv_filename},
       linkedin_url = ${m.linkedin_url}, about = ${m.about},
       actively_looking = ${m.actively_looking}, onboarded = ${m.onboarded}
@@ -109,7 +113,7 @@ export async function updateCompanyProfile(
   const m = { ...current, ...fields };
   await sql`
     UPDATE company_profiles SET
-      name = ${m.name}, industry = ${m.industry}, size = ${m.size},
+      name = ${m.name}, recruiter_name = ${m.recruiter_name}, industry = ${m.industry}, size = ${m.size},
       website = ${m.website}, about = ${m.about}, verified = ${m.verified}, onboarded = ${m.onboarded}
     WHERE user_id = ${userId}
   `;
@@ -121,6 +125,7 @@ export type JobFilters = {
   company?: string;
   category?: string;
   employmentType?: string;
+  experienceLevel?: string;
   remote?: string; // "remote" | "onsite" | ""
   location?: string;
   salaryMin?: string;
@@ -141,6 +146,7 @@ export async function listActiveJobsWithCompany(filters: JobFilters = {}) {
     if (filters.company && !j.company_name.toLowerCase().includes(filters.company.toLowerCase())) return false;
     if (filters.category && j.category !== filters.category) return false;
     if (filters.employmentType && j.employment_type !== filters.employmentType) return false;
+    if (filters.experienceLevel && j.experience_level !== filters.experienceLevel) return false;
     if (filters.remote === "remote" && !j.remote) return false;
     if (filters.remote === "onsite" && j.remote) return false;
     if (filters.location && !j.location.toLowerCase().includes(filters.location.toLowerCase())) return false;
@@ -171,9 +177,10 @@ export async function createJob(
 ) {
   const rows = await sql`
     INSERT INTO jobs
-      (company_user_id, title, category, employment_type, location, remote, salary_min, salary_max, skills, description)
+      (company_user_id, title, category, employment_type, location, remote, salary_min, salary_max, skills, description, experience_level, languages)
     VALUES (${companyUserId}, ${data.title}, ${data.category}, ${data.employment_type}, ${data.location},
-            ${data.remote}, ${data.salary_min}, ${data.salary_max}, ${data.skills}, ${data.description})
+            ${data.remote}, ${data.salary_min}, ${data.salary_max}, ${data.skills}, ${data.description},
+            ${data.experience_level}, ${data.languages})
     RETURNING id
   `;
   return Number(rows[0].id);
@@ -193,7 +200,8 @@ export async function updateJob(
   await sql`
     UPDATE jobs SET title=${m.title}, category=${m.category}, employment_type=${m.employment_type},
       location=${m.location}, remote=${m.remote}, salary_min=${m.salary_min}, salary_max=${m.salary_max},
-      skills=${m.skills}, description=${m.description}, active=${m.active}
+      skills=${m.skills}, description=${m.description}, active=${m.active},
+      experience_level=${m.experience_level}, languages=${m.languages}
     WHERE id=${jobId} AND company_user_id=${companyUserId}
   `;
 }
@@ -284,7 +292,8 @@ export async function listApplicationsForJob(jobId: number, companyUserId: numbe
 export async function getApplicationContext(applicationId: number) {
   const rows = (await sql`
     SELECT applications.*, jobs.title as job_title, jobs.company_user_id as company_user_id,
-      company_profiles.name as company_name, candidate_profiles.name as candidate_name
+      company_profiles.name as company_name, company_profiles.recruiter_name as recruiter_name,
+      candidate_profiles.name as candidate_name, candidate_profiles.linkedin_url as candidate_linkedin_url
     FROM applications
     JOIN jobs ON jobs.id = applications.job_id
     JOIN company_profiles ON company_profiles.user_id = jobs.company_user_id
@@ -348,7 +357,7 @@ export type Experience = {
 export async function listExperiences(userId: number): Promise<Experience[]> {
   return (await sql`
     SELECT * FROM candidate_experiences WHERE user_id = ${userId}
-    ORDER BY (end_year IS NULL) DESC, start_year ASC
+    ORDER BY (end_year IS NULL) DESC, COALESCE(end_year, 9999) DESC, start_year DESC
   `) as Experience[];
 }
 
@@ -371,6 +380,65 @@ export async function addExperience(
 
 export async function deleteExperience(id: number, userId: number) {
   await sql`DELETE FROM candidate_experiences WHERE id = ${id} AND user_id = ${userId}`;
+}
+
+// ---------- Email verification ----------
+export async function createEmailVerification(userId: number): Promise<string> {
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await sql`
+    INSERT INTO email_verifications (user_id, token, expires_at) VALUES (${userId}, ${token}, ${expiresAt})
+  `;
+  return token;
+}
+
+export async function verifyEmailToken(token: string): Promise<{ ok: boolean; userId?: number }> {
+  const rows = (await sql`
+    SELECT * FROM email_verifications WHERE token = ${token} AND used = 0
+  `) as { id: number; user_id: number; expires_at: string }[];
+  const row = rows[0];
+  if (!row) return { ok: false };
+  if (new Date(row.expires_at).getTime() < Date.now()) return { ok: false };
+
+  await sql`UPDATE email_verifications SET used = 1 WHERE id = ${row.id}`;
+  await sql`UPDATE users SET email_verified = 1 WHERE id = ${row.user_id}`;
+  return { ok: true, userId: row.user_id };
+}
+
+export async function isEmailVerified(userId: number): Promise<boolean> {
+  const rows = (await sql`SELECT email_verified FROM users WHERE id = ${userId}`) as { email_verified: number }[];
+  return !!rows[0]?.email_verified;
+}
+
+// ---------- Password reset (emailed OTP) ----------
+export async function createPasswordResetOtp(userId: number): Promise<string> {
+  const otp = String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  await sql`
+    INSERT INTO password_resets (user_id, otp_code, expires_at) VALUES (${userId}, ${otp}, ${expiresAt})
+  `;
+  return otp;
+}
+
+export async function verifyPasswordResetOtp(
+  email: string,
+  otp: string
+): Promise<{ ok: boolean; userId?: number }> {
+  const userRows = (await sql`SELECT id FROM users WHERE email = ${email}`) as { id: number }[];
+  const user = userRows[0];
+  if (!user) return { ok: false };
+
+  const rows = (await sql`
+    SELECT * FROM password_resets
+    WHERE user_id = ${user.id} AND otp_code = ${otp} AND used = 0
+    ORDER BY created_at DESC LIMIT 1
+  `) as { id: number; expires_at: string }[];
+  const row = rows[0];
+  if (!row) return { ok: false };
+  if (new Date(row.expires_at).getTime() < Date.now()) return { ok: false };
+
+  await sql`UPDATE password_resets SET used = 1 WHERE id = ${row.id}`;
+  return { ok: true, userId: user.id };
 }
 
 // ---------- Unread conversation counts (for nav badges) ----------

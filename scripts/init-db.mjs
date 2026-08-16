@@ -136,6 +136,45 @@ async function main() {
   `;
 
   console.log("Done. All tables created (or already existed).");
+
+  console.log("Applying migrations for new columns/tables...");
+
+  // New optional fields on jobs
+  await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS experience_level TEXT`;
+  await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS languages TEXT NOT NULL DEFAULT '[]'`;
+
+  // Candidate language skills
+  await sql`ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS languages TEXT NOT NULL DEFAULT '[]'`;
+
+  // Recruiter's own name, separate from the company name
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS recruiter_name TEXT NOT NULL DEFAULT ''`;
+
+  // Email verification
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER NOT NULL DEFAULT 0`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+
+  // Password reset via emailed OTP
+  await sql`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      otp_code TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+
+  console.log("Done. All migrations applied.");
 }
 
 main().catch((err) => {

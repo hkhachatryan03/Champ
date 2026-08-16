@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { updateCompanyProfile } from "@/lib/queries";
+import { updateCompanyProfile, isEmailVerified } from "@/lib/queries";
 import { redirect } from "next/navigation";
 
 async function saveCompanyAction(formData: FormData) {
@@ -8,15 +8,17 @@ async function saveCompanyAction(formData: FormData) {
   if (!session || session.role !== "company") redirect("/login");
 
   const name = String(formData.get("name") || "").trim();
+  const recruiterName = String(formData.get("recruiterName") || "").trim();
   const website = String(formData.get("website") || "").trim();
   const about = String(formData.get("about") || "").trim();
 
-  if (!name || !website || !about) {
+  if (!name || !recruiterName || !website || !about) {
     redirect("/company/onboarding?error=1");
   }
 
   await updateCompanyProfile(session.userId, {
     name,
+    recruiter_name: recruiterName,
     industry: String(formData.get("industry") || ""),
     size: String(formData.get("size") || ""),
     website,
@@ -34,6 +36,9 @@ export default async function CompanyOnboarding({
 }) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
+  if (process.env.RESEND_API_KEY && !(await isEmailVerified(session.userId))) {
+    redirect("/verify-email-pending");
+  }
   const { error } = await searchParams;
 
   return (
@@ -46,10 +51,15 @@ export default async function CompanyOnboarding({
       </p>
       {error && (
         <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-          Please fill in company name, website/LinkedIn, and a short about-us.
+          Please fill in your name, company name, website/LinkedIn, and a short about-us.
         </div>
       )}
       <form action={saveCompanyAction} className="flex flex-col gap-4">
+        <div>
+          <label className="text-xs font-medium text-muted">Your name (the recruiter)</label>
+          <input name="recruiterName" required placeholder="e.g. Anna Petrosyan" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <p className="text-xs text-muted mt-1">Shown to candidates so they know who they're talking to — useful if your company has more than one recruiter.</p>
+        </div>
         <div>
           <label className="text-xs font-medium text-muted">Company name</label>
           <input name="name" required placeholder="Lusar Labs" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />

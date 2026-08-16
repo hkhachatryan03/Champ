@@ -31,14 +31,19 @@ async function loginAction(formData: FormData) {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; reset?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, reset } = await searchParams;
 
   return (
     <div className="px-6 py-12 max-w-md mx-auto">
       <h1 className="font-display font-semibold text-2xl">Log in</h1>
 
+      {reset === "1" && (
+        <div className="mt-4 mb-2 text-sm text-moss bg-moss/10 rounded-lg px-3 py-2">
+          Password reset — log in with your new password.
+        </div>
+      )}
       {error === "session" && (
         <div className="mt-4 mb-2 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
           Your session pointed to an account that no longer exists (likely the database was reset) — please log in again.
@@ -63,7 +68,7 @@ export default async function LoginPage({
         <div>
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-muted">Password</label>
-            <Link href="/contact" className="text-xs underline text-muted">
+            <Link href="/forgot-password" className="text-xs underline text-muted">
               Forgot password?
             </Link>
           </div>

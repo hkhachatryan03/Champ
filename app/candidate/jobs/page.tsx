@@ -35,6 +35,13 @@ export default async function BrowseJobsPage({
           <option>Full-time</option>
           <option>Part-time</option>
         </select>
+        <select name="experienceLevel" defaultValue={filters.experienceLevel || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
+          <option value="">Experience — any</option>
+          <option>Junior</option>
+          <option>Mid</option>
+          <option>Senior</option>
+          <option>Lead</option>
+        </select>
         <select name="remote" defaultValue={filters.remote || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
           <option value="">Remote / on-site — any</option>
           <option value="remote">Remote</option>
@@ -77,6 +84,7 @@ export default async function BrowseJobsPage({
             <div className="mt-3 flex flex-wrap gap-1.5">
               <Tag tone="moss">{job.category}</Tag>
               <Tag>{job.employment_type}</Tag>
+              {job.experience_level && <Tag>{job.experience_level}</Tag>}
               {!!job.remote && <Tag tone="moss">Remote</Tag>}
               {parseSkills(job.skills).map((t) => (
                 <Tag key={t}>{t}</Tag>

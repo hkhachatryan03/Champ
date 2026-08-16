@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getCandidateProfile, updateCandidateProfile, listExperiences, addExperience, deleteExperience } from "@/lib/queries";
+import { getCandidateProfile, updateCandidateProfile, listExperiences, addExperience, deleteExperience, isEmailVerified } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
@@ -19,13 +19,19 @@ async function uploadCvAction(formData: FormData) {
 
   const buffer = Buffer.from(await cvFile!.arrayBuffer());
   const safeName = `cv/${session.userId}_${Date.now()}_${cvFile!.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
-  const blob = await put(safeName, buffer, { access: "public", contentType: "application/pdf" });
+  let blob;
+  try {
+    blob = await put(safeName, buffer, { access: "public", contentType: "application/pdf" });
+  } catch (err) {
+    console.error("Blob upload failed:", err);
+    redirect("/candidate/onboarding?method=cv&error=uploadfailed");
+  }
 
   const text = await extractTextFromPdf(buffer);
   const guessedName = guessName(text, cvFile!.name);
 
   await updateCandidateProfile(session.userId, {
-    cv_filename: blob.url,
+    cv_filename: blob!.url,
     ...(guessedName ? { name: guessedName } : {}),
   });
 
@@ -92,8 +98,16 @@ async function completeProfileAction(formData: FormData) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const languages = String(formData.get("languages") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const salaryMin = Number(formData.get("salaryMin") || 0);
   const salaryMax = Number(formData.get("salaryMax") || 0);
+  const method = String(formData.get("method") || "manual");
+  if (salaryMax < salaryMin) {
+    redirect(`/candidate/onboarding?method=${method}&step=details&error=salary`);
+  }
   const remoteOk = formData.get("remoteOk") ? 1 : 0;
   const about = String(formData.get("about") || "");
 
@@ -102,6 +116,7 @@ async function completeProfileAction(formData: FormData) {
     title,
     years_experience: years,
     skills: JSON.stringify(skills),
+    languages: JSON.stringify(languages),
     salary_min: salaryMin,
     salary_max: salaryMax,
     remote_ok: remoteOk,
@@ -119,6 +134,9 @@ export default async function CandidateOnboarding({
 }) {
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
+  if (process.env.RESEND_API_KEY && !(await isEmailVerified(session.userId))) {
+    redirect("/verify-email-pending");
+  }
   const { method, step, error, expError } = await searchParams;
   const profile = await getCandidateProfile(session.userId);
 
@@ -146,7 +164,7 @@ export default async function CandidateOnboarding({
   }
 
   // --- Screen 2a: CV upload (before it's attached) ---
-  if (method === "cv" && !profile.cv_filename) {
+  if (method === "cv" && !profile.cv_filename && step !== "details") {
     return (
       <div className="px-6 py-10 max-w-lg mx-auto">
         <a href="/candidate/onboarding" className="text-sm text-muted">← Change method</a>
@@ -160,12 +178,22 @@ export default async function CandidateOnboarding({
             Please choose a PDF file first.
           </div>
         )}
+        {error === "uploadfailed" && (
+          <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+            Something went wrong uploading your CV — this usually means file storage isn't
+            configured yet on this deployment. You can still finish your profile now and
+            add your CV later from &quot;My profile.&quot;
+          </div>
+        )}
         <form action={uploadCvAction} encType="multipart/form-data" className="flex flex-col gap-4">
           <input name="cv" type="file" accept="application/pdf" required className="file-input w-full text-sm" />
           <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
             Upload & continue
           </button>
         </form>
+        <a href="/candidate/onboarding?method=cv&step=details" className="text-xs text-muted underline mt-4 inline-block">
+          Skip for now, I'll add my CV later
+        </a>
       </div>
     );
   }
@@ -255,6 +283,11 @@ export default async function CandidateOnboarding({
       </form>
 
       <h2 className="font-display font-semibold text-lg mb-3">Your details</h2>
+      {error === "salary" && (
+        <div className="mb-3 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+          Max salary needs to be greater than or equal to min salary.
+        </div>
+      )}
       <form action={completeProfileAction} className="flex flex-col gap-4">
         <div>
           <label className="text-xs font-medium text-muted">Full name</label>
@@ -271,6 +304,11 @@ export default async function CandidateOnboarding({
         <div>
           <label className="text-xs font-medium text-muted">Skills (comma separated)</label>
           <input name="skills" defaultValue={JSON.parse(profile.skills || "[]").join(", ")} placeholder="React, TypeScript, CSS" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Languages (optional)</label>
+          <input name="languages" defaultValue={JSON.parse(profile.languages || "[]").join(", ")} placeholder="English:C1, Russian:Native" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <p className="text-xs text-muted mt-1">Format: Language:Level, separated by commas.</p>
         </div>
         <div className="flex gap-3">
           <div className="flex-1">

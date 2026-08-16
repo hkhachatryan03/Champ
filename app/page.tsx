@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { getLandingStats } from "@/lib/queries";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
@@ -8,8 +7,6 @@ export default async function Home() {
   if (session) {
     redirect(session.role === "candidate" ? "/candidate/jobs" : "/company/dashboard");
   }
-
-  const stats = await getLandingStats();
 
   return (
     <div>
@@ -46,29 +43,6 @@ export default async function Home() {
               Log in
             </Link>
           </p>
-
-          {(stats.activeJobs > 0 || stats.activeCandidates > 0 || stats.companies > 0) && (
-            <div className="mt-14 flex gap-8 font-mono-num text-sm text-paper/50">
-              {stats.activeJobs > 0 && (
-                <div>
-                  <div className="text-apricot text-2xl">{stats.activeJobs}</div>
-                  open roles right now
-                </div>
-              )}
-              {stats.activeCandidates > 0 && (
-                <div>
-                  <div className="text-apricot text-2xl">{stats.activeCandidates}</div>
-                  candidates actively looking
-                </div>
-              )}
-              {stats.companies > 0 && (
-                <div>
-                  <div className="text-apricot text-2xl">{stats.companies}</div>
-                  companies on the platform
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
