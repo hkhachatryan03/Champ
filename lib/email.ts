@@ -38,6 +38,31 @@ export async function sendVerificationEmail(to: string, verifyUrl: string) {
   return { ok: true };
 }
 
+export async function sendProfileReminderEmail(to: string, role: "candidate" | "company") {
+  const resend = getResendClient();
+  if (!resend) {
+    console.error("RESEND_API_KEY not set — cannot send reminder email.");
+    return { ok: false };
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const link = role === "candidate" ? `${baseUrl}/candidate/onboarding` : `${baseUrl}/company/onboarding`;
+  const { error } = await resend.emails.send({
+    from: "Champ <onboarding@resend.dev>",
+    to,
+    subject: "Finish setting up your Champ profile",
+    html: `
+      <p>You started signing up for Champ but haven't finished your profile yet.</p>
+      <p><a href="${link}">Finish setting up my profile</a></p>
+      <p>It only takes a couple of minutes — and ${role === "candidate" ? "companies can't find you until it's done" : "you can't post roles until it's done"}.</p>
+    `,
+  });
+  if (error) {
+    console.error("Failed to send reminder email:", error);
+    return { ok: false };
+  }
+  return { ok: true };
+}
+
 export async function sendPasswordResetOtp(to: string, otp: string) {
   const resend = getResendClient();
   if (!resend) {

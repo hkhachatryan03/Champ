@@ -6,7 +6,7 @@ import Link from "next/link";
 import { StatusPill } from "@/components/ui";
 import StatusPieChart from "@/components/StatusPieChart";
 
-const STATUSES = ["New", "Interviewing", "Offer", "Not moving forward"];
+const STATUSES = ["New", "Interviewing", "Offer", "Hired", "Not moving forward"];
 
 export default async function MyApplicationsPage({
   searchParams,
@@ -56,18 +56,28 @@ export default async function MyApplicationsPage({
 
       <div className="flex flex-col gap-3">
         {apps.map((a) => (
-          <Link key={a.id} href={`/thread/${a.id}`} className="p-4 rounded-xl border border-line bg-white flex items-center justify-between">
-            <div>
-              <div className="font-display font-semibold text-base">{a.job_title}</div>
+          <div key={a.id} className="p-4 rounded-xl border border-line bg-white flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <Link href={`/candidate/jobs/${a.job_id}`} className="font-display font-semibold text-base hover:underline">
+                {a.job_title}
+              </Link>
               <div className="text-xs text-muted mt-0.5">
-                {a.company_name} · last activity {a.last_message_at || a.created_at}
+                <Link href={`/companies/${a.company_user_id}`} className="hover:underline">
+                  {a.company_name}
+                </Link>
+                {" · last activity "}{a.last_message_at || a.created_at}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {a.unread_count > 0 && <span className="w-2 h-2 rounded-full bg-apricot" />}
-              <StatusPill status={a.status} />
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                {a.unread_count > 0 && <span className="w-2 h-2 rounded-full bg-apricot" />}
+                <StatusPill status={a.status} />
+              </div>
+              <Link href={`/thread/${a.id}`} prefetch={false} className="text-xs underline text-apricot-deep whitespace-nowrap">
+                Open chat
+              </Link>
             </div>
-          </Link>
+          </div>
         ))}
         {apps.length === 0 && (
           <p className="text-sm text-center py-10 text-muted">

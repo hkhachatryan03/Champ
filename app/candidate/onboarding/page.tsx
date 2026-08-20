@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
+import ClearableFileInput from "@/components/ClearableFileInput";
 
 // --- Step A actions: capture the CV or LinkedIn URL, then move to step B ---
 
@@ -134,11 +135,11 @@ export default async function CandidateOnboarding({
 }) {
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
-  if (process.env.RESEND_API_KEY && !(await isEmailVerified(session.userId))) {
-    redirect("/verify-email-pending");
-  }
   const { method, step, error, expError } = await searchParams;
   const profile = await getCandidateProfile(session.userId);
+  if (!profile.onboarded && process.env.RESEND_API_KEY && !(await isEmailVerified(session.userId))) {
+    redirect("/verify-email-pending");
+  }
 
   // --- Screen 1: pick a method ---
   if (!method) {
@@ -186,7 +187,7 @@ export default async function CandidateOnboarding({
           </div>
         )}
         <form action={uploadCvAction} encType="multipart/form-data" className="flex flex-col gap-4">
-          <input name="cv" type="file" accept="application/pdf" required className="file-input w-full text-sm" />
+          <ClearableFileInput name="cv" required />
           <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
             Upload & continue
           </button>
@@ -229,7 +230,8 @@ export default async function CandidateOnboarding({
   const experiences = await listExperiences(session.userId);
   return (
     <div className="px-6 py-10 max-w-lg mx-auto">
-      <h1 className="font-display font-semibold text-2xl">Complete your profile</h1>
+      <a href="/candidate/onboarding" className="text-sm text-muted">← Change method</a>
+      <h1 className="font-display font-semibold text-2xl mt-3">Complete your profile</h1>
       <p className="text-sm text-muted mt-1 mb-6">
         {cameFromImport
           ? "We've filled in what we could — please check it and add anything missing."

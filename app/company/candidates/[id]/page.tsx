@@ -32,7 +32,7 @@ async function inviteAction(formData: FormData) {
     redirect(`/thread/${existing.id}`);
   }
 
-  const applicationId = await createApplication(jobId, candidateUserId, "", null, null);
+  const applicationId = await createApplication(jobId, candidateUserId, "", null, null, "pending");
   if (message) {
     await sendMessage(applicationId, "company", message);
   }

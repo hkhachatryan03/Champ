@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { Ledger, Tag } from "@/components/ui";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
+import ClearableFileInput from "@/components/ClearableFileInput";
 
 async function toggleActiveAction(formData: FormData) {
   "use server";
@@ -263,7 +264,7 @@ export default async function CandidateProfilePage({
         )}
         <div>
           <label className="text-xs font-medium text-muted">Replace CV (PDF)</label>
-          <input name="cv" type="file" accept="application/pdf" className="file-input w-full mt-1 text-sm" />
+          <ClearableFileInput name="cv" />
         </div>
         <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
           Save changes

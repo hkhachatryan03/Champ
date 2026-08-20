@@ -54,7 +54,8 @@ export type Application = {
   cover_note: string;
   cv_filename: string | null;
   expected_salary: number | null;
-  status: "New" | "Interviewing" | "Offer" | "Not moving forward";
+  status: "New" | "Interviewing" | "Offer" | "Hired" | "Not moving forward";
+  invite_status: "pending" | "accepted" | "declined" | null;
   created_at: string;
   updated_at: string;
 };
@@ -165,6 +166,12 @@ export async function getJobWithCompany(jobId: number) {
   return rows[0] as (Job & { company_name: string; company_verified: number }) | undefined;
 }
 
+export async function listActiveJobsForCompanyPublic(companyUserId: number) {
+  return (await sql`
+    SELECT * FROM jobs WHERE company_user_id = ${companyUserId} AND active = 1 ORDER BY created_at DESC
+  `) as Job[];
+}
+
 export async function listJobsForCompany(companyUserId: number) {
   return (await sql`
     SELECT * FROM jobs WHERE company_user_id = ${companyUserId} ORDER BY created_at DESC
@@ -239,19 +246,25 @@ export async function createApplication(
   candidateUserId: number,
   coverNote: string,
   cvFilename: string | null,
-  expectedSalary: number | null
+  expectedSalary: number | null,
+  inviteStatus: "pending" | null = null
 ) {
   const rows = await sql`
-    INSERT INTO applications (job_id, candidate_user_id, cover_note, cv_filename, expected_salary)
-    VALUES (${jobId}, ${candidateUserId}, ${coverNote}, ${cvFilename}, ${expectedSalary})
+    INSERT INTO applications (job_id, candidate_user_id, cover_note, cv_filename, expected_salary, invite_status)
+    VALUES (${jobId}, ${candidateUserId}, ${coverNote}, ${cvFilename}, ${expectedSalary}, ${inviteStatus})
     RETURNING id
   `;
   return Number(rows[0].id);
 }
 
+export async function updateInviteStatus(applicationId: number, inviteStatus: "accepted" | "declined") {
+  await sql`UPDATE applications SET invite_status = ${inviteStatus} WHERE id = ${applicationId}`;
+}
+
 export async function listApplicationsForCandidate(candidateUserId: number) {
   return (await sql`
-    SELECT applications.*, jobs.title as job_title, company_profiles.name as company_name,
+    SELECT applications.*, jobs.title as job_title, jobs.company_user_id as company_user_id,
+      company_profiles.name as company_name,
       (SELECT COUNT(*) FROM messages m WHERE m.application_id = applications.id AND m.sender_role = 'company' AND m.read_at IS NULL) as unread_count,
       (SELECT MAX(created_at) FROM messages m WHERE m.application_id = applications.id) as last_message_at
     FROM applications
@@ -307,6 +320,13 @@ export async function updateApplicationStatus(applicationId: number, status: str
   await sql`
     UPDATE applications SET status = ${status}, updated_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
     WHERE id = ${applicationId}
+  `;
+}
+
+export async function closeJobForApplication(applicationId: number) {
+  await sql`
+    UPDATE jobs SET active = 0
+    WHERE id = (SELECT job_id FROM applications WHERE id = ${applicationId})
   `;
 }
 
@@ -439,6 +459,31 @@ export async function verifyPasswordResetOtp(
 
   await sql`UPDATE password_resets SET used = 1 WHERE id = ${row.id}`;
   return { ok: true, userId: user.id };
+}
+
+// ---------- Incomplete-profile reminders ----------
+export async function findIncompleteSignupsNeedingReminder(): Promise<
+  { id: number; email: string; role: "candidate" | "company" }[]
+> {
+  const candidateRows = (await sql`
+    SELECT users.id, users.email, users.role FROM users
+    JOIN candidate_profiles ON candidate_profiles.user_id = users.id
+    WHERE users.role = 'candidate' AND users.reminder_sent = 0 AND candidate_profiles.onboarded = 0
+      AND users.created_at::timestamp < (now() - interval '2 hours')
+  `) as { id: number; email: string; role: "candidate" | "company" }[];
+
+  const companyRows = (await sql`
+    SELECT users.id, users.email, users.role FROM users
+    JOIN company_profiles ON company_profiles.user_id = users.id
+    WHERE users.role = 'company' AND users.reminder_sent = 0 AND company_profiles.onboarded = 0
+      AND users.created_at::timestamp < (now() - interval '2 hours')
+  `) as { id: number; email: string; role: "candidate" | "company" }[];
+
+  return [...candidateRows, ...companyRows];
+}
+
+export async function markReminderSent(userId: number) {
+  await sql`UPDATE users SET reminder_sent = 1 WHERE id = ${userId}`;
 }
 
 // ---------- Unread conversation counts (for nav badges) ----------

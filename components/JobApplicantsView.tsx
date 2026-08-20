@@ -12,11 +12,12 @@ type Applicant = {
   updated_at: string;
 };
 
-const STATUSES = ["New", "Interviewing", "Offer", "Not moving forward"];
+const STATUSES = ["New", "Interviewing", "Offer", "Hired", "Not moving forward"];
 const COLORS: Record<string, string> = {
   New: "#B98B7C",
   Interviewing: "#C97D1B",
   Offer: "#5C7A5E",
+  Hired: "#3F5B41",
   "Not moving forward": "#726A5B",
 };
 
@@ -71,6 +72,7 @@ export default function JobApplicantsView({ applicants }: { applicants: Applican
           <Link
             key={a.id}
             href={`/thread/${a.id}`}
+            prefetch={false}
             className="p-4 rounded-xl border border-line bg-white flex items-center justify-between"
           >
             <div>

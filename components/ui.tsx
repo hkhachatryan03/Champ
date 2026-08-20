@@ -43,6 +43,7 @@ const STATUS_STYLES: Record<string, string> = {
   New: "bg-stone/15 text-stone",
   Interviewing: "bg-apricot/15 text-apricot-deep",
   Offer: "bg-moss/15 text-moss",
+  Hired: "bg-moss/25 text-moss",
   "Not moving forward": "bg-ink/8 text-muted",
 };
 

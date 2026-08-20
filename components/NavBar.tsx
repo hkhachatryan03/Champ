@@ -89,6 +89,7 @@ export default async function NavBar() {
             <Link
               key={href}
               href={href}
+              prefetch={false}
               className="text-sm py-3 text-paper/85 font-medium whitespace-nowrap hover:text-apricot flex items-center"
             >
               {label}

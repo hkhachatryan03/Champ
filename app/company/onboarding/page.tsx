@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { updateCompanyProfile, isEmailVerified } from "@/lib/queries";
+import { updateCompanyProfile, isEmailVerified, getCompanyProfile } from "@/lib/queries";
 import { redirect } from "next/navigation";
 
 async function saveCompanyAction(formData: FormData) {
@@ -36,7 +36,8 @@ export default async function CompanyOnboarding({
 }) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
-  if (process.env.RESEND_API_KEY && !(await isEmailVerified(session.userId))) {
+  const existingProfile = await getCompanyProfile(session.userId);
+  if (!existingProfile.onboarded && process.env.RESEND_API_KEY && !(await isEmailVerified(session.userId))) {
     redirect("/verify-email-pending");
   }
   const { error } = await searchParams;

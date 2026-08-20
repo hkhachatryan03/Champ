@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Ledger, Tag } from "@/components/ui";
 import { put } from "@vercel/blob";
 import Link from "next/link";
+import ClearableFileInput from "@/components/ClearableFileInput";
 
 async function applyAction(formData: FormData) {
   "use server";
@@ -72,7 +73,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         <h1 className="font-display font-semibold text-3xl">{job.title}</h1>
       </div>
       <p className="text-sm text-muted mt-1">
-        {job.company_name} · {job.location} · {job.created_at}
+        <Link href={`/companies/${job.company_user_id}`} className="underline hover:text-ink">{job.company_name}</Link> · {job.location} · {job.created_at}
       </p>
       <div className="mt-6 p-4 rounded-lg bg-paper-dim">
         <Ledger min={job.salary_min} max={job.salary_max} />
@@ -145,7 +146,7 @@ async function ApplyBlock({
           No CV on your profile yet — attach one here if you&apos;d like, or apply without one.
         </p>
       )}
-      <input name="cv" type="file" accept="application/pdf" className="file-input w-full mt-2 text-sm" />
+      <ClearableFileInput name="cv" />
 
       <button type="submit" className="mt-4 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink">
         Apply & message {job!.company_name}

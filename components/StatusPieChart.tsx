@@ -7,6 +7,7 @@ const COLORS: Record<string, string> = {
   New: "#B98B7C",
   Interviewing: "#C97D1B",
   Offer: "#5C7A5E",
+  Hired: "#3F5B41",
   "Not moving forward": "#726A5B",
 };
 

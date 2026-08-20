@@ -175,6 +175,24 @@ async function main() {
   `;
 
   console.log("Done. All migrations applied.");
+
+  console.log("Applying second round of migrations (invite flow, Hired status)...");
+
+  await sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS invite_status TEXT`;
+
+  // Widen the status CHECK constraint to allow "Hired". Postgres auto-names
+  // this constraint applications_status_check by default.
+  await sql`ALTER TABLE applications DROP CONSTRAINT IF EXISTS applications_status_check`;
+  await sql`
+    ALTER TABLE applications ADD CONSTRAINT applications_status_check
+    CHECK (status IN ('New','Interviewing','Offer','Hired','Not moving forward'))
+  `;
+
+  console.log("Done. Second round of migrations applied.");
+
+  console.log("Applying third round of migrations (incomplete-profile reminders)...");
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_sent INTEGER NOT NULL DEFAULT 0`;
+  console.log("Done. Third round of migrations applied.");
 }
 
 main().catch((err) => {

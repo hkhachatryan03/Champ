@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { StatusPill } from "@/components/ui";
 
-const STATUSES = ["New", "Interviewing", "Offer", "Not moving forward"];
+const STATUSES = ["New", "Interviewing", "Offer", "Hired", "Not moving forward"];
 
 export default async function InboxPage({
   searchParams,
@@ -74,7 +74,7 @@ export default async function InboxPage({
       </div>
       <div className="flex flex-col gap-3">
         {filtered.map((a) => (
-          <Link key={a.id} href={`/thread/${a.id}`} className="p-4 rounded-xl border border-line bg-white flex items-center justify-between">
+          <Link key={a.id} href={`/thread/${a.id}`} prefetch={false} className="p-4 rounded-xl border border-line bg-white flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium bg-paper-dim relative">
                 {a.candidate_name?.slice(0, 2).toUpperCase() || "?"}
