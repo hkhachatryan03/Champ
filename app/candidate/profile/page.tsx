@@ -7,6 +7,10 @@ import { Ledger, Tag } from "@/components/ui";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
 import ClearableFileInput from "@/components/ClearableFileInput";
+import TagPicker from "@/components/TagPicker";
+import LanguagePicker from "@/components/LanguagePicker";
+import LocationSelect from "@/components/LocationSelect";
+import { COMMON_SKILLS } from "@/lib/constants";
 
 async function toggleActiveAction(formData: FormData) {
   "use server";
@@ -66,8 +70,10 @@ async function saveProfileAction(formData: FormData) {
   const remoteOk = formData.get("remoteOk") ? 1 : 0;
   const about = String(formData.get("about") || "");
   const linkedinUrl = String(formData.get("linkedinUrl") || "").trim();
+  const location = String(formData.get("location") || "");
+  const birthdate = String(formData.get("birthdate") || "").trim() || null;
 
-  let cvUpdate: { cv_filename?: string; name?: string } = {};
+  let cvUpdate: { cv_filename?: string; name?: string; avatar_url?: string } = {};
   const cvFile = formData.get("cv") as File | null;
   if (cvFile && cvFile.size > 0) {
     const buffer = Buffer.from(await cvFile.arrayBuffer());
@@ -87,6 +93,17 @@ async function saveProfileAction(formData: FormData) {
       if (guessed) cvUpdate.name = guessed;
     }
   }
+  const avatarFile = formData.get("avatar") as File | null;
+  if (avatarFile && avatarFile.size > 0) {
+    try {
+      const buffer = Buffer.from(await avatarFile.arrayBuffer());
+      const safeName = `avatar/${session.userId}_${Date.now()}_${avatarFile.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
+      const blob = await put(safeName, buffer, { access: "public", contentType: avatarFile.type || "image/jpeg" });
+      cvUpdate.avatar_url = blob.url;
+    } catch (err) {
+      console.error("Blob upload failed:", err);
+    }
+  }
   if (!name && !cvUpdate.name && linkedinUrl) {
     const guessed = guessNameFromLinkedinUrl(linkedinUrl);
     if (guessed) cvUpdate.name = guessed;
@@ -98,6 +115,8 @@ async function saveProfileAction(formData: FormData) {
     years_experience: years,
     skills: JSON.stringify(skills),
     languages: JSON.stringify(languages),
+    location,
+    birthdate,
     salary_min: salaryMin,
     salary_max: salaryMax,
     remote_ok: remoteOk,
@@ -148,8 +167,21 @@ export default async function CandidateProfilePage({
       </div>
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white">
-        <div className="font-display font-semibold text-lg">{profile.name || "(no name yet)"}</div>
-        <div className="text-sm text-muted">{profile.title} · {profile.years_experience} yrs experience</div>
+        <div className="flex items-center gap-3">
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-paper-dim flex items-center justify-center text-muted text-xs">
+              No photo
+            </div>
+          )}
+          <div>
+            <div className="font-display font-semibold text-lg">{profile.name || "(no name yet)"}</div>
+            <div className="text-sm text-muted">{profile.title} · {profile.years_experience} yrs experience</div>
+          </div>
+        </div>
+        {profile.location && <p className="text-sm text-muted mt-2">📍 {profile.location}</p>}
         <div className="mt-3 flex flex-wrap gap-1.5">
           {skills.map((s) => <Tag key={s}>{s}</Tag>)}
           {!!profile.remote_ok && <Tag tone="moss">Remote OK</Tag>}
@@ -222,12 +254,20 @@ export default async function CandidateProfilePage({
           <input name="years" type="number" defaultValue={profile.years_experience} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted">Skills (comma separated)</label>
-          <input name="skills" defaultValue={skills.join(", ")} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <label className="text-xs font-medium text-muted">Skills</label>
+          <div className="mt-1"><TagPicker name="skills" options={COMMON_SKILLS} initial={skills} /></div>
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Languages (optional)</label>
-          <input name="languages" defaultValue={JSON.parse(profile.languages || "[]").join(", ")} placeholder="English:C1, Russian:Native" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <div className="mt-1"><LanguagePicker name="languages" initial={JSON.parse(profile.languages || "[]")} /></div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Location</label>
+          <div className="mt-1"><LocationSelect name="location" defaultValue={profile.location} /></div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Date of birth (optional)</label>
+          <input name="birthdate" type="date" defaultValue={profile.birthdate || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
         {error === "salary" && (
           <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
@@ -265,6 +305,10 @@ export default async function CandidateProfilePage({
         <div>
           <label className="text-xs font-medium text-muted">Replace CV (PDF)</label>
           <ClearableFileInput name="cv" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Profile photo (optional)</label>
+          <ClearableFileInput name="avatar" accept="image/*" />
         </div>
         <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
           Save changes

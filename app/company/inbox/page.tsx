@@ -10,20 +10,23 @@ const STATUSES = ["New", "Interviewing", "Offer", "Hired", "Not moving forward"]
 export default async function InboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; status?: string }>;
+  searchParams: Promise<{ tab?: string; status?: string; job?: string }>;
 }) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
   await requireOnboardedCompany(session.userId);
 
-  const { tab = "all", status } = await searchParams;
+  const { tab = "all", status, job } = await searchParams;
   const all = await listApplicationsForCompany(session.userId);
   const filtered = all.filter((a) => {
     if (tab === "unread" && a.unread_count === 0) return false;
     if (tab === "unanswered" && a.company_reply_count > 0) return false;
     if (status && a.status !== status) return false;
+    if (job && String(a.job_id) !== job) return false;
     return true;
   });
+
+  const positions = Array.from(new Map(all.map((a) => [a.job_id, a.job_title])).entries());
 
   const tabs = [
     ["all", "All"],
@@ -31,11 +34,13 @@ export default async function InboxPage({
     ["unanswered", "Unanswered"],
   ];
 
-  const qs = (overrides: { tab?: string; status?: string }) => {
+  const qs = (overrides: { tab?: string; status?: string; job?: string }) => {
     const params = new URLSearchParams();
     params.set("tab", overrides.tab ?? tab);
     const s = "status" in overrides ? overrides.status : status;
     if (s) params.set("status", s);
+    const j = "job" in overrides ? overrides.job : job;
+    if (j) params.set("job", j);
     return `/company/inbox?${params.toString()}`;
   };
 
@@ -55,7 +60,7 @@ export default async function InboxPage({
           </Link>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="flex flex-wrap gap-2 mb-3">
         <Link
           href={qs({ status: undefined })}
           className={`text-xs px-3 py-1 rounded-full font-medium ${!status ? "bg-ink/80 text-paper" : "bg-paper-dim text-muted"}`}
@@ -72,6 +77,25 @@ export default async function InboxPage({
           </Link>
         ))}
       </div>
+      {positions.length > 1 && (
+        <div className="flex flex-wrap gap-2 mb-5">
+          <Link
+            href={qs({ job: undefined })}
+            className={`text-xs px-3 py-1 rounded-full font-medium ${!job ? "bg-ink/80 text-paper" : "bg-paper-dim text-muted"}`}
+          >
+            Any position
+          </Link>
+          {positions.map(([id, title]) => (
+            <Link
+              key={id}
+              href={qs({ job: String(id) })}
+              className={`text-xs px-3 py-1 rounded-full font-medium ${job === String(id) ? "bg-ink/80 text-paper" : "bg-paper-dim text-muted"}`}
+            >
+              {title}
+            </Link>
+          ))}
+        </div>
+      )}
       <div className="flex flex-col gap-3">
         {filtered.map((a) => (
           <Link key={a.id} href={`/thread/${a.id}`} prefetch={false} className="p-4 rounded-xl border border-line bg-white flex items-center justify-between">

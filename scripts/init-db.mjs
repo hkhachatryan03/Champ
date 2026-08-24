@@ -192,6 +192,11 @@ async function main() {
 
   console.log("Applying third round of migrations (incomplete-profile reminders)...");
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_sent INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS topic TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS location TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS birthdate TEXT`;
+  await sql`ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
   console.log("Done. Third round of migrations applied.");
 }
 

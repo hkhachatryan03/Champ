@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { Ledger, Tag } from "@/components/ui";
+import { ARMENIAN_LOCATIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
 
 export default async function BrowseJobsPage({
   searchParams,
@@ -14,7 +15,10 @@ export default async function BrowseJobsPage({
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
   await requireOnboardedCandidate(session.userId);
-  const jobs = await listActiveJobsWithCompany(filters);
+  const allJobs = await listActiveJobsWithCompany(filters);
+  const jobs = filters.language
+    ? allJobs.filter((j) => parseSkills(j.languages || "[]").some((l) => l.toLowerCase().startsWith(filters.language!.toLowerCase())))
+    : allJobs;
   const appliedIds = await getAppliedJobIds(session.userId);
 
   return (
@@ -47,7 +51,14 @@ export default async function BrowseJobsPage({
           <option value="remote">Remote</option>
           <option value="onsite">On-site</option>
         </select>
-        <input name="location" defaultValue={filters.location} placeholder="Location" className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white" />
+        <select name="location" defaultValue={filters.location || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
+          <option value="">Location — any</option>
+          {ARMENIAN_LOCATIONS.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+        </select>
+        <select name="language" defaultValue={filters.language || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
+          <option value="">Language — any</option>
+          {LANGUAGE_OPTIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+        </select>
         <input name="salaryMin" defaultValue={filters.salaryMin} type="number" placeholder="Min salary $" className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white font-mono-num" />
         <input name="salaryMax" defaultValue={filters.salaryMax} type="number" placeholder="Max salary $" className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white font-mono-num" />
         <button type="submit" className="col-span-2 md:col-span-4 mt-1 px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper">

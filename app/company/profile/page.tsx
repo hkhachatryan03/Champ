@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth";
 import { getCompanyProfile, updateCompanyProfile } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
+import { put } from "@vercel/blob";
+import ClearableFileInput from "@/components/ClearableFileInput";
 
 async function saveAction(formData: FormData) {
   "use server";
@@ -12,6 +14,20 @@ async function saveAction(formData: FormData) {
   const website = String(formData.get("website") || "").trim();
   const about = String(formData.get("about") || "").trim();
   if (!name || !recruiterName || !website || !about) redirect("/company/profile?error=1");
+
+  let avatarUpdate: { avatar_url?: string } = {};
+  const avatarFile = formData.get("avatar") as File | null;
+  if (avatarFile && avatarFile.size > 0) {
+    try {
+      const buffer = Buffer.from(await avatarFile.arrayBuffer());
+      const safeName = `avatar/${session.userId}_${Date.now()}_${avatarFile.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
+      const blob = await put(safeName, buffer, { access: "public", contentType: avatarFile.type || "image/jpeg" });
+      avatarUpdate.avatar_url = blob.url;
+    } catch (err) {
+      console.error("Blob upload failed:", err);
+    }
+  }
+
   await updateCompanyProfile(session.userId, {
     name,
     recruiter_name: recruiterName,
@@ -19,6 +35,7 @@ async function saveAction(formData: FormData) {
     size: String(formData.get("size") || ""),
     website,
     about,
+    ...avatarUpdate,
   });
   redirect("/company/profile");
 }
@@ -39,8 +56,18 @@ export default async function CompanyProfilePage({
       <h1 className="font-display font-semibold text-2xl">My profile</h1>
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white mb-8">
-        <div className="font-display font-semibold text-lg">{profile.name || "(unnamed company)"}</div>
-        {profile.recruiter_name && <div className="text-sm text-muted">Recruiter: {profile.recruiter_name}</div>}
+        <div className="flex items-center gap-3">
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-paper-dim flex items-center justify-center text-muted text-xs">
+              No logo
+            </div>
+          )}
+          <div className="font-display font-semibold text-lg">{profile.name || "(unnamed company)"}</div>
+        </div>
+        {profile.recruiter_name && <div className="text-sm text-muted mt-2">Recruiter: {profile.recruiter_name}</div>}
         <div className="text-sm text-muted mt-1">
           {profile.industry} {profile.industry && "·"} {profile.size} {profile.website && "· " + profile.website}
         </div>
@@ -69,7 +96,7 @@ export default async function CompanyProfilePage({
         </div>
       )}
 
-      <form action={saveAction} className="flex flex-col gap-4">
+      <form action={saveAction} encType="multipart/form-data" className="flex flex-col gap-4">
         <div>
           <label className="text-xs font-medium text-muted">Your name (the recruiter)</label>
           <input name="recruiterName" defaultValue={profile.recruiter_name} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
@@ -93,6 +120,10 @@ export default async function CompanyProfilePage({
         <div>
           <label className="text-xs font-medium text-muted">About us (required)</label>
           <textarea name="about" defaultValue={profile.about} required rows={3} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Company logo (optional)</label>
+          <ClearableFileInput name="avatar" accept="image/*" />
         </div>
         <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
           Save changes

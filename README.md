@@ -1,8 +1,23 @@
-# Champ — real codebase (v8, Postgres + Blob edition)
+# Champ — real codebase (v13)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
-logic, and real cloud file storage (Vercel Blob) for CVs.
+logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v13
+
+- Skill, language, and location pickers (searchable/dropdown instead of
+  free text) on job posting and candidate profiles
+- Profile photos for both candidates and companies
+- Candidate location and date of birth fields
+- Company inbox filter by position
+- Contact form auto-uses your account email and has role-specific topics
+- Fixed: status changes and job-form validation errors no longer require a
+  page refresh or wipe your typed data
+- Fixed: reminder-email cron job now runs daily (Vercel's free plan
+  doesn't allow more frequent schedules)
+- Fixed: email verification no longer applies retroactively to accounts
+  that already finished onboarding before the feature existed
 
 ## What changed in this version
 

@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
 import ClearableFileInput from "@/components/ClearableFileInput";
+import TagPicker from "@/components/TagPicker";
+import LanguagePicker from "@/components/LanguagePicker";
+import LocationSelect from "@/components/LocationSelect";
+import { COMMON_SKILLS } from "@/lib/constants";
 
 // --- Step A actions: capture the CV or LinkedIn URL, then move to step B ---
 
@@ -111,6 +115,8 @@ async function completeProfileAction(formData: FormData) {
   }
   const remoteOk = formData.get("remoteOk") ? 1 : 0;
   const about = String(formData.get("about") || "");
+  const location = String(formData.get("location") || "");
+  const birthdate = String(formData.get("birthdate") || "").trim() || null;
 
   await updateCandidateProfile(session.userId, {
     name,
@@ -118,6 +124,8 @@ async function completeProfileAction(formData: FormData) {
     years_experience: years,
     skills: JSON.stringify(skills),
     languages: JSON.stringify(languages),
+    location,
+    birthdate,
     salary_min: salaryMin,
     salary_max: salaryMax,
     remote_ok: remoteOk,
@@ -304,13 +312,20 @@ export default async function CandidateOnboarding({
           <input name="years" type="number" min={0} defaultValue={profile.years_experience || undefined} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted">Skills (comma separated)</label>
-          <input name="skills" defaultValue={JSON.parse(profile.skills || "[]").join(", ")} placeholder="React, TypeScript, CSS" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <label className="text-xs font-medium text-muted">Skills</label>
+          <div className="mt-1"><TagPicker name="skills" options={COMMON_SKILLS} initial={JSON.parse(profile.skills || "[]")} /></div>
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Languages (optional)</label>
-          <input name="languages" defaultValue={JSON.parse(profile.languages || "[]").join(", ")} placeholder="English:C1, Russian:Native" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-          <p className="text-xs text-muted mt-1">Format: Language:Level, separated by commas.</p>
+          <div className="mt-1"><LanguagePicker name="languages" initial={JSON.parse(profile.languages || "[]")} /></div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Location</label>
+          <div className="mt-1"><LocationSelect name="location" defaultValue={profile.location} required /></div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Date of birth (optional)</label>
+          <input name="birthdate" type="date" defaultValue={profile.birthdate || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
         <div className="flex gap-3">
           <div className="flex-1">

@@ -1,9 +1,19 @@
+"use client";
+
+import { useActionState } from "react";
+import TagPicker from "./TagPicker";
+import LanguagePicker from "./LanguagePicker";
+import LocationSelect from "./LocationSelect";
+import { COMMON_SKILLS } from "@/lib/constants";
+
+export type JobFormState = { error?: string } | null;
+
 export default function JobForm({
   action,
   defaults,
   isEdit,
 }: {
-  action: (formData: FormData) => void;
+  action: (prevState: JobFormState, formData: FormData) => Promise<JobFormState>;
   defaults?: {
     title?: string;
     category?: string;
@@ -21,8 +31,15 @@ export default function JobForm({
   isEdit?: boolean;
 }) {
   const d = defaults || {};
+  const [state, formAction, isPending] = useActionState<JobFormState, FormData>(action, null);
+
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-4">
+      {state?.error && (
+        <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+          {state.error}
+        </div>
+      )}
       <div>
         <label className="text-xs font-medium text-muted">Role title</label>
         <input name="title" defaultValue={d.title} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
@@ -56,20 +73,19 @@ export default function JobForm({
       <div className="flex gap-3 items-end">
         <div className="flex-1">
           <label className="text-xs font-medium text-muted">Location</label>
-          <input name="location" defaultValue={d.location} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <div className="mt-1"><LocationSelect name="location" defaultValue={d.location} required /></div>
         </div>
         <label className="flex items-center gap-2 text-sm pb-2">
           <input type="checkbox" name="remote" defaultChecked={!!d.remote} /> Remote OK
         </label>
       </div>
       <div>
-        <label className="text-xs font-medium text-muted">Key skills (comma separated, optional)</label>
-        <input name="skills" defaultValue={d.skills} placeholder="Go, PostgreSQL, AWS" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        <label className="text-xs font-medium text-muted">Key skills (optional)</label>
+        <div className="mt-1"><TagPicker name="skills" options={COMMON_SKILLS} initial={d.skills ? d.skills.split(",").map((s) => s.trim()).filter(Boolean) : []} /></div>
       </div>
       <div>
         <label className="text-xs font-medium text-muted">Languages needed (optional)</label>
-        <input name="languages" defaultValue={d.languages} placeholder="English:C1, Russian:B2" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-        <p className="text-xs text-muted mt-1">Format: Language:Level, separated by commas.</p>
+        <div className="mt-1"><LanguagePicker name="languages" initial={d.languages ? d.languages.split(",").map((s) => s.trim()).filter(Boolean) : []} /></div>
       </div>
       <div>
         <label className="text-xs font-medium text-muted">Description (required — this is what candidates see)</label>
@@ -94,7 +110,7 @@ export default function JobForm({
       )}
 
       <p className="text-xs text-muted">A visible salary range is required to post — it&apos;s the whole point of Champ.</p>
-      <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
+      <button type="submit" disabled={isPending} className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit disabled:opacity-60">
         {isEdit ? "Save changes" : "Publish role"}
       </button>
     </form>

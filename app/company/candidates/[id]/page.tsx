@@ -56,9 +56,14 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const experiences = await listExperiences(candidateUserId);
   const activeJobs = (await listJobsForCompany(session.userId)).filter((j) => j.active);
   const myJobs = [];
+  const existingConnections: { job: typeof activeJobs[number]; applicationId: number }[] = [];
   for (const j of activeJobs) {
     const existing = await findApplication(j.id, candidateUserId);
-    if (!existing) myJobs.push(j);
+    if (existing) {
+      existingConnections.push({ job: j, applicationId: existing.id });
+    } else {
+      myJobs.push(j);
+    }
   }
 
   return (
@@ -66,8 +71,21 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
       <Link href="/company/dashboard" className="text-sm text-muted">← Back</Link>
 
       <div className="mt-4 p-5 rounded-xl border border-line bg-white">
-        <div className="font-display font-semibold text-xl">{profile.name || "(unnamed candidate)"}</div>
-        <div className="text-sm text-muted mt-1">{profile.title} · {profile.years_experience} yrs experience</div>
+        <div className="flex items-center gap-3">
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-paper-dim flex items-center justify-center text-muted text-xs">
+              No photo
+            </div>
+          )}
+          <div>
+            <div className="font-display font-semibold text-xl">{profile.name || "(unnamed candidate)"}</div>
+            <div className="text-sm text-muted">{profile.title} · {profile.years_experience} yrs experience</div>
+          </div>
+        </div>
+        {profile.location && <p className="text-sm text-muted mt-2">📍 {profile.location}</p>}
         <div className="mt-3 flex flex-wrap gap-1.5">
           {skills.map((s) => <Tag key={s}>{s}</Tag>)}
           {!!profile.remote_ok && <Tag tone="moss">Remote OK</Tag>}
@@ -97,6 +115,25 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           )}
         </div>
       </div>
+
+      {existingConnections.length > 0 && (
+        <div className="mt-5">
+          <h2 className="font-display font-semibold text-lg mb-2">Their status on your roles</h2>
+          <div className="flex flex-col gap-2">
+            {existingConnections.map(({ job, applicationId }) => (
+              <Link
+                key={job.id}
+                href={`/thread/${applicationId}`}
+                prefetch={false}
+                className="p-3 rounded-lg border border-line bg-white flex items-center justify-between"
+              >
+                <span className="text-sm font-medium">{job.title}</span>
+                <span className="text-xs underline text-apricot-deep">Go to conversation →</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {experiences.length > 0 && (
         <div className="mt-5">

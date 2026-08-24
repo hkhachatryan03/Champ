@@ -7,6 +7,9 @@ export type CandidateProfile = {
   years_experience: number;
   skills: string; // JSON array string
   languages: string; // JSON array string, e.g. ["English:C1", "Russian:Native"]
+  location: string;
+  birthdate: string | null;
+  avatar_url: string | null;
   salary_min: number;
   salary_max: number;
   remote_ok: number;
@@ -25,6 +28,7 @@ export type CompanyProfile = {
   size: string;
   website: string;
   about: string;
+  avatar_url: string | null;
   verified: number;
   onboarded: number;
 };
@@ -92,7 +96,9 @@ export async function updateCandidateProfile(
   await sql`
     UPDATE candidate_profiles SET
       name = ${m.name}, title = ${m.title}, years_experience = ${m.years_experience},
-      skills = ${m.skills}, languages = ${m.languages}, salary_min = ${m.salary_min}, salary_max = ${m.salary_max},
+      skills = ${m.skills}, languages = ${m.languages}, location = ${m.location},
+      birthdate = ${m.birthdate}, avatar_url = ${m.avatar_url},
+      salary_min = ${m.salary_min}, salary_max = ${m.salary_max},
       remote_ok = ${m.remote_ok}, cv_filename = ${m.cv_filename},
       linkedin_url = ${m.linkedin_url}, about = ${m.about},
       actively_looking = ${m.actively_looking}, onboarded = ${m.onboarded}
@@ -115,7 +121,8 @@ export async function updateCompanyProfile(
   await sql`
     UPDATE company_profiles SET
       name = ${m.name}, recruiter_name = ${m.recruiter_name}, industry = ${m.industry}, size = ${m.size},
-      website = ${m.website}, about = ${m.about}, verified = ${m.verified}, onboarded = ${m.onboarded}
+      website = ${m.website}, about = ${m.about}, avatar_url = ${m.avatar_url},
+      verified = ${m.verified}, onboarded = ${m.onboarded}
     WHERE user_id = ${userId}
   `;
 }
@@ -129,6 +136,7 @@ export type JobFilters = {
   experienceLevel?: string;
   remote?: string; // "remote" | "onsite" | ""
   location?: string;
+  language?: string;
   salaryMin?: string;
   salaryMax?: string;
 };
@@ -359,8 +367,8 @@ export async function listActiveCandidatePool() {
 }
 
 // ---------- Contact ----------
-export async function saveContactMessage(email: string, body: string) {
-  await sql`INSERT INTO contact_messages (email, body) VALUES (${email}, ${body})`;
+export async function saveContactMessage(email: string, body: string, topic: string = "") {
+  await sql`INSERT INTO contact_messages (email, body, topic) VALUES (${email}, ${body}, ${topic})`;
 }
 
 // ---------- Work experience ----------

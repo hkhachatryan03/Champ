@@ -120,6 +120,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           <form action={statusAction} className="flex items-center gap-2">
             <input type="hidden" name="applicationId" value={applicationId} />
             <select
+              key={app.status}
               name="status"
               defaultValue={app.status}
               className="text-xs px-2.5 py-1.5 rounded-full border border-line bg-white"

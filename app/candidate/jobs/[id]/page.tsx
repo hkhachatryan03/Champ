@@ -78,7 +78,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <div className="mt-6 p-4 rounded-lg bg-paper-dim">
         <Ledger min={job.salary_min} max={job.salary_max} />
       </div>
-      <p className="mt-6 text-base leading-relaxed">{job.description}</p>
+      <p className="mt-6 text-base leading-relaxed whitespace-pre-line">{job.description}</p>
       <div className="mt-4 flex flex-wrap gap-1.5">
         <Tag tone="moss">{job.category}</Tag>
         <Tag>{job.employment_type}</Tag>

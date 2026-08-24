@@ -2,9 +2,9 @@ import { getSession } from "@/lib/auth";
 import { createJob } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
-import JobForm from "@/components/JobForm";
+import JobForm, { JobFormState } from "@/components/JobForm";
 
-async function createJobAction(formData: FormData) {
+async function createJobAction(prevState: JobFormState, formData: FormData): Promise<JobFormState> {
   "use server";
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
@@ -14,11 +14,13 @@ async function createJobAction(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
   const description = String(formData.get("description") || "").trim();
-  if (!description) redirect("/company/jobs/new?error=1");
+  if (!description) return { error: "A description is required." };
 
   const salaryMin = Number(formData.get("salaryMin") || 0);
   const salaryMax = Number(formData.get("salaryMax") || 0);
-  if (salaryMax < salaryMin) redirect("/company/jobs/new?error=salary");
+  if (salaryMax < salaryMin) {
+    return { error: "Max salary needs to be greater than or equal to min salary." };
+  }
 
   const experienceLevel = String(formData.get("experienceLevel") || "").trim() || null;
   const languages = String(formData.get("languages") || "")
@@ -43,29 +45,14 @@ async function createJobAction(formData: FormData) {
   redirect("/company/dashboard");
 }
 
-export default async function NewJobPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
+export default async function NewJobPage() {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
   await requireOnboardedCompany(session.userId);
-  const { error } = await searchParams;
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
       <h1 className="font-display font-semibold text-2xl mb-6">Post a role</h1>
-      {error === "1" && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-          A description is required.
-        </div>
-      )}
-      {error === "salary" && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-          Max salary needs to be greater than or equal to min salary.
-        </div>
-      )}
       <JobForm action={createJobAction} />
     </div>
   );
