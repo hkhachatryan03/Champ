@@ -3,7 +3,7 @@ import { getCompanyProfile, updateCompanyProfile } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
-import ClearableFileInput from "@/components/ClearableFileInput";
+import CroppablePhotoInput from "@/components/CroppablePhotoInput";
 
 async function saveAction(formData: FormData) {
   "use server";
@@ -17,6 +17,7 @@ async function saveAction(formData: FormData) {
 
   let avatarUpdate: { avatar_url?: string } = {};
   const avatarFile = formData.get("avatar") as File | null;
+  let avatarFailed = false;
   if (avatarFile && avatarFile.size > 0) {
     try {
       const buffer = Buffer.from(await avatarFile.arrayBuffer());
@@ -24,7 +25,8 @@ async function saveAction(formData: FormData) {
       const blob = await put(safeName, buffer, { access: "public", contentType: avatarFile.type || "image/jpeg" });
       avatarUpdate.avatar_url = blob.url;
     } catch (err) {
-      console.error("Blob upload failed:", err);
+      console.error("Blob upload failed (avatar):", err);
+      avatarFailed = true;
     }
   }
 
@@ -37,19 +39,19 @@ async function saveAction(formData: FormData) {
     about,
     ...avatarUpdate,
   });
-  redirect("/company/profile");
+  redirect(avatarFailed ? "/company/profile?avatarError=1" : "/company/profile");
 }
 
 export default async function CompanyProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; avatarError?: string }>;
 }) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
   await requireOnboardedCompany(session.userId);
   const profile = await getCompanyProfile(session.userId);
-  const { error } = await searchParams;
+  const { error, avatarError } = await searchParams;
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
@@ -57,13 +59,9 @@ export default async function CompanyProfilePage({
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white mb-8">
         <div className="flex items-center gap-3">
-          {profile.avatar_url ? (
+          {profile.avatar_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-paper-dim flex items-center justify-center text-muted text-xs">
-              No logo
-            </div>
           )}
           <div className="font-display font-semibold text-lg">{profile.name || "(unnamed company)"}</div>
         </div>
@@ -123,8 +121,13 @@ export default async function CompanyProfilePage({
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Company logo (optional)</label>
-          <ClearableFileInput name="avatar" accept="image/*" />
+          <CroppablePhotoInput name="avatar" />
         </div>
+        {avatarError === "1" && (
+          <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+            Everything else saved, but your logo failed to upload — try a different file or try again in a moment.
+          </div>
+        )}
         <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
           Save changes
         </button>

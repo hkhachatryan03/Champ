@@ -3,10 +3,11 @@ import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperienc
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { Ledger, Tag } from "@/components/ui";
+import { Ledger, Tag, LanguageTags } from "@/components/ui";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
 import ClearableFileInput from "@/components/ClearableFileInput";
+import CroppablePhotoInput from "@/components/CroppablePhotoInput";
 import TagPicker from "@/components/TagPicker";
 import LanguagePicker from "@/components/LanguagePicker";
 import LocationSelect from "@/components/LocationSelect";
@@ -94,6 +95,7 @@ async function saveProfileAction(formData: FormData) {
     }
   }
   const avatarFile = formData.get("avatar") as File | null;
+  let avatarFailed = false;
   if (avatarFile && avatarFile.size > 0) {
     try {
       const buffer = Buffer.from(await avatarFile.arrayBuffer());
@@ -101,7 +103,8 @@ async function saveProfileAction(formData: FormData) {
       const blob = await put(safeName, buffer, { access: "public", contentType: avatarFile.type || "image/jpeg" });
       cvUpdate.avatar_url = blob.url;
     } catch (err) {
-      console.error("Blob upload failed:", err);
+      console.error("Blob upload failed (avatar):", err);
+      avatarFailed = true;
     }
   }
   if (!name && !cvUpdate.name && linkedinUrl) {
@@ -124,13 +127,13 @@ async function saveProfileAction(formData: FormData) {
     linkedin_url: linkedinUrl,
     ...cvUpdate,
   });
-  redirect("/candidate/profile");
+  redirect(avatarFailed ? "/candidate/profile?avatarError=1" : "/candidate/profile");
 }
 
 export default async function CandidateProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ expError?: string; error?: string }>;
+  searchParams: Promise<{ expError?: string; error?: string; avatarError?: string }>;
 }) {
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
@@ -138,7 +141,7 @@ export default async function CandidateProfilePage({
   const profile = await getCandidateProfile(session.userId);
   const skills = parseSkills(profile.skills);
   const experiences = await listExperiences(session.userId);
-  const { expError, error } = await searchParams;
+  const { expError, error, avatarError } = await searchParams;
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
@@ -168,13 +171,9 @@ export default async function CandidateProfilePage({
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white">
         <div className="flex items-center gap-3">
-          {profile.avatar_url ? (
+          {profile.avatar_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-paper-dim flex items-center justify-center text-muted text-xs">
-              No photo
-            </div>
           )}
           <div>
             <div className="font-display font-semibold text-lg">{profile.name || "(no name yet)"}</div>
@@ -188,9 +187,7 @@ export default async function CandidateProfilePage({
         </div>
         <div className="mt-3"><Ledger min={profile.salary_min} max={profile.salary_max} /></div>
         {JSON.parse(profile.languages || "[]").length > 0 && (
-          <p className="text-sm text-muted mt-2">
-            Languages: {JSON.parse(profile.languages || "[]").join(", ")}
-          </p>
+          <div className="mt-2"><LanguageTags languages={JSON.parse(profile.languages || "[]")} /></div>
         )}
         {profile.cv_filename && (
           <p className="text-sm text-muted mt-3">
@@ -306,9 +303,14 @@ export default async function CandidateProfilePage({
           <label className="text-xs font-medium text-muted">Replace CV (PDF)</label>
           <ClearableFileInput name="cv" />
         </div>
+        {avatarError === "1" && (
+          <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+            Everything else saved, but your photo failed to upload — try a different file or try again in a moment.
+          </div>
+        )}
         <div>
           <label className="text-xs font-medium text-muted">Profile photo (optional)</label>
-          <ClearableFileInput name="avatar" accept="image/*" />
+          <CroppablePhotoInput name="avatar" />
         </div>
         <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
           Save changes

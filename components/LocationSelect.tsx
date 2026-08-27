@@ -20,8 +20,8 @@ export default function LocationSelect({
         Choose a location
       </option>
       {ARMENIAN_LOCATIONS.map((loc) => (
-        <option key={loc} value={loc}>
-          {loc}
+        <option key={loc.value} value={loc.value}>
+          {loc.label}
         </option>
       ))}
     </select>

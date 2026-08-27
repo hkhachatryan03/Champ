@@ -11,7 +11,7 @@ import {
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Ledger, Tag } from "@/components/ui";
+import { Ledger, Tag, StatusPill, LanguageTags } from "@/components/ui";
 import sql from "@/lib/db";
 
 async function inviteAction(formData: FormData) {
@@ -56,11 +56,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const experiences = await listExperiences(candidateUserId);
   const activeJobs = (await listJobsForCompany(session.userId)).filter((j) => j.active);
   const myJobs = [];
-  const existingConnections: { job: typeof activeJobs[number]; applicationId: number }[] = [];
+  const existingConnections: { job: typeof activeJobs[number]; applicationId: number; status: string; expectedSalary: number | null }[] = [];
   for (const j of activeJobs) {
     const existing = await findApplication(j.id, candidateUserId);
     if (existing) {
-      existingConnections.push({ job: j, applicationId: existing.id });
+      existingConnections.push({ job: j, applicationId: existing.id, status: existing.status, expectedSalary: existing.expected_salary });
     } else {
       myJobs.push(j);
     }
@@ -72,13 +72,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
       <div className="mt-4 p-5 rounded-xl border border-line bg-white">
         <div className="flex items-center gap-3">
-          {profile.avatar_url ? (
+          {profile.avatar_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-paper-dim flex items-center justify-center text-muted text-xs">
-              No photo
-            </div>
           )}
           <div>
             <div className="font-display font-semibold text-xl">{profile.name || "(unnamed candidate)"}</div>
@@ -92,9 +88,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
         </div>
         <div className="mt-3"><Ledger min={profile.salary_min} max={profile.salary_max} /></div>
         {JSON.parse(profile.languages || "[]").length > 0 && (
-          <p className="text-sm text-muted mt-2">
-            Languages: {JSON.parse(profile.languages || "[]").join(", ")}
-          </p>
+          <div className="mt-2"><LanguageTags languages={JSON.parse(profile.languages || "[]")} /></div>
         )}
         {profile.about && <p className="text-sm mt-3">{profile.about}</p>}
         <div className="mt-3 flex flex-col gap-1">
@@ -120,15 +114,23 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
         <div className="mt-5">
           <h2 className="font-display font-semibold text-lg mb-2">Their status on your roles</h2>
           <div className="flex flex-col gap-2">
-            {existingConnections.map(({ job, applicationId }) => (
+            {existingConnections.map(({ job, applicationId, status, expectedSalary }) => (
               <Link
                 key={job.id}
                 href={`/thread/${applicationId}`}
                 prefetch={false}
                 className="p-3 rounded-lg border border-line bg-white flex items-center justify-between"
               >
-                <span className="text-sm font-medium">{job.title}</span>
-                <span className="text-xs underline text-apricot-deep">Go to conversation →</span>
+                <div>
+                  <span className="text-sm font-medium">{job.title}</span>
+                  {expectedSalary && (
+                    <span className="text-xs font-mono-num text-apricot-deep ml-2">${expectedSalary}/mo asked</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusPill status={status} />
+                  <span className="text-xs underline text-apricot-deep whitespace-nowrap">Go to conversation →</span>
+                </div>
               </Link>
             ))}
           </div>

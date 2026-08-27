@@ -69,6 +69,8 @@ export type Message = {
   application_id: number;
   sender_role: "candidate" | "company";
   body: string;
+  attachment_url: string | null;
+  attachment_name: string | null;
   read_at: string | null;
   created_at: string;
 };
@@ -243,9 +245,9 @@ export async function getAppliedJobIds(candidateUserId: number): Promise<Set<num
 
 export async function findApplication(jobId: number, candidateUserId: number) {
   const rows = (await sql`
-    SELECT id FROM applications WHERE job_id = ${jobId} AND candidate_user_id = ${candidateUserId}
-  `) as { id: number }[];
-  return rows[0] as { id: number } | undefined;
+    SELECT id, status, expected_salary FROM applications WHERE job_id = ${jobId} AND candidate_user_id = ${candidateUserId}
+  `) as { id: number; status: string; expected_salary: number | null }[];
+  return rows[0] as { id: number; status: string; expected_salary: number | null } | undefined;
 }
 
 // ---------- Applications ----------
@@ -314,7 +316,8 @@ export async function getApplicationContext(applicationId: number) {
   const rows = (await sql`
     SELECT applications.*, jobs.title as job_title, jobs.company_user_id as company_user_id,
       company_profiles.name as company_name, company_profiles.recruiter_name as recruiter_name,
-      candidate_profiles.name as candidate_name, candidate_profiles.linkedin_url as candidate_linkedin_url
+      candidate_profiles.name as candidate_name, candidate_profiles.linkedin_url as candidate_linkedin_url,
+      candidate_profiles.cv_filename as candidate_cv_filename
     FROM applications
     JOIN jobs ON jobs.id = applications.job_id
     JOIN company_profiles ON company_profiles.user_id = jobs.company_user_id
@@ -345,8 +348,16 @@ export async function listMessages(applicationId: number) {
   `) as Message[];
 }
 
-export async function sendMessage(applicationId: number, senderRole: "candidate" | "company", body: string) {
-  await sql`INSERT INTO messages (application_id, sender_role, body) VALUES (${applicationId}, ${senderRole}, ${body})`;
+export async function sendMessage(
+  applicationId: number,
+  senderRole: "candidate" | "company",
+  body: string,
+  attachment: { url: string; name: string } | null = null
+) {
+  await sql`
+    INSERT INTO messages (application_id, sender_role, body, attachment_url, attachment_name)
+    VALUES (${applicationId}, ${senderRole}, ${body}, ${attachment?.url ?? null}, ${attachment?.name ?? null})
+  `;
   await sql`UPDATE applications SET updated_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS') WHERE id = ${applicationId}`;
 }
 

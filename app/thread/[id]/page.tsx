@@ -12,6 +12,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { StatusPill } from "@/components/ui";
+import { put } from "@vercel/blob";
+import FormattedMessage from "@/components/FormattedMessage";
+import MessageComposer from "@/components/MessageComposer";
 
 async function sendAction(formData: FormData) {
   "use server";
@@ -19,8 +22,22 @@ async function sendAction(formData: FormData) {
   if (!session) redirect("/login");
   const applicationId = Number(formData.get("applicationId"));
   const body = String(formData.get("body") || "").trim();
-  if (!body) return;
-  await sendMessage(applicationId, session.role, body);
+
+  let attachment: { url: string; name: string } | null = null;
+  const file = formData.get("attachment") as File | null;
+  if (file && file.size > 0) {
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const safeName = `chat/${applicationId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
+      const blob = await put(safeName, buffer, { access: "public", contentType: file.type || "application/octet-stream" });
+      attachment = { url: blob.url, name: file.name };
+    } catch (err) {
+      console.error("Blob upload failed (chat attachment):", err);
+    }
+  }
+
+  if (!body && !attachment) return;
+  await sendMessage(applicationId, session.role, body, attachment);
   revalidatePath(`/thread/${applicationId}`);
   revalidatePath("/candidate/applications");
   revalidatePath("/company/inbox");
@@ -107,7 +124,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           ) : (
             <h1 className="font-display font-semibold text-xl">{app.candidate_name}</h1>
           )}
-          <Link href={`/candidate/jobs/${app.job_id}`} className="text-sm text-muted hover:underline block">
+          <Link href={isCompany ? `/company/jobs/${app.job_id}` : `/candidate/jobs/${app.job_id}`} className="text-sm text-muted hover:underline block">
             {app.job_title}
           </Link>
           {isCompany && (
@@ -139,28 +156,34 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         {isCandidate && <StatusPill status={app.status} />}
       </div>
 
-      {(app.cv_filename || app.expected_salary || app.candidate_linkedin_url) && (
-        <div className="mt-3 p-3 rounded-lg bg-paper-dim flex flex-wrap items-center gap-3 text-sm">
-          {app.cv_filename && (
-            <a href={app.cv_filename} target="_blank" rel="noopener noreferrer" className="underline text-apricot-deep">
-              📎 View CV
-            </a>
-          )}
-          {app.candidate_linkedin_url && isCompany && (
-            <a
-              href={app.candidate_linkedin_url.startsWith("http") ? app.candidate_linkedin_url : `https://${app.candidate_linkedin_url}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline text-apricot-deep"
-            >
-              🔗 LinkedIn
-            </a>
-          )}
-          {app.expected_salary && (
-            <span className="font-mono-num text-apricot-deep">💰 ${app.expected_salary}/mo asked</span>
-          )}
-        </div>
-      )}
+      {(() => {
+        // Prefer the candidate's live CV — if they added one after applying
+        // with just a LinkedIn link, this makes sure it actually shows up
+        // instead of staying frozen at whatever they had at apply time.
+        const effectiveCv = app.candidate_cv_filename || app.cv_filename;
+        return (effectiveCv || app.expected_salary || app.candidate_linkedin_url) && (
+          <div className="mt-3 p-3 rounded-lg bg-paper-dim flex flex-wrap items-center gap-3 text-sm">
+            {effectiveCv && (
+              <a href={effectiveCv} target="_blank" rel="noopener noreferrer" className="underline text-apricot-deep">
+                📎 View CV
+              </a>
+            )}
+            {app.candidate_linkedin_url && isCompany && (
+              <a
+                href={app.candidate_linkedin_url.startsWith("http") ? app.candidate_linkedin_url : `https://${app.candidate_linkedin_url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-apricot-deep"
+              >
+                🔗 LinkedIn
+              </a>
+            )}
+            {app.expected_salary && (
+              <span className="font-mono-num text-apricot-deep">💰 ${app.expected_salary}/mo asked</span>
+            )}
+          </div>
+        );
+      })()}
 
       {isCandidate && app.invite_status === "pending" && (
         <div className="mt-3 p-4 rounded-lg border border-line bg-white">
@@ -198,8 +221,18 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           const mine = m.sender_role === session.role;
           return (
             <div key={m.id} className="flex flex-col" style={{ alignItems: mine ? "flex-end" : "flex-start" }}>
-              <div className={`max-w-[75%] px-3 py-2 rounded-xl text-sm whitespace-pre-line ${mine ? "bg-apricot" : "bg-paper-dim"}`}>
-                {m.body}
+              <div className={`max-w-[75%] px-3 py-2 rounded-xl text-sm ${mine ? "bg-apricot" : "bg-paper-dim"}`}>
+                {m.body && <FormattedMessage body={m.body} />}
+                {m.attachment_url && (
+                  <a
+                    href={m.attachment_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-1.5 text-xs underline ${m.body ? "mt-1.5" : ""} ${mine ? "text-ink" : "text-apricot-deep"}`}
+                  >
+                    📎 {m.attachment_name || "Attachment"}
+                  </a>
+                )}
               </div>
               {mine && (
                 <span className="text-[10px] mt-0.5 text-muted">
@@ -212,18 +245,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         {messages.length === 0 && <p className="text-sm text-muted">No messages yet — say hello.</p>}
       </div>
 
-      <form action={sendAction} className="mt-4 flex items-center gap-2">
-        <input type="hidden" name="applicationId" value={applicationId} />
-        <input
-          name="body"
-          placeholder="Write a message…"
-          required
-          className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none"
-        />
-        <button type="submit" className="px-4 py-2.5 rounded-lg bg-apricot text-ink text-sm font-medium">
-          Send
-        </button>
-      </form>
+      <MessageComposer applicationId={applicationId} action={sendAction} />
     </div>
   );
 }

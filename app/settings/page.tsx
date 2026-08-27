@@ -1,10 +1,28 @@
 import sql from "@/lib/db";
-import { getSession, hashPassword } from "@/lib/auth";
+import { getSession, hashPassword, destroySession } from "@/lib/auth";
 import { createPasswordResetOtp, verifyPasswordResetOtp } from "@/lib/queries";
 import { sendPasswordResetOtp } from "@/lib/email";
 import { redirect } from "next/navigation";
 
 const emailConfigured = !!process.env.RESEND_API_KEY;
+
+async function deleteAccountAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const confirmEmail = String(formData.get("confirmEmail") || "").trim().toLowerCase();
+  if (confirmEmail !== session.email.toLowerCase()) {
+    redirect("/settings?error=deleteconfirm");
+  }
+
+  // Every related row (profile, jobs, applications, messages, etc.) is set
+  // up with ON DELETE CASCADE, so removing the user row cleans up
+  // everything else automatically.
+  await sql`DELETE FROM users WHERE id = ${session.userId}`;
+  await destroySession();
+  redirect("/?deleted=1");
+}
 
 async function sendCodeAction() {
   "use server";
@@ -64,6 +82,7 @@ const ERRORS: Record<string, string> = {
   short: "New password needs to be at least 8 characters.",
   wrong: "Your current password is wrong.",
   invalid: "That code is wrong, expired, or already used.",
+  deleteconfirm: "The email you typed doesn't match your account email.",
 };
 
 export default async function SettingsPage({
@@ -150,6 +169,31 @@ export default async function SettingsPage({
           </button>
         </form>
       )}
+
+      <h2 className="font-display font-semibold text-lg mt-10 mb-3">Delete account</h2>
+      <div className="p-4 rounded-xl border border-apricot-deep/30 bg-apricot/5">
+        <p className="text-sm mb-3">
+          This permanently deletes your account, profile, job postings or applications,
+          and every message — there&apos;s no undo. Type your email below to confirm.
+        </p>
+        {error === "deleteconfirm" && (
+          <div className="mb-3 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+            {ERRORS.deleteconfirm}
+          </div>
+        )}
+        <form action={deleteAccountAction} className="flex flex-col gap-3">
+          <input
+            name="confirmEmail"
+            type="email"
+            placeholder={session.email}
+            required
+            className="w-full px-3 py-2 rounded-lg border border-line text-sm outline-none"
+          />
+          <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot-deep text-paper w-fit">
+            Permanently delete my account
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

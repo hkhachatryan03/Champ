@@ -1,8 +1,28 @@
-# Champ — real codebase (v13)
+# Champ — real codebase (v14)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v14
+
+- Photo cropping before upload (candidate and company photos)
+- Chat now supports file attachments and basic formatting (bold, italic,
+  bullet/numbered lists) via a real toolbar
+- "Delete my account" added to Settings (requires typing your email to
+  confirm; cascades to remove all your data)
+- Fixed: avatar upload failures now show a clear message instead of
+  silently failing with no feedback
+- Fixed: the "Role" link inside a chat thread now goes to the correct
+  page depending on whether you're the candidate or the company
+- Fixed: a candidate's CV now always shows their current file in chat,
+  not a frozen snapshot from when they applied
+- Fixed: "Armenia" location no longer shows the explanatory parenthetical
+  everywhere it's displayed — only in the picker itself
+- Status and asking rate now shown wherever an existing connection between
+  a candidate and a role is displayed
+- Language tags render as proper chips instead of raw "Language:Level" text
+- Skill, language, and location picker lists are now alphabetized
 
 ## What's new in v13
 

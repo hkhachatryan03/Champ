@@ -47,6 +47,22 @@ const STATUS_STYLES: Record<string, string> = {
   "Not moving forward": "bg-ink/8 text-muted",
 };
 
+export function LanguageTags({ languages }: { languages: string[] }) {
+  if (languages.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {languages.map((entry) => {
+        const [lang, level] = entry.split(":");
+        return (
+          <span key={entry} className="text-xs font-medium px-2 py-1 rounded-full bg-moss/12 text-moss">
+            {lang}{level ? ` · ${level}` : ""}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export function StatusPill({ status }: { status: string }) {
   return (
     <span

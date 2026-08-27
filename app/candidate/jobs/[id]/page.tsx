@@ -2,7 +2,7 @@ import { getJobWithCompany, parseSkills, createApplication, sendMessage, getCand
 import { getSession } from "@/lib/auth";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
-import { Ledger, Tag } from "@/components/ui";
+import { Ledger, Tag, StatusPill, LanguageTags } from "@/components/ui";
 import { put } from "@vercel/blob";
 import Link from "next/link";
 import ClearableFileInput from "@/components/ClearableFileInput";
@@ -87,12 +87,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         {parseSkills(job.skills).map((t) => <Tag key={t}>{t}</Tag>)}
       </div>
       {languages.length > 0 && (
-        <p className="text-sm text-muted mt-3">Languages needed: {languages.join(", ")}</p>
+        <div className="mt-3">
+          <p className="text-xs text-muted mb-1.5">Languages needed:</p>
+          <LanguageTags languages={languages} />
+        </div>
       )}
 
       {existing ? (
         <div className="mt-8 p-5 rounded-xl border border-line bg-white">
-          <p className="text-sm font-medium mb-3">✓ You&apos;ve already applied to this role.</p>
+          <div className="flex items-center gap-2 mb-3">
+            <p className="text-sm font-medium">✓ You&apos;ve already applied to this role.</p>
+            <StatusPill status={existing.status} />
+          </div>
           <Link
             href={`/thread/${existing.id}`}
             className="inline-block px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink"

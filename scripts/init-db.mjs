@@ -198,6 +198,11 @@ async function main() {
   await sql`ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
   await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
   console.log("Done. Third round of migrations applied.");
+
+  console.log("Applying fourth round of migrations (message attachments)...");
+  await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_url TEXT`;
+  await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_name TEXT`;
+  console.log("Done. Fourth round of migrations applied.");
 }
 
 main().catch((err) => {

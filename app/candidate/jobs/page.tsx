@@ -53,7 +53,7 @@ export default async function BrowseJobsPage({
         </select>
         <select name="location" defaultValue={filters.location || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
           <option value="">Location — any</option>
-          {ARMENIAN_LOCATIONS.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+          {ARMENIAN_LOCATIONS.map((loc) => <option key={loc.value} value={loc.value}>{loc.label}</option>)}
         </select>
         <select name="language" defaultValue={filters.language || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
           <option value="">Language — any</option>
