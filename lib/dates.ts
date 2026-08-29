@@ -12,3 +12,24 @@ export function formatPostedAge(dateStr: string): string {
   const months = Math.floor(diffDays / 30);
   return `${months}m`;
 }
+
+// Formats a last-seen timestamp as "Online now" (within 2 minutes), then
+// minutes, hours, days, and finally months — e.g. "5m ago", "2h ago",
+// "3d ago", "1mo ago".
+export function formatLastActive(lastSeenAt: string | null): string {
+  if (!lastSeenAt) return "Never active";
+  const seen = new Date(lastSeenAt.replace(" ", "T"));
+  if (isNaN(seen.getTime())) return "Never active";
+
+  const diffMs = Math.max(0, Date.now() - seen.getTime());
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffMinutes < 2) return "Online now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  const diffMonths = Math.floor(diffDays / 30);
+  return `${diffMonths}mo ago`;
+}

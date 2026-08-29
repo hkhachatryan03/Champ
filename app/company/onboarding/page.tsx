@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { updateCompanyProfile, isEmailVerified, getCompanyProfile } from "@/lib/queries";
 import { redirect } from "next/navigation";
+import RichTextarea from "@/components/RichTextarea";
 
 async function saveCompanyAction(formData: FormData) {
   "use server";
@@ -79,7 +80,7 @@ export default async function CompanyOnboarding({
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Short &quot;about us&quot; (required)</label>
-          <textarea name="about" required rows={3} placeholder="One or two sentences on what you do." className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <RichTextarea name="about" required rows={3} placeholder="One or two sentences on what you do." />
         </div>
         <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
           Continue to dashboard

@@ -1,7 +1,7 @@
 export type LocationOption = { value: string; label: string };
 
 export const ARMENIAN_LOCATIONS: LocationOption[] = [
-  { value: "Armenia", label: "Armenia (remote, location doesn't matter)" },
+  { value: "Armenia", label: "Armenia" },
   { value: "Abovyan, Armenia", label: "Abovyan, Armenia" },
   { value: "Alaverdi, Armenia", label: "Alaverdi, Armenia" },
   { value: "Armavir, Armenia", label: "Armavir, Armenia" },

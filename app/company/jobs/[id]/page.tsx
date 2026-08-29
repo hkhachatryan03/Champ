@@ -7,6 +7,7 @@ import sql from "@/lib/db";
 import { Job } from "@/lib/queries";
 import { Ledger, Tag, LanguageTags } from "@/components/ui";
 import JobApplicantsView from "@/components/JobApplicantsView";
+import FormattedMessage from "@/components/FormattedMessage";
 
 export default async function JobPositionPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -59,7 +60,7 @@ export default async function JobPositionPage({ params }: { params: Promise<{ id
           description={
             <div>
               <p className="text-xs font-medium text-muted mb-2">Description</p>
-              <p className="text-sm leading-relaxed whitespace-pre-line">{job.description}</p>
+              <div className="text-sm leading-relaxed"><FormattedMessage body={job.description} /></div>
             </div>
           }
         />

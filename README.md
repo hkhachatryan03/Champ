@@ -1,8 +1,46 @@
-# Champ — real codebase (v15)
+# Champ — real codebase (v16)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v16
+
+**Note on this round:** it involved genuine structural surgery (extracting
+the chat experience into a shared component used by two different pages).
+Everything here passes a clean build, but hasn't been through a live
+click-through test — worth treating this round with a bit more care than
+usual until you've tried it yourself.
+
+- Two-pane inbox for companies: conversation list on the left, the open
+  chat in the middle/right — filters stayed at the top. The chat thread
+  itself is now a shared component, so the standalone thread page and the
+  inbox can never drift apart from each other
+- Chat message pagination: shows the most recent 30 messages by default,
+  with a "Load earlier messages" link, Messenger-style
+- Online / last-active status shown in every chat header ("Online now",
+  "5m ago", "2h ago", "3d ago", "1mo ago")
+- Position and company filters on "All roles" are now real multi-select
+  autocomplete fields, populated from actual posted job titles and
+  registered companies — not free text
+- Active filters now show as removable chips above every filter section
+- "Preview as recruiters/candidates see me" — see your own profile exactly
+  as the other side does, in a new tab
+- Rich text (bold/italic/bullets/numbering) now available on company
+  description, candidate "about," and job description — not just chat —
+  and always renders with real line breaks preserved
+- Fixed: company photos weren't showing to candidates at all (the public
+  company page never rendered the avatar)
+- Fixed: the reaction/edit/delete hover menu was reflowing and visually
+  distorting the message bubble — rebuilt as a true absolute overlay
+- Fixed: "Back" from a candidate profile went to the wrong page — now uses
+  real browser history instead of a hardcoded destination
+- Fixed: clicking the logo now goes to "For You" (matching its new
+  first-tab position) instead of "All roles"
+- Active nav tab is now highlighted
+- "Armenia (remote, location doesn't matter)" cleaned up to just "Armenia"
+  everywhere it appears
+- Contact form now accepts an optional attachment
 
 ## What's new in v15
 

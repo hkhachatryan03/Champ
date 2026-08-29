@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listActiveJobsWithCompany, parseSkills, JobFilters, getAppliedJobIds } from "@/lib/queries";
+import { listActiveJobsWithCompany, parseSkills, JobFilters, getAppliedJobIds, listDistinctJobTitles, listDistinctCompanyNames } from "@/lib/queries";
 import { formatPostedAge } from "@/lib/dates";
 import { getSession } from "@/lib/auth";
 import { requireOnboardedCandidate } from "@/lib/guards";
@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { Ledger, Tag } from "@/components/ui";
 import { ARMENIAN_LOCATIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
 import SalaryRangeFilter from "@/components/SalaryRangeFilter";
+import ActiveFilterChips, { FilterChip } from "@/components/ActiveFilterChips";
+import MultiSelectFilter from "@/components/MultiSelectFilter";
 
 export default async function BrowseJobsPage({
   searchParams,
@@ -22,12 +24,37 @@ export default async function BrowseJobsPage({
     ? allJobs.filter((j) => parseSkills(j.languages || "[]").some((l) => l.toLowerCase().startsWith(filters.language!.toLowerCase())))
     : allJobs;
   const appliedIds = await getAppliedJobIds(session.userId);
+  const jobTitleOptions = await listDistinctJobTitles();
+  const companyNameOptions = await listDistinctCompanyNames();
+
+  const locationLabel = ARMENIAN_LOCATIONS.find((l) => l.value === filters.location)?.label || filters.location;
+  const chips: FilterChip[] = [];
+  if (filters.position) {
+    filters.position.split(",").filter(Boolean).forEach((p) => chips.push({ key: "position", label: p, removeValue: p }));
+  }
+  if (filters.company) {
+    filters.company.split(",").filter(Boolean).forEach((c) => chips.push({ key: "company", label: c, removeValue: c }));
+  }
+  if (filters.category) chips.push({ key: "category", label: filters.category });
+  if (filters.employmentType) chips.push({ key: "employmentType", label: filters.employmentType });
+  if (filters.experienceLevel) chips.push({ key: "experienceLevel", label: filters.experienceLevel });
+  if (filters.remote) chips.push({ key: "remote", label: filters.remote === "remote" ? "Remote" : "On-site" });
+  if (filters.location) chips.push({ key: "location", label: locationLabel! });
+  if (filters.language) chips.push({ key: "language", label: filters.language });
+  if (filters.salaryMin || filters.salaryMax) {
+    const label = filters.salaryMin && filters.salaryMax
+      ? `$${filters.salaryMin}–$${filters.salaryMax}`
+      : filters.salaryMin
+      ? `$${filters.salaryMin}+`
+      : `up to $${filters.salaryMax}`;
+    chips.push({ key: ["salaryMin", "salaryMax"], label });
+  }
 
   return (
     <div className="px-6 py-8 max-w-5xl mx-auto">
       <h1 className="font-display font-semibold text-2xl">All roles</h1>
-      <p className="text-sm text-muted mt-1 mb-6">{jobs.length} roles match your filters</p>
-
+      <p className="text-sm text-muted mt-1 mb-4">{jobs.length} roles match your filters</p>
+      <ActiveFilterChips chips={chips} basePath="/candidate/jobs" currentParams={filters as Record<string, string | undefined>} />
       <div className="grid md:grid-cols-[1fr_260px] gap-8 items-start">
         {/* Job list — everything stacked vertically */}
         <div className="flex flex-col gap-3 order-2 md:order-1">
@@ -78,11 +105,11 @@ export default async function BrowseJobsPage({
         <form method="get" className="order-1 md:order-2 flex flex-col gap-4 p-4 rounded-xl bg-paper-dim md:sticky md:top-4">
           <div>
             <label className="text-xs font-medium text-muted">Position</label>
-            <input name="position" defaultValue={filters.position} placeholder="e.g. Backend Engineer" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white" />
+            <MultiSelectFilter name="position" options={jobTitleOptions} initial={filters.position ? filters.position.split(",") : []} placeholder="Type to search…" />
           </div>
           <div>
             <label className="text-xs font-medium text-muted">Company</label>
-            <input name="company" defaultValue={filters.company} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white" />
+            <MultiSelectFilter name="company" options={companyNameOptions} initial={filters.company ? filters.company.split(",") : []} placeholder="Type to search…" />
           </div>
           <div>
             <label className="text-xs font-medium text-muted">Category</label>

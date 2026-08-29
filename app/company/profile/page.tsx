@@ -4,6 +4,8 @@ import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import CroppablePhotoInput from "@/components/CroppablePhotoInput";
+import RichTextarea from "@/components/RichTextarea";
+import FormattedMessage from "@/components/FormattedMessage";
 
 async function saveAction(formData: FormData) {
   "use server";
@@ -55,7 +57,12 @@ export default async function CompanyProfilePage({
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
-      <h1 className="font-display font-semibold text-2xl">My profile</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display font-semibold text-2xl">My profile</h1>
+        <a href={`/companies/${session.userId}`} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep whitespace-nowrap">
+          Preview as candidates see us →
+        </a>
+      </div>
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white mb-8">
         <div className="flex items-center gap-3">
@@ -69,7 +76,7 @@ export default async function CompanyProfilePage({
         <div className="text-sm text-muted mt-1">
           {profile.industry} {profile.industry && "·"} {profile.size} {profile.website && "· " + profile.website}
         </div>
-        {profile.about && <p className="text-sm mt-3">{profile.about}</p>}
+        {profile.about && <div className="text-sm mt-3"><FormattedMessage body={profile.about} /></div>}
 
         {!profile.verified && (
           <div className="mt-4 p-3 rounded-lg bg-paper-dim">
@@ -117,7 +124,7 @@ export default async function CompanyProfilePage({
         </div>
         <div>
           <label className="text-xs font-medium text-muted">About us (required)</label>
-          <textarea name="about" defaultValue={profile.about} required rows={3} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <RichTextarea name="about" defaultValue={profile.about} required rows={3} />
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Company logo (optional)</label>

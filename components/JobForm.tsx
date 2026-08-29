@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import TagPicker from "./TagPicker";
 import LanguagePicker from "./LanguagePicker";
 import LocationSelect from "./LocationSelect";
+import RichTextarea from "./RichTextarea";
 import { COMMON_SKILLS } from "@/lib/constants";
 
 export type JobFormState = { error?: string } | null;
@@ -89,7 +90,7 @@ export default function JobForm({
       </div>
       <div>
         <label className="text-xs font-medium text-muted">Description (required — this is what candidates see)</label>
-        <textarea name="description" defaultValue={d.description} required rows={4} placeholder="What will they actually be doing? What's the team like?" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        <RichTextarea name="description" defaultValue={d.description} required rows={4} placeholder="What will they actually be doing? What's the team like?" />
       </div>
       <div className="flex gap-3">
         <div className="flex-1">

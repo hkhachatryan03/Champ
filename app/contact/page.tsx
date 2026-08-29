@@ -2,6 +2,8 @@ import { saveContactMessage } from "@/lib/queries";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import TopicSelect from "@/components/TopicSelect";
+import ClearableFileInput from "@/components/ClearableFileInput";
+import { put } from "@vercel/blob";
 
 const CANDIDATE_TOPICS = [
   "Question about my profile",
@@ -28,7 +30,21 @@ async function contactAction(formData: FormData) {
   const topic = topicChoice === "Other" ? customTopic : topicChoice;
 
   if (!body.trim()) redirect("/contact");
-  await saveContactMessage(email, body, topic);
+
+  let attachmentUrl: string | null = null;
+  const file = formData.get("attachment") as File | null;
+  if (file && file.size > 0) {
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const safeName = `contact/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
+      const blob = await put(safeName, buffer, { access: "public", contentType: file.type || "application/octet-stream" });
+      attachmentUrl = blob.url;
+    } catch (err) {
+      console.error("Blob upload failed (contact attachment):", err);
+    }
+  }
+
+  await saveContactMessage(email, body, topic, attachmentUrl);
   redirect("/contact?sent=1");
 }
 
@@ -57,7 +73,7 @@ export default async function ContactPage({
       {sent && (
         <p className="text-sm mb-4 text-moss">Thanks — your message has been sent.</p>
       )}
-      <form action={contactAction} className="flex flex-col gap-3">
+      <form action={contactAction} encType="multipart/form-data" className="flex flex-col gap-3">
         {session ? (
           <p className="text-xs text-muted">
             We&apos;ll reply to <strong>{session.email}</strong> — the email on your account.
@@ -72,6 +88,10 @@ export default async function ContactPage({
         <div>
           <label className="text-xs font-medium text-muted">Message</label>
           <textarea name="body" rows={4} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Attach a screenshot or file (optional)</label>
+          <ClearableFileInput name="attachment" accept="image/*,application/pdf" />
         </div>
         <button type="submit" className="mt-1 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
           Send

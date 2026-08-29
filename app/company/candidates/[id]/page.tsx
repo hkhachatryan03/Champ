@@ -14,6 +14,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Ledger, Tag, StatusPill, LanguageTags } from "@/components/ui";
 import sql from "@/lib/db";
+import FormattedMessage from "@/components/FormattedMessage";
+import BackButton from "@/components/BackButton";
 
 async function inviteAction(formData: FormData) {
   "use server";
@@ -42,11 +44,13 @@ async function inviteAction(formData: FormData) {
 
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
-  if (!session || session.role !== "company") redirect("/login");
-  await requireOnboardedCompany(session.userId);
-
+  if (!session) redirect("/login");
   const { id } = await params;
   const candidateUserId = Number(id);
+  const isSelfPreview = session.role === "candidate" && session.userId === candidateUserId;
+  if (!isSelfPreview && session.role !== "company") redirect("/login");
+  if (session.role === "company") await requireOnboardedCompany(session.userId);
+
   const profile = await getCandidateProfile(candidateUserId);
 
   if (!profile || !profile.onboarded) {
@@ -56,7 +60,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const skills = parseSkills(profile.skills);
   const experiences = await listExperiences(candidateUserId);
   const certifications = await listCertifications(candidateUserId);
-  const activeJobs = (await listJobsForCompany(session.userId)).filter((j) => j.active);
+  const activeJobs = isSelfPreview ? [] : (await listJobsForCompany(session.userId)).filter((j) => j.active);
   const myJobs = [];
   const existingConnections: { job: typeof activeJobs[number]; applicationId: number; status: string; expectedSalary: number | null }[] = [];
   for (const j of activeJobs) {
@@ -70,7 +74,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">
-      <Link href="/company/dashboard" className="text-sm text-muted">← Back</Link>
+      <BackButton fallbackHref="/company/candidates" />
 
       <div className="grid md:grid-cols-3 gap-6 mt-4 items-start">
         {/* Left column: everything about the candidate */}
@@ -95,7 +99,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             {JSON.parse(profile.languages || "[]").length > 0 && (
               <div className="mt-2"><LanguageTags languages={JSON.parse(profile.languages || "[]")} /></div>
             )}
-            {profile.about && <p className="text-sm mt-3">{profile.about}</p>}
+            {profile.about && <div className="text-sm mt-3"><FormattedMessage body={profile.about} /></div>}
             <div className="mt-3 flex flex-col gap-1">
               {profile.cv_filename && (
                 <a href={profile.cv_filename} target="_blank" rel="noopener noreferrer" className="text-sm underline text-apricot-deep w-fit">
@@ -150,67 +154,77 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </div>
           )}
 
-          <div>
-            <h2 className="font-display font-semibold text-lg mb-2">Invite to a role</h2>
-            {myJobs.length === 0 ? (
-              <p className="text-sm text-muted">
-                {activeJobs.length === 0 ? (
-                  <>You don&apos;t have any active roles to invite them to yet — <Link href="/company/jobs/new" className="underline">post one first</Link>.</>
-                ) : (
-                  "This candidate is already connected on all of your active roles."
-                )}
-              </p>
-            ) : (
-              <form action={inviteAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3">
-                <input type="hidden" name="candidateUserId" value={candidateUserId} />
-                <div>
-                  <label className="text-xs font-medium text-muted">Which role?</label>
-                  <select name="jobId" required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none">
-                    {myJobs.map((j) => (
-                      <option key={j.id} value={j.id}>{j.title}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted">Message (optional)</label>
-                  <textarea name="message" rows={3} placeholder="Hi — your profile looks like a great fit, would you be open to a chat?" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-                </div>
-                <button type="submit" className="px-5 py-2.5 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
-                  Send invite
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-
-        {/* Right column: their status on your roles */}
-        <div className="md:sticky md:top-4">
-          <h2 className="font-display font-semibold text-lg mb-2">Their status on your roles</h2>
-          {existingConnections.length === 0 ? (
-            <p className="text-sm text-muted">No connections yet.</p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {existingConnections.map(({ job, applicationId, status, expectedSalary }) => (
-                <Link
-                  key={job.id}
-                  href={`/thread/${applicationId}`}
-                  prefetch={false}
-                  className="p-3 rounded-lg border border-line bg-white block"
-                >
-                  <div className="text-sm font-medium">{job.title}</div>
-                  {expectedSalary && (
-                    <div className="text-xs font-mono-num text-apricot-deep mt-0.5">${expectedSalary}/mo asked</div>
+          {!isSelfPreview && (
+            <div>
+              <h2 className="font-display font-semibold text-lg mb-2">Invite to a role</h2>
+              {myJobs.length === 0 ? (
+                <p className="text-sm text-muted">
+                  {activeJobs.length === 0 ? (
+                    <>You don&apos;t have any active roles to invite them to yet — <Link href="/company/jobs/new" className="underline">post one first</Link>.</>
+                  ) : (
+                    "This candidate is already connected on all of your active roles."
                   )}
-                  <div className="flex items-center justify-between mt-2">
-                    <StatusPill status={status} />
-                    <span className="text-xs underline text-apricot-deep">Chat →</span>
+                </p>
+              ) : (
+                <form action={inviteAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3">
+                  <input type="hidden" name="candidateUserId" value={candidateUserId} />
+                  <div>
+                    <label className="text-xs font-medium text-muted">Which role?</label>
+                    <select name="jobId" required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none">
+                      {myJobs.map((j) => (
+                        <option key={j.id} value={j.id}>{j.title}</option>
+                      ))}
+                    </select>
                   </div>
-                </Link>
-              ))}
+                  <div>
+                    <label className="text-xs font-medium text-muted">Message (optional)</label>
+                    <textarea name="message" rows={3} placeholder="Hi — your profile looks like a great fit, would you be open to a chat?" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+                  </div>
+                  <button type="submit" className="px-5 py-2.5 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
+                    Send invite
+                  </button>
+                </form>
+              )}
             </div>
           )}
         </div>
+
+        {/* Right column: their status on your roles */}
+        {!isSelfPreview && (
+          <div className="md:sticky md:top-4">
+            <h2 className="font-display font-semibold text-lg mb-2">Their status on your roles</h2>
+            {existingConnections.length === 0 ? (
+              <p className="text-sm text-muted">No connections yet.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {existingConnections.map(({ job, applicationId, status, expectedSalary }) => (
+                  <Link
+                    key={job.id}
+                    href={`/thread/${applicationId}`}
+                    prefetch={false}
+                    className="p-3 rounded-lg border border-line bg-white block"
+                  >
+                    <div className="text-sm font-medium">{job.title}</div>
+                    {expectedSalary && (
+                      <div className="text-xs font-mono-num text-apricot-deep mt-0.5">${expectedSalary}/mo asked</div>
+                    )}
+                    <div className="flex items-center justify-between mt-2">
+                      <StatusPill status={status} />
+                      <span className="text-xs underline text-apricot-deep">Chat →</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+        </div>
+        )}
       </div>
+
+      {isSelfPreview && (
+        <div className="mt-6 p-3 rounded-lg bg-paper-dim text-xs text-muted text-center">
+          This is a preview of how recruiters see your profile.
+        </div>
+      )}
     </div>
   );
 }

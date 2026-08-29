@@ -145,6 +145,20 @@ export type JobFilters = {
   salaryMax?: string;
 };
 
+export async function listDistinctJobTitles(): Promise<string[]> {
+  const rows = (await sql`
+    SELECT DISTINCT title FROM jobs WHERE active = 1 ORDER BY title ASC
+  `) as { title: string }[];
+  return rows.map((r) => r.title);
+}
+
+export async function listDistinctCompanyNames(): Promise<string[]> {
+  const rows = (await sql`
+    SELECT DISTINCT name FROM company_profiles WHERE onboarded = 1 AND name != '' ORDER BY name ASC
+  `) as { name: string }[];
+  return rows.map((r) => r.name);
+}
+
 export async function listActiveJobsWithCompany(filters: JobFilters = {}) {
   const rows = (await sql`
     SELECT jobs.*, company_profiles.name as company_name, company_profiles.verified as company_verified
@@ -155,8 +169,14 @@ export async function listActiveJobsWithCompany(filters: JobFilters = {}) {
   `) as (Job & { company_name: string; company_verified: number })[];
 
   return rows.filter((j) => {
-    if (filters.position && !j.title.toLowerCase().includes(filters.position.toLowerCase())) return false;
-    if (filters.company && !j.company_name.toLowerCase().includes(filters.company.toLowerCase())) return false;
+    if (filters.position) {
+      const wanted = filters.position.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+      if (wanted.length && !wanted.some((w) => j.title.toLowerCase().includes(w))) return false;
+    }
+    if (filters.company) {
+      const wanted = filters.company.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+      if (wanted.length && !wanted.some((w) => j.company_name.toLowerCase().includes(w))) return false;
+    }
     if (filters.category && j.category !== filters.category) return false;
     if (filters.employmentType && j.employment_type !== filters.employmentType) return false;
     if (filters.experienceLevel && j.experience_level !== filters.experienceLevel) return false;
@@ -291,6 +311,7 @@ export async function listApplicationsForCompany(companyUserId: number) {
   return (await sql`
     SELECT applications.*, jobs.title as job_title, candidate_profiles.name as candidate_name,
       candidate_profiles.title as candidate_title, candidate_profiles.skills as candidate_skills,
+      candidate_profiles.avatar_url as candidate_avatar_url,
       (SELECT COUNT(*) FROM messages m WHERE m.application_id = applications.id AND m.sender_role = 'candidate' AND m.read_at IS NULL) as unread_count,
       (SELECT COUNT(*) FROM messages m WHERE m.application_id = applications.id AND m.sender_role = 'company') as company_reply_count
     FROM applications
@@ -318,12 +339,16 @@ export async function getApplicationContext(applicationId: number) {
   const rows = (await sql`
     SELECT applications.*, jobs.title as job_title, jobs.company_user_id as company_user_id,
       company_profiles.name as company_name, company_profiles.recruiter_name as recruiter_name,
+      company_profiles.avatar_url as company_avatar_url,
       candidate_profiles.name as candidate_name, candidate_profiles.linkedin_url as candidate_linkedin_url,
-      candidate_profiles.cv_filename as candidate_cv_filename
+      candidate_profiles.cv_filename as candidate_cv_filename, candidate_profiles.avatar_url as candidate_avatar_url,
+      company_users.last_seen_at as company_last_seen_at, candidate_users.last_seen_at as candidate_last_seen_at
     FROM applications
     JOIN jobs ON jobs.id = applications.job_id
     JOIN company_profiles ON company_profiles.user_id = jobs.company_user_id
     JOIN candidate_profiles ON candidate_profiles.user_id = applications.candidate_user_id
+    JOIN users company_users ON company_users.id = jobs.company_user_id
+    JOIN users candidate_users ON candidate_users.id = applications.candidate_user_id
     WHERE applications.id = ${applicationId}
   `) as any[];
   return rows[0];
@@ -344,10 +369,17 @@ export async function closeJobForApplication(applicationId: number) {
 }
 
 // ---------- Messages ----------
-export async function listMessages(applicationId: number) {
-  return (await sql`
-    SELECT * FROM messages WHERE application_id = ${applicationId} ORDER BY created_at ASC
+export async function listMessages(applicationId: number, limit: number = 30): Promise<Message[]> {
+  const rows = (await sql`
+    SELECT * FROM messages WHERE application_id = ${applicationId}
+    ORDER BY created_at DESC, id DESC LIMIT ${limit}
   `) as Message[];
+  return rows.reverse(); // oldest-first for display, even though we fetched newest-first
+}
+
+export async function countMessages(applicationId: number): Promise<number> {
+  const rows = (await sql`SELECT COUNT(*) as n FROM messages WHERE application_id = ${applicationId}`) as { n: number }[];
+  return Number(rows[0].n);
 }
 
 export async function sendMessage(
@@ -477,9 +509,13 @@ export async function listActiveCandidatePool(filters: CandidateFilters = {}) {
   });
 }
 
+export async function touchLastSeen(userId: number) {
+  await sql`UPDATE users SET last_seen_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS') WHERE id = ${userId}`;
+}
+
 // ---------- Contact ----------
-export async function saveContactMessage(email: string, body: string, topic: string = "") {
-  await sql`INSERT INTO contact_messages (email, body, topic) VALUES (${email}, ${body}, ${topic})`;
+export async function saveContactMessage(email: string, body: string, topic: string = "", attachmentUrl: string | null = null) {
+  await sql`INSERT INTO contact_messages (email, body, topic, attachment_url) VALUES (${email}, ${body}, ${topic}, ${attachmentUrl})`;
 }
 
 // ---------- Work experience ----------

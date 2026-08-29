@@ -7,6 +7,7 @@ import { Ledger, Tag, LanguageTags } from "@/components/ui";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
 import ClearableFileInput from "@/components/ClearableFileInput";
+import RichTextarea from "@/components/RichTextarea";
 import CroppablePhotoInput from "@/components/CroppablePhotoInput";
 import TagPicker from "@/components/TagPicker";
 import LanguagePicker from "@/components/LanguagePicker";
@@ -185,7 +186,12 @@ export default async function CandidateProfilePage({
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
-      <h1 className="font-display font-semibold text-2xl">My profile</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display font-semibold text-2xl">My profile</h1>
+        <a href={`/company/candidates/${profile.user_id}`} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep whitespace-nowrap">
+          Preview as recruiters see me →
+        </a>
+      </div>
 
       <div className="mt-5 p-4 rounded-xl border border-line bg-white flex items-center justify-between">
         <div>
@@ -376,7 +382,7 @@ export default async function CandidateProfilePage({
         </label>
         <div>
           <label className="text-xs font-medium text-muted">About you</label>
-          <textarea name="about" defaultValue={profile.about} rows={3} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <RichTextarea name="about" defaultValue={profile.about} rows={3} />
         </div>
         <div>
           <label className="text-xs font-medium text-muted">LinkedIn URL</label>

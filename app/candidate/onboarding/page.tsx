@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
 import ClearableFileInput from "@/components/ClearableFileInput";
+import RichTextarea from "@/components/RichTextarea";
 import TagPicker from "@/components/TagPicker";
 import LanguagePicker from "@/components/LanguagePicker";
 import LocationSelect from "@/components/LocationSelect";
@@ -352,7 +353,7 @@ export default async function CandidateOnboarding({
         </label>
         <div>
           <label className="text-xs font-medium text-muted">About you (2-3 sentences)</label>
-          <textarea name="about" defaultValue={profile.about} required rows={3} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <RichTextarea name="about" defaultValue={profile.about} required rows={3} />
         </div>
         <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
           Save & browse roles

@@ -234,6 +234,14 @@ async function main() {
     )
   `;
   console.log("Done. Sixth round of migrations applied.");
+
+  console.log("Applying seventh round of migrations (contact form attachments)...");
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS attachment_url TEXT`;
+  console.log("Done. Seventh round of migrations applied.");
+
+  console.log("Applying eighth round of migrations (last-active tracking)...");
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TEXT`;
+  console.log("Done. Eighth round of migrations applied.");
 }
 
 main().catch((err) => {

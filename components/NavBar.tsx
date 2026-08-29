@@ -2,7 +2,8 @@ import Link from "next/link";
 import { getSession, destroySession } from "@/lib/auth";
 import { Logo } from "./ui";
 import { redirect } from "next/navigation";
-import { countUnreadConversationsForCandidate, countUnreadConversationsForCompany } from "@/lib/queries";
+import { countUnreadConversationsForCandidate, countUnreadConversationsForCompany, touchLastSeen } from "@/lib/queries";
+import NavTabs from "./NavTabs";
 
 async function logoutAction() {
   "use server";
@@ -10,17 +11,14 @@ async function logoutAction() {
   redirect("/");
 }
 
-function Badge({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return (
-    <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-apricot text-ink text-[10px] font-semibold">
-      {count > 9 ? "9+" : count}
-    </span>
-  );
-}
-
 export default async function NavBar() {
   const session = await getSession();
+  if (session) {
+    // Fire-and-forget-ish: this runs on every page load, which is how we
+    // track "online now" / "last active" without a separate heartbeat
+    // mechanism. Cheap enough at this scale (a single indexed UPDATE).
+    await touchLastSeen(session.userId);
+  }
 
   let candUnread = 0;
   let compUnread = 0;
@@ -47,7 +45,7 @@ export default async function NavBar() {
   return (
     <div className="bg-ink">
       <div className="w-full flex items-center justify-between px-6 py-4">
-        <Link href={session ? (session.role === "candidate" ? "/candidate/jobs" : "/company/dashboard") : "/"}>
+        <Link href={session ? (session.role === "candidate" ? "/candidate/jobs/for-you" : "/company/dashboard") : "/"}>
           <Logo />
         </Link>
         <div className="flex items-center gap-3">
@@ -84,21 +82,7 @@ export default async function NavBar() {
           )}
         </div>
       </div>
-      {tabs.length > 0 && (
-        <div className="px-6 flex gap-5 border-t border-white/10 overflow-x-auto">
-          {tabs.map(([href, label, unread]) => (
-            <Link
-              key={href}
-              href={href}
-              prefetch={false}
-              className="text-sm py-3 text-paper/85 font-medium whitespace-nowrap hover:text-apricot flex items-center"
-            >
-              {label}
-              <Badge count={unread} />
-            </Link>
-          ))}
-        </div>
-      )}
+      {tabs.length > 0 && <NavTabs tabs={tabs} />}
     </div>
   );
 }

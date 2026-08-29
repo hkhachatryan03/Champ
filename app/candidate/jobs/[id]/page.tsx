@@ -7,6 +7,7 @@ import { Ledger, Tag, StatusPill, LanguageTags } from "@/components/ui";
 import { put } from "@vercel/blob";
 import Link from "next/link";
 import ClearableFileInput from "@/components/ClearableFileInput";
+import FormattedMessage from "@/components/FormattedMessage";
 
 async function applyAction(formData: FormData) {
   "use server";
@@ -79,7 +80,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <div className="mt-6 p-4 rounded-lg bg-paper-dim">
         <Ledger min={job.salary_min} max={job.salary_max} />
       </div>
-      <p className="mt-6 text-base leading-relaxed whitespace-pre-line">{job.description}</p>
+      <div className="mt-6 text-base leading-relaxed"><FormattedMessage body={job.description} /></div>
       <div className="mt-4 flex flex-wrap gap-1.5">
         <Tag tone="moss">{job.category}</Tag>
         <Tag>{job.employment_type}</Tag>

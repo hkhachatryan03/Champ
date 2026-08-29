@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Ledger, Tag, LanguageTags } from "@/components/ui";
 import { ARMENIAN_LOCATIONS } from "@/lib/constants";
 import SalaryRangeFilter from "@/components/SalaryRangeFilter";
+import ActiveFilterChips, { FilterChip } from "@/components/ActiveFilterChips";
 
 export default async function CandidatesHubPage({
   searchParams,
@@ -19,14 +20,30 @@ export default async function CandidatesHubPage({
   const filters = await searchParams;
   const candidates = await listActiveCandidatePool(filters);
 
+  const locationLabel = ARMENIAN_LOCATIONS.find((l) => l.value === filters.location)?.label || filters.location;
+  const chips: FilterChip[] = [];
+  if (filters.position) chips.push({ key: "position", label: `"${filters.position}"` });
+  if (filters.location) chips.push({ key: "location", label: locationLabel! });
+  if (filters.minExperience) chips.push({ key: "minExperience", label: `${filters.minExperience}+ yrs` });
+  if (filters.skills) chips.push({ key: "skills", label: filters.skills });
+  if (filters.salaryMin || filters.salaryMax) {
+    const label = filters.salaryMin && filters.salaryMax
+      ? `$${filters.salaryMin}–$${filters.salaryMax}`
+      : filters.salaryMin
+      ? `$${filters.salaryMin}+`
+      : `up to $${filters.salaryMax}`;
+    chips.push({ key: ["salaryMin", "salaryMax"], label });
+  }
+
   return (
     <div className="px-6 py-8 max-w-5xl mx-auto">
       <h1 className="font-display font-semibold text-2xl">Candidates</h1>
-      <p className="text-sm text-muted mt-1 mb-6">
+      <p className="text-sm text-muted mt-1 mb-4">
         {candidates.length} candidates actively looking match your filters
       </p>
+      <ActiveFilterChips chips={chips} basePath="/company/candidates" currentParams={filters as Record<string, string | undefined>} />
 
-      <div className="grid md:grid-cols-[1fr_260px] gap-8 items-start">
+      <div className="grid md:grid-cols-[1fr_260px] gap-8 items-start mt-2">
         {/* Candidate list */}
         <div className="flex flex-col gap-3 order-2 md:order-1">
           {candidates.map((c) => (

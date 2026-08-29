@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import FormattedMessage from "./FormattedMessage";
 import type { Message } from "@/lib/queries";
 
-const REACTION_EMOJIS = ["👍", "❤️", "😂", "🎉"];
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👏"];
 
 export default function MessageBubble({
   message,
@@ -28,7 +28,6 @@ export default function MessageBubble({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(message.body);
   const [pending, setPending] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
 
   const isDeleted = !!message.deleted_at;
 
@@ -41,18 +40,20 @@ export default function MessageBubble({
   };
 
   return (
-    <div className="flex flex-col group" style={{ alignItems: mine ? "flex-end" : "flex-start" }}>
+    <div className="flex flex-col max-w-[75%]" style={{ alignItems: mine ? "flex-end" : "flex-start", alignSelf: mine ? "flex-end" : "flex-start" }}>
+      {/* This wrapper's box never changes size regardless of hover state —
+          the action menu below is positioned absolutely, entirely outside
+          normal layout flow, so it can never push or resize the bubble
+          itself (that was the "changes shape on hover" bug). */}
       <div
-        ref={wrapRef}
-        className="relative flex items-end gap-1"
-        style={{ flexDirection: mine ? "row-reverse" : "row" }}
+        className="relative"
         onMouseEnter={() => !isDeleted && setShowMenu(true)}
         onMouseLeave={() => {
           setShowMenu(false);
           setShowReactionPicker(false);
         }}
       >
-        <div className={`max-w-[75%] px-3 py-2 rounded-xl text-sm ${isDeleted ? "bg-paper-dim/60 text-muted italic" : mine ? "bg-apricot" : "bg-paper-dim"}`}>
+        <div className={`px-3 py-2 rounded-xl text-sm ${isDeleted ? "bg-paper-dim/60 text-muted italic" : mine ? "bg-apricot" : "bg-paper-dim"}`}>
           {isDeleted ? (
             "Message deleted"
           ) : editing ? (
@@ -90,7 +91,10 @@ export default function MessageBubble({
         </div>
 
         {!isDeleted && !editing && (showMenu || showReactionPicker) && (
-          <div className="relative flex items-center gap-0.5 bg-white border border-line rounded-full shadow-sm px-1 py-0.5">
+          <div
+            className="absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-white border border-line rounded-full shadow-sm px-1 py-0.5 z-10"
+            style={mine ? { right: "100%", marginRight: 6 } : { left: "100%", marginLeft: 6 }}
+          >
             <button
               type="button"
               onClick={() => setShowReactionPicker((v) => !v)}
@@ -120,7 +124,10 @@ export default function MessageBubble({
               </>
             )}
             {showReactionPicker && (
-              <div className="absolute bottom-full mb-1 flex gap-0.5 bg-white border border-line rounded-full shadow-sm px-1.5 py-1" style={{ [mine ? "right" : "left"]: 0 }}>
+              <div
+                className="absolute bottom-full mb-1 flex gap-0.5 bg-white border border-line rounded-full shadow-sm px-1.5 py-1 flex-wrap max-w-[180px]"
+                style={{ [mine ? "right" : "left"]: 0 }}
+              >
                 {REACTION_EMOJIS.map((emoji) => (
                   <button
                     key={emoji}
