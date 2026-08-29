@@ -31,13 +31,14 @@ export default async function NavBar() {
   }
 
   const candTabs: [string, string, number][] = [
-    ["/candidate/jobs", "All roles", 0],
     ["/candidate/jobs/for-you", "For you", 0],
+    ["/candidate/jobs", "All roles", 0],
     ["/candidate/applications", "My applications", candUnread],
     ["/candidate/profile", "My profile", 0],
   ];
   const compTabs: [string, string, number][] = [
     ["/company/dashboard", "My roles", 0],
+    ["/company/candidates", "Candidates", 0],
     ["/company/inbox", "Inbox", compUnread],
     ["/company/profile", "My profile", 0],
   ];

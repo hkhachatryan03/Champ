@@ -1,8 +1,27 @@
-# Champ — real codebase (v14)
+# Champ — real codebase (v15)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v15
+
+- New "Candidates" hub for companies — every actively-looking candidate,
+  filterable by position, location, minimum experience, skills, and salary
+- Position detail page redesigned: description and a compact stats panel
+  side by side, applicants below (now with profile links, not just chat)
+- Candidate detail page redesigned: full profile info on the left, their
+  status on your roles in a sticky sidebar on the right
+- Certifications section for candidates (name, issuer, link or file) —
+  visible on their own profile and to companies viewing them
+- "All roles" page redesigned: jobs listed vertically, filters moved to a
+  right-hand sidebar, salary filter is now a drag-to-set range slider
+  (typing exact numbers still works too)
+- "For you" now appears before "All roles" in the candidate nav
+- Fixed: composer no longer leaves old text behind after sending — the
+  previous fix had a real timing bug; this one resets the DOM directly
+  once the server confirms the send actually happened
+- Fixed: LinkedIn link wasn't clickable on the onboarding screen
 
 ## What's new in v14
 

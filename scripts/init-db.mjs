@@ -203,6 +203,37 @@ async function main() {
   await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_url TEXT`;
   await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_name TEXT`;
   console.log("Done. Fourth round of migrations applied.");
+
+  console.log("Applying fifth round of migrations (Armenia location cleanup)...");
+  await sql`UPDATE jobs SET location = 'Armenia' WHERE location LIKE 'Armenia (remote%'`;
+  await sql`UPDATE candidate_profiles SET location = 'Armenia' WHERE location LIKE 'Armenia (remote%'`;
+  console.log("Done. Fifth round of migrations applied.");
+
+  console.log("Applying sixth round of migrations (message edit/delete/reactions, certifications)...");
+  await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TEXT`;
+  await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TEXT`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS message_reactions (
+      id SERIAL PRIMARY KEY,
+      message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+      sender_role TEXT NOT NULL CHECK (sender_role IN ('candidate','company')),
+      emoji TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
+      UNIQUE(message_id, sender_role)
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS candidate_certifications (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      provider TEXT NOT NULL DEFAULT '',
+      link_url TEXT,
+      file_url TEXT,
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+  console.log("Done. Sixth round of migrations applied.");
 }
 
 main().catch((err) => {

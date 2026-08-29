@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { listActiveJobsWithCompany, parseSkills, JobFilters, getAppliedJobIds } from "@/lib/queries";
+import { formatPostedAge } from "@/lib/dates";
 import { getSession } from "@/lib/auth";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { Ledger, Tag } from "@/components/ui";
 import { ARMENIAN_LOCATIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
+import SalaryRangeFilter from "@/components/SalaryRangeFilter";
 
 export default async function BrowseJobsPage({
   searchParams,
@@ -22,92 +24,124 @@ export default async function BrowseJobsPage({
   const appliedIds = await getAppliedJobIds(session.userId);
 
   return (
-    <div className="px-6 py-8 max-w-2xl mx-auto">
+    <div className="px-6 py-8 max-w-5xl mx-auto">
       <h1 className="font-display font-semibold text-2xl">All roles</h1>
-      <p className="text-sm text-muted mt-1 mb-4">{jobs.length} roles match your filters</p>
+      <p className="text-sm text-muted mt-1 mb-6">{jobs.length} roles match your filters</p>
 
-      <form className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 rounded-xl mb-6 bg-paper-dim" method="get">
-        <input name="position" defaultValue={filters.position} placeholder="Position" className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white" />
-        <input name="company" defaultValue={filters.company} placeholder="Company" className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white" />
-        <select name="category" defaultValue={filters.category || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
-          <option value="">Category — any</option>
-          <option>Tech</option>
-          <option>Non-tech</option>
-        </select>
-        <select name="employmentType" defaultValue={filters.employmentType || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
-          <option value="">Employment — any</option>
-          <option>Full-time</option>
-          <option>Part-time</option>
-        </select>
-        <select name="experienceLevel" defaultValue={filters.experienceLevel || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
-          <option value="">Experience — any</option>
-          <option>Junior</option>
-          <option>Mid</option>
-          <option>Senior</option>
-          <option>Lead</option>
-        </select>
-        <select name="remote" defaultValue={filters.remote || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
-          <option value="">Remote / on-site — any</option>
-          <option value="remote">Remote</option>
-          <option value="onsite">On-site</option>
-        </select>
-        <select name="location" defaultValue={filters.location || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
-          <option value="">Location — any</option>
-          {ARMENIAN_LOCATIONS.map((loc) => <option key={loc.value} value={loc.value}>{loc.label}</option>)}
-        </select>
-        <select name="language" defaultValue={filters.language || ""} className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
-          <option value="">Language — any</option>
-          {LANGUAGE_OPTIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-        </select>
-        <input name="salaryMin" defaultValue={filters.salaryMin} type="number" placeholder="Min salary $" className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white font-mono-num" />
-        <input name="salaryMax" defaultValue={filters.salaryMax} type="number" placeholder="Max salary $" className="px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white font-mono-num" />
-        <button type="submit" className="col-span-2 md:col-span-4 mt-1 px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper">
-          Apply filters
-        </button>
-      </form>
-
-      <div className="flex flex-col gap-3">
-        {jobs.map((job) => (
-          <Link
-            key={job.id}
-            href={`/candidate/jobs/${job.id}`}
-            className="block p-5 rounded-xl border border-line bg-white hover:shadow-sm transition"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-display font-semibold text-lg">{job.title}</h3>
-                  {appliedIds.has(job.id) && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-moss/15 text-moss whitespace-nowrap">
-                      ✓ Applied
-                    </span>
-                  )}
+      <div className="grid md:grid-cols-[1fr_260px] gap-8 items-start">
+        {/* Job list — everything stacked vertically */}
+        <div className="flex flex-col gap-3 order-2 md:order-1">
+          {jobs.map((job) => (
+            <Link
+              key={job.id}
+              href={`/candidate/jobs/${job.id}`}
+              className="block p-5 rounded-xl border border-line bg-white hover:shadow-sm transition"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display font-semibold text-lg">{job.title}</h3>
+                    {appliedIds.has(job.id) && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-moss/15 text-moss whitespace-nowrap">
+                        ✓ Applied
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted mt-0.5">
+                    {job.company_name} · {job.location}
+                  </p>
                 </div>
-                <p className="text-sm text-muted mt-0.5">
-                  {job.company_name} · {job.location}
-                </p>
+                <span className="text-xs text-muted whitespace-nowrap">{formatPostedAge(job.created_at)}</span>
               </div>
-              <span className="text-xs text-muted whitespace-nowrap">{job.created_at}</span>
+              <div className="mt-4">
+                <Ledger min={job.salary_min} max={job.salary_max} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <Tag tone="moss">{job.category}</Tag>
+                <Tag>{job.employment_type}</Tag>
+                {job.experience_level && <Tag>{job.experience_level}</Tag>}
+                {!!job.remote && <Tag tone="moss">Remote</Tag>}
+                {parseSkills(job.skills).map((t) => (
+                  <Tag key={t}>{t}</Tag>
+                ))}
+              </div>
+            </Link>
+          ))}
+          {jobs.length === 0 && (
+            <p className="text-sm text-center py-10 text-muted">
+              No roles match — try loosening a filter.
+            </p>
+          )}
+        </div>
+
+        {/* Filters — stacked one under another, on the right */}
+        <form method="get" className="order-1 md:order-2 flex flex-col gap-4 p-4 rounded-xl bg-paper-dim md:sticky md:top-4">
+          <div>
+            <label className="text-xs font-medium text-muted">Position</label>
+            <input name="position" defaultValue={filters.position} placeholder="e.g. Backend Engineer" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted">Company</label>
+            <input name="company" defaultValue={filters.company} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted">Category</label>
+            <select name="category" defaultValue={filters.category || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
+              <option value="">Any</option>
+              <option>Tech</option>
+              <option>Non-tech</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted">Employment type</label>
+            <select name="employmentType" defaultValue={filters.employmentType || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
+              <option value="">Any</option>
+              <option>Full-time</option>
+              <option>Part-time</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted">Experience level</label>
+            <select name="experienceLevel" defaultValue={filters.experienceLevel || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
+              <option value="">Any</option>
+              <option>Junior</option>
+              <option>Mid</option>
+              <option>Senior</option>
+              <option>Lead</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted">Remote / on-site</label>
+            <select name="remote" defaultValue={filters.remote || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
+              <option value="">Any</option>
+              <option value="remote">Remote</option>
+              <option value="onsite">On-site</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted">Location</label>
+            <select name="location" defaultValue={filters.location || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
+              <option value="">Any</option>
+              {ARMENIAN_LOCATIONS.map((loc) => <option key={loc.value} value={loc.value}>{loc.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted">Language</label>
+            <select name="language" defaultValue={filters.language || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white">
+              <option value="">Any</option>
+              {LANGUAGE_OPTIONS.map((l) => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted">Salary ($/mo)</label>
+            <div className="mt-1">
+              <SalaryRangeFilter minName="salaryMin" maxName="salaryMax" defaultMin={filters.salaryMin} defaultMax={filters.salaryMax} />
             </div>
-            <div className="mt-4">
-              <Ledger min={job.salary_min} max={job.salary_max} />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <Tag tone="moss">{job.category}</Tag>
-              <Tag>{job.employment_type}</Tag>
-              {job.experience_level && <Tag>{job.experience_level}</Tag>}
-              {!!job.remote && <Tag tone="moss">Remote</Tag>}
-              {parseSkills(job.skills).map((t) => (
-                <Tag key={t}>{t}</Tag>
-              ))}
-            </div>
-          </Link>
-        ))}
-        {jobs.length === 0 && (
-          <p className="text-sm text-center py-10 text-muted">
-            No roles match — try loosening a filter.
-          </p>
-        )}
+          </div>
+          <button type="submit" className="mt-1 px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper">
+            Apply filters
+          </button>
+        </form>
       </div>
     </div>
   );

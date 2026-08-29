@@ -72,6 +72,8 @@ export type Message = {
   attachment_url: string | null;
   attachment_name: string | null;
   read_at: string | null;
+  edited_at: string | null;
+  deleted_at: string | null;
   created_at: string;
 };
 
@@ -274,7 +276,7 @@ export async function updateInviteStatus(applicationId: number, inviteStatus: "a
 export async function listApplicationsForCandidate(candidateUserId: number) {
   return (await sql`
     SELECT applications.*, jobs.title as job_title, jobs.company_user_id as company_user_id,
-      company_profiles.name as company_name,
+      company_profiles.name as company_name, company_profiles.recruiter_name as recruiter_name,
       (SELECT COUNT(*) FROM messages m WHERE m.application_id = applications.id AND m.sender_role = 'company' AND m.read_at IS NULL) as unread_count,
       (SELECT MAX(created_at) FROM messages m WHERE m.application_id = applications.id) as last_message_at
     FROM applications
@@ -370,11 +372,109 @@ export async function markMessagesRead(applicationId: number, readerRole: "candi
   `;
 }
 
-// ---------- Candidate pool (for companies) ----------
-export async function listActiveCandidatePool() {
+export async function editMessage(messageId: number, senderRole: "candidate" | "company", newBody: string) {
+  // Only the original sender can edit their own message.
+  await sql`
+    UPDATE messages SET body = ${newBody}, edited_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    WHERE id = ${messageId} AND sender_role = ${senderRole}
+  `;
+}
+
+export async function deleteMessage(messageId: number, senderRole: "candidate" | "company") {
+  // Soft delete — keeps the row (and its place in the conversation) but
+  // clears the content, same convention most chat apps use.
+  await sql`
+    UPDATE messages SET body = '', attachment_url = NULL, attachment_name = NULL,
+      deleted_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    WHERE id = ${messageId} AND sender_role = ${senderRole}
+  `;
+}
+
+export async function toggleReaction(messageId: number, senderRole: "candidate" | "company", emoji: string) {
+  const rows = (await sql`
+    SELECT emoji FROM message_reactions WHERE message_id = ${messageId} AND sender_role = ${senderRole}
+  `) as { emoji: string }[];
+  const existing = rows[0];
+  if (existing && existing.emoji === emoji) {
+    // Clicking the same reaction again removes it.
+    await sql`DELETE FROM message_reactions WHERE message_id = ${messageId} AND sender_role = ${senderRole}`;
+  } else if (existing) {
+    await sql`UPDATE message_reactions SET emoji = ${emoji} WHERE message_id = ${messageId} AND sender_role = ${senderRole}`;
+  } else {
+    await sql`INSERT INTO message_reactions (message_id, sender_role, emoji) VALUES (${messageId}, ${senderRole}, ${emoji})`;
+  }
+}
+
+export async function listReactionsForApplication(applicationId: number) {
   return (await sql`
+    SELECT message_reactions.* FROM message_reactions
+    JOIN messages ON messages.id = message_reactions.message_id
+    WHERE messages.application_id = ${applicationId}
+  `) as { id: number; message_id: number; sender_role: "candidate" | "company"; emoji: string }[];
+}
+
+// ---------- Certifications ----------
+export type Certification = {
+  id: number;
+  user_id: number;
+  name: string;
+  provider: string;
+  link_url: string | null;
+  file_url: string | null;
+  created_at: string;
+};
+
+export async function listCertifications(userId: number): Promise<Certification[]> {
+  return (await sql`
+    SELECT * FROM candidate_certifications WHERE user_id = ${userId} ORDER BY created_at DESC
+  `) as Certification[];
+}
+
+export async function addCertification(
+  userId: number,
+  name: string,
+  provider: string,
+  linkUrl: string | null,
+  fileUrl: string | null
+) {
+  await sql`
+    INSERT INTO candidate_certifications (user_id, name, provider, link_url, file_url)
+    VALUES (${userId}, ${name}, ${provider}, ${linkUrl}, ${fileUrl})
+  `;
+}
+
+export async function deleteCertification(id: number, userId: number) {
+  await sql`DELETE FROM candidate_certifications WHERE id = ${id} AND user_id = ${userId}`;
+}
+
+// ---------- Candidate pool (for companies) ----------
+export type CandidateFilters = {
+  position?: string;
+  location?: string;
+  minExperience?: string;
+  skills?: string;
+  salaryMin?: string;
+  salaryMax?: string;
+};
+
+export async function listActiveCandidatePool(filters: CandidateFilters = {}) {
+  const rows = (await sql`
     SELECT * FROM candidate_profiles WHERE actively_looking = 1 AND onboarded = 1 ORDER BY user_id DESC
   `) as CandidateProfile[];
+
+  return rows.filter((c) => {
+    if (filters.position && !c.title.toLowerCase().includes(filters.position.toLowerCase())) return false;
+    if (filters.location && c.location !== filters.location) return false;
+    if (filters.minExperience && c.years_experience < Number(filters.minExperience)) return false;
+    if (filters.skills) {
+      const wanted = filters.skills.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+      const has = parseSkills(c.skills).map((s) => s.toLowerCase());
+      if (!wanted.every((w) => has.some((h) => h.includes(w)))) return false;
+    }
+    if (filters.salaryMin && c.salary_max < Number(filters.salaryMin)) return false;
+    if (filters.salaryMax && c.salary_min > Number(filters.salaryMax)) return false;
+    return true;
+  });
 }
 
 // ---------- Contact ----------

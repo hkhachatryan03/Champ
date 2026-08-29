@@ -1,4 +1,5 @@
 import { getJobWithCompany, parseSkills, createApplication, sendMessage, getCandidateProfile, findApplication } from "@/lib/queries";
+import { formatPostedAge } from "@/lib/dates";
 import { getSession } from "@/lib/auth";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
@@ -73,7 +74,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         <h1 className="font-display font-semibold text-3xl">{job.title}</h1>
       </div>
       <p className="text-sm text-muted mt-1">
-        <Link href={`/companies/${job.company_user_id}`} className="underline hover:text-ink">{job.company_name}</Link> · {job.location} · {job.created_at}
+        <Link href={`/companies/${job.company_user_id}`} className="underline hover:text-ink">{job.company_name}</Link> · {job.location} · Posted {formatPostedAge(job.created_at)}
       </p>
       <div className="mt-6 p-4 rounded-lg bg-paper-dim">
         <Ledger min={job.salary_min} max={job.salary_max} />

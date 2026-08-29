@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import sql from "@/lib/db";
 import { Job } from "@/lib/queries";
-import { Ledger, Tag } from "@/components/ui";
+import { Ledger, Tag, LanguageTags } from "@/components/ui";
 import JobApplicantsView from "@/components/JobApplicantsView";
 
 export default async function JobPositionPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,9 +25,10 @@ export default async function JobPositionPage({ params }: { params: Promise<{ id
   }
 
   const applicants = await listApplicationsForJob(jobId, session.userId);
+  const languages = parseSkills(job.languages || "[]");
 
   return (
-    <div className="px-6 py-8 max-w-2xl mx-auto">
+    <div className="px-6 py-8 max-w-4xl mx-auto">
       <Link href="/company/dashboard" className="text-sm text-muted">← Back to your roles</Link>
 
       <div className="flex items-start justify-between mt-4">
@@ -35,6 +36,7 @@ export default async function JobPositionPage({ params }: { params: Promise<{ id
           <h1 className="font-display font-semibold text-2xl">{job.title}</h1>
           <p className="text-sm text-muted mt-1">
             {job.category} · {job.employment_type} · {job.location}
+            {job.experience_level && ` · ${job.experience_level}`}
           </p>
         </div>
         <Link href={`/company/jobs/${job.id}/edit`} className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper whitespace-nowrap">
@@ -49,11 +51,19 @@ export default async function JobPositionPage({ params }: { params: Promise<{ id
         {parseSkills(job.skills).map((s) => <Tag key={s}>{s}</Tag>)}
         {!!job.remote && <Tag tone="moss">Remote</Tag>}
       </div>
+      {languages.length > 0 && <div className="mt-3"><LanguageTags languages={languages} /></div>}
 
-      <h2 className="font-display font-semibold text-lg mt-8 mb-4">
-        Applicants ({applicants.length})
-      </h2>
-      <JobApplicantsView applicants={applicants} />
+      <div className="mt-8">
+        <JobApplicantsView
+          applicants={applicants}
+          description={
+            <div>
+              <p className="text-xs font-medium text-muted mb-2">Description</p>
+              <p className="text-sm leading-relaxed whitespace-pre-line">{job.description}</p>
+            </div>
+          }
+        />
+      </div>
     </div>
   );
 }

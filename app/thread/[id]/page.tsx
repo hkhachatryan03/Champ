@@ -7,16 +7,44 @@ import {
   updateApplicationStatus,
   updateInviteStatus,
   closeJobForApplication,
+  editMessage,
+  deleteMessage,
+  toggleReaction,
+  listReactionsForApplication,
 } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { StatusPill } from "@/components/ui";
 import { put } from "@vercel/blob";
-import FormattedMessage from "@/components/FormattedMessage";
 import MessageComposer from "@/components/MessageComposer";
+import MessageBubble from "@/components/MessageBubble";
 
-async function sendAction(formData: FormData) {
+async function editMessageAction(applicationId: number, messageId: number, newBody: string) {
+  "use server";
+  const session = await getSession();
+  if (!session) redirect("/login");
+  await editMessage(messageId, session.role, newBody);
+  revalidatePath(`/thread/${applicationId}`);
+}
+
+async function deleteMessageAction(applicationId: number, messageId: number) {
+  "use server";
+  const session = await getSession();
+  if (!session) redirect("/login");
+  await deleteMessage(messageId, session.role);
+  revalidatePath(`/thread/${applicationId}`);
+}
+
+async function reactAction(applicationId: number, messageId: number, emoji: string) {
+  "use server";
+  const session = await getSession();
+  if (!session) redirect("/login");
+  await toggleReaction(messageId, session.role, emoji);
+  revalidatePath(`/thread/${applicationId}`);
+}
+
+async function sendAction(prevCount: number, formData: FormData): Promise<number> {
   "use server";
   const session = await getSession();
   if (!session) redirect("/login");
@@ -36,12 +64,13 @@ async function sendAction(formData: FormData) {
     }
   }
 
-  if (!body && !attachment) return;
+  if (!body && !attachment) return prevCount;
   await sendMessage(applicationId, session.role, body, attachment);
   revalidatePath(`/thread/${applicationId}`);
   revalidatePath("/candidate/applications");
   revalidatePath("/company/inbox");
   revalidatePath("/");
+  return prevCount + 1;
 }
 
 async function statusAction(formData: FormData) {
@@ -109,6 +138,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
 
   await markMessagesRead(applicationId, session.role);
   const messages = await listMessages(applicationId);
+  const allReactions = await listReactionsForApplication(applicationId);
 
   const backHref = isCandidate ? "/candidate/applications" : "/company/inbox";
 
@@ -118,9 +148,12 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
       <div className="flex items-center justify-between">
         <div>
           {isCandidate ? (
-            <Link href={`/companies/${app.company_user_id}`} className="font-display font-semibold text-xl hover:underline">
-              {app.company_name}
-            </Link>
+            <>
+              <Link href={`/companies/${app.company_user_id}`} className="font-display font-semibold text-xl hover:underline">
+                {app.company_name}
+              </Link>
+              {app.recruiter_name && <p className="text-xs text-muted -mt-0.5">with {app.recruiter_name}</p>}
+            </>
           ) : (
             <h1 className="font-display font-semibold text-xl">{app.candidate_name}</h1>
           )}
@@ -216,32 +249,19 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         </p>
       )}
 
-      <div className="flex-1 mt-4 overflow-y-auto flex flex-col gap-2 pr-1">
-        {messages.map((m) => {
-          const mine = m.sender_role === session.role;
-          return (
-            <div key={m.id} className="flex flex-col" style={{ alignItems: mine ? "flex-end" : "flex-start" }}>
-              <div className={`max-w-[75%] px-3 py-2 rounded-xl text-sm ${mine ? "bg-apricot" : "bg-paper-dim"}`}>
-                {m.body && <FormattedMessage body={m.body} />}
-                {m.attachment_url && (
-                  <a
-                    href={m.attachment_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex items-center gap-1.5 text-xs underline ${m.body ? "mt-1.5" : ""} ${mine ? "text-ink" : "text-apricot-deep"}`}
-                  >
-                    📎 {m.attachment_name || "Attachment"}
-                  </a>
-                )}
-              </div>
-              {mine && (
-                <span className="text-[10px] mt-0.5 text-muted">
-                  {m.read_at ? "Read" : "Sent"} · {m.created_at}
-                </span>
-              )}
-            </div>
-          );
-        })}
+      <div className="flex-1 mt-4 overflow-y-auto flex flex-col gap-3 pr-1">
+        {messages.map((m) => (
+          <MessageBubble
+            key={m.id}
+            message={m}
+            mine={m.sender_role === session.role}
+            applicationId={applicationId}
+            reactions={allReactions.filter((r) => r.message_id === m.id)}
+            onEdit={editMessageAction}
+            onDelete={deleteMessageAction}
+            onReact={reactAction}
+          />
+        ))}
         {messages.length === 0 && <p className="text-sm text-muted">No messages yet — say hello.</p>}
       </div>
 

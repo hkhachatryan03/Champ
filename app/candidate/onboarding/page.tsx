@@ -249,7 +249,17 @@ export default async function CandidateOnboarding({
         <p className="text-xs text-moss mb-4">✓ CV on file</p>
       )}
       {profile.linkedin_url && (
-        <p className="text-xs text-moss mb-4">✓ LinkedIn on file: {profile.linkedin_url}</p>
+        <p className="text-xs text-moss mb-4">
+          ✓ LinkedIn on file:{" "}
+          <a
+            href={profile.linkedin_url.startsWith("http") ? profile.linkedin_url : `https://${profile.linkedin_url}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            {profile.linkedin_url}
+          </a>
+        </p>
       )}
 
       <h2 className="font-display font-semibold text-lg mb-2">Work experience</h2>

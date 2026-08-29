@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, deleteExperience } from "@/lib/queries";
+import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, deleteExperience, listCertifications, addCertification, deleteCertification } from "@/lib/queries";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -46,6 +46,45 @@ async function deleteExperienceAction(formData: FormData) {
   if (!session || session.role !== "candidate") redirect("/login");
   const id = Number(formData.get("id"));
   await deleteExperience(id, session.userId);
+  revalidatePath("/candidate/profile");
+}
+
+async function addCertificationAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "candidate") redirect("/login");
+
+  const name = String(formData.get("certName") || "").trim();
+  if (!name) {
+    revalidatePath("/candidate/profile");
+    return;
+  }
+  const provider = String(formData.get("certProvider") || "").trim();
+  const linkUrl = String(formData.get("certLink") || "").trim() || null;
+
+  let fileUrl: string | null = null;
+  const file = formData.get("certFile") as File | null;
+  if (file && file.size > 0) {
+    try {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const safeName = `cert/${session.userId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
+      const blob = await put(safeName, buffer, { access: "public", contentType: file.type || "application/octet-stream" });
+      fileUrl = blob.url;
+    } catch (err) {
+      console.error("Blob upload failed (certification):", err);
+    }
+  }
+
+  await addCertification(session.userId, name, provider, linkUrl, fileUrl);
+  revalidatePath("/candidate/profile");
+}
+
+async function deleteCertificationAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "candidate") redirect("/login");
+  const id = Number(formData.get("id"));
+  await deleteCertification(id, session.userId);
   revalidatePath("/candidate/profile");
 }
 
@@ -141,6 +180,7 @@ export default async function CandidateProfilePage({
   const profile = await getCandidateProfile(session.userId);
   const skills = parseSkills(profile.skills);
   const experiences = await listExperiences(session.userId);
+  const certifications = await listCertifications(session.userId);
   const { expError, error, avatarError } = await searchParams;
 
   return (
@@ -195,7 +235,14 @@ export default async function CandidateProfilePage({
           </p>
         )}
         {profile.linkedin_url && (
-          <p className="text-sm text-muted mt-1">LinkedIn: {profile.linkedin_url}</p>
+          <a
+            href={profile.linkedin_url.startsWith("http") ? profile.linkedin_url : `https://${profile.linkedin_url}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm underline text-apricot-deep mt-1 block w-fit"
+          >
+            🔗 {profile.linkedin_url}
+          </a>
         )}
       </div>
 
@@ -233,6 +280,49 @@ export default async function CandidateProfilePage({
         </div>
         <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper w-fit">
           + Add
+        </button>
+      </form>
+
+      <h2 className="font-display font-semibold text-lg mb-3">Certifications</h2>
+      <div className="flex flex-col gap-2 mb-4">
+        {certifications.map((c) => (
+          <div key={c.id} className="p-3 rounded-lg border border-line bg-white flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium">{c.name}</div>
+              {c.provider && <div className="text-xs text-muted">{c.provider}</div>}
+              {(c.link_url || c.file_url) && (
+                <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
+                  View
+                </a>
+              )}
+            </div>
+            <form action={deleteCertificationAction}>
+              <input type="hidden" name="id" value={c.id} />
+              <button type="submit" className="text-xs text-muted underline">Remove</button>
+            </form>
+          </div>
+        ))}
+        {certifications.length === 0 && <p className="text-sm text-muted">No certifications added yet.</p>}
+      </div>
+      <form action={addCertificationAction} encType="multipart/form-data" className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3 mb-8">
+        <div>
+          <label className="text-xs font-medium text-muted">Certificate name (required)</label>
+          <input name="certName" required placeholder="e.g. AWS Certified Developer" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Issued by (optional)</label>
+          <input name="certProvider" placeholder="e.g. Amazon Web Services" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Link to certificate (optional)</label>
+          <input name="certLink" placeholder="https://..." className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Or attach it (PDF or image, optional)</label>
+          <ClearableFileInput name="certFile" accept="application/pdf,image/*" />
+        </div>
+        <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper w-fit">
+          + Add certification
         </button>
       </form>
 

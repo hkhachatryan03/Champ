@@ -3,6 +3,7 @@ import {
   getCandidateProfile,
   parseSkills,
   listExperiences,
+  listCertifications,
   listJobsForCompany,
   findApplication,
   createApplication,
@@ -54,6 +55,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
   const skills = parseSkills(profile.skills);
   const experiences = await listExperiences(candidateUserId);
+  const certifications = await listCertifications(candidateUserId);
   const activeJobs = (await listJobsForCompany(session.userId)).filter((j) => j.active);
   const myJobs = [];
   const existingConnections: { job: typeof activeJobs[number]; applicationId: number; status: string; expectedSalary: number | null }[] = [];
@@ -67,119 +69,148 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   }
 
   return (
-    <div className="px-6 py-8 max-w-lg mx-auto">
+    <div className="px-6 py-8 max-w-4xl mx-auto">
       <Link href="/company/dashboard" className="text-sm text-muted">← Back</Link>
 
-      <div className="mt-4 p-5 rounded-xl border border-line bg-white">
-        <div className="flex items-center gap-3">
-          {profile.avatar_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+      <div className="grid md:grid-cols-3 gap-6 mt-4 items-start">
+        {/* Left column: everything about the candidate */}
+        <div className="md:col-span-2 flex flex-col gap-5">
+          <div className="p-5 rounded-xl border border-line bg-white">
+            <div className="flex items-center gap-3">
+              {profile.avatar_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover" />
+              )}
+              <div>
+                <div className="font-display font-semibold text-xl">{profile.name || "(unnamed candidate)"}</div>
+                <div className="text-sm text-muted">{profile.title} · {profile.years_experience} yrs experience</div>
+              </div>
+            </div>
+            {profile.location && <p className="text-sm text-muted mt-2">📍 {profile.location}</p>}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {skills.map((s) => <Tag key={s}>{s}</Tag>)}
+              {!!profile.remote_ok && <Tag tone="moss">Remote OK</Tag>}
+            </div>
+            <div className="mt-3"><Ledger min={profile.salary_min} max={profile.salary_max} /></div>
+            {JSON.parse(profile.languages || "[]").length > 0 && (
+              <div className="mt-2"><LanguageTags languages={JSON.parse(profile.languages || "[]")} /></div>
+            )}
+            {profile.about && <p className="text-sm mt-3">{profile.about}</p>}
+            <div className="mt-3 flex flex-col gap-1">
+              {profile.cv_filename && (
+                <a href={profile.cv_filename} target="_blank" rel="noopener noreferrer" className="text-sm underline text-apricot-deep w-fit">
+                  📎 View CV
+                </a>
+              )}
+              {profile.linkedin_url && (
+                <a
+                  href={profile.linkedin_url.startsWith("http") ? profile.linkedin_url : `https://${profile.linkedin_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm underline text-apricot-deep"
+                >
+                  🔗 {profile.linkedin_url}
+                </a>
+              )}
+            </div>
+          </div>
+
+          {experiences.length > 0 && (
+            <div>
+              <h2 className="font-display font-semibold text-lg mb-2">Work experience</h2>
+              <div className="flex flex-col gap-2">
+                {experiences.map((e) => (
+                  <div key={e.id} className="p-3 rounded-lg border border-line bg-white">
+                    <div className="text-sm font-medium">{e.title} · {e.company}</div>
+                    <div className="text-xs text-muted">{e.start_year} – {e.end_year || "Present"}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
+
+          {certifications.length > 0 && (
+            <div>
+              <h2 className="font-display font-semibold text-lg mb-2">Certifications</h2>
+              <div className="flex flex-col gap-2">
+                {certifications.map((c) => (
+                  <div key={c.id} className="p-3 rounded-lg border border-line bg-white flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium">{c.name}</div>
+                      {c.provider && <div className="text-xs text-muted">{c.provider}</div>}
+                    </div>
+                    {(c.link_url || c.file_url) && (
+                      <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
+                        View →
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
-            <div className="font-display font-semibold text-xl">{profile.name || "(unnamed candidate)"}</div>
-            <div className="text-sm text-muted">{profile.title} · {profile.years_experience} yrs experience</div>
+            <h2 className="font-display font-semibold text-lg mb-2">Invite to a role</h2>
+            {myJobs.length === 0 ? (
+              <p className="text-sm text-muted">
+                {activeJobs.length === 0 ? (
+                  <>You don&apos;t have any active roles to invite them to yet — <Link href="/company/jobs/new" className="underline">post one first</Link>.</>
+                ) : (
+                  "This candidate is already connected on all of your active roles."
+                )}
+              </p>
+            ) : (
+              <form action={inviteAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3">
+                <input type="hidden" name="candidateUserId" value={candidateUserId} />
+                <div>
+                  <label className="text-xs font-medium text-muted">Which role?</label>
+                  <select name="jobId" required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none">
+                    {myJobs.map((j) => (
+                      <option key={j.id} value={j.id}>{j.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted">Message (optional)</label>
+                  <textarea name="message" rows={3} placeholder="Hi — your profile looks like a great fit, would you be open to a chat?" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+                </div>
+                <button type="submit" className="px-5 py-2.5 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
+                  Send invite
+                </button>
+              </form>
+            )}
           </div>
         </div>
-        {profile.location && <p className="text-sm text-muted mt-2">📍 {profile.location}</p>}
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {skills.map((s) => <Tag key={s}>{s}</Tag>)}
-          {!!profile.remote_ok && <Tag tone="moss">Remote OK</Tag>}
-        </div>
-        <div className="mt-3"><Ledger min={profile.salary_min} max={profile.salary_max} /></div>
-        {JSON.parse(profile.languages || "[]").length > 0 && (
-          <div className="mt-2"><LanguageTags languages={JSON.parse(profile.languages || "[]")} /></div>
-        )}
-        {profile.about && <p className="text-sm mt-3">{profile.about}</p>}
-        <div className="mt-3 flex flex-col gap-1">
-          {profile.cv_filename && (
-            <a href={profile.cv_filename} target="_blank" rel="noopener noreferrer" className="text-sm underline text-apricot-deep w-fit">
-              📎 View CV
-            </a>
-          )}
-          {profile.linkedin_url && (
-            <a
-              href={profile.linkedin_url.startsWith("http") ? profile.linkedin_url : `https://${profile.linkedin_url}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm underline text-apricot-deep"
-            >
-              🔗 {profile.linkedin_url}
-            </a>
+
+        {/* Right column: their status on your roles */}
+        <div className="md:sticky md:top-4">
+          <h2 className="font-display font-semibold text-lg mb-2">Their status on your roles</h2>
+          {existingConnections.length === 0 ? (
+            <p className="text-sm text-muted">No connections yet.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {existingConnections.map(({ job, applicationId, status, expectedSalary }) => (
+                <Link
+                  key={job.id}
+                  href={`/thread/${applicationId}`}
+                  prefetch={false}
+                  className="p-3 rounded-lg border border-line bg-white block"
+                >
+                  <div className="text-sm font-medium">{job.title}</div>
+                  {expectedSalary && (
+                    <div className="text-xs font-mono-num text-apricot-deep mt-0.5">${expectedSalary}/mo asked</div>
+                  )}
+                  <div className="flex items-center justify-between mt-2">
+                    <StatusPill status={status} />
+                    <span className="text-xs underline text-apricot-deep">Chat →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       </div>
-
-      {existingConnections.length > 0 && (
-        <div className="mt-5">
-          <h2 className="font-display font-semibold text-lg mb-2">Their status on your roles</h2>
-          <div className="flex flex-col gap-2">
-            {existingConnections.map(({ job, applicationId, status, expectedSalary }) => (
-              <Link
-                key={job.id}
-                href={`/thread/${applicationId}`}
-                prefetch={false}
-                className="p-3 rounded-lg border border-line bg-white flex items-center justify-between"
-              >
-                <div>
-                  <span className="text-sm font-medium">{job.title}</span>
-                  {expectedSalary && (
-                    <span className="text-xs font-mono-num text-apricot-deep ml-2">${expectedSalary}/mo asked</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <StatusPill status={status} />
-                  <span className="text-xs underline text-apricot-deep whitespace-nowrap">Go to conversation →</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {experiences.length > 0 && (
-        <div className="mt-5">
-          <h2 className="font-display font-semibold text-lg mb-2">Work experience</h2>
-          <div className="flex flex-col gap-2">
-            {experiences.map((e) => (
-              <div key={e.id} className="p-3 rounded-lg border border-line bg-white">
-                <div className="text-sm font-medium">{e.title} · {e.company}</div>
-                <div className="text-xs text-muted">{e.start_year} – {e.end_year || "Present"}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <h2 className="font-display font-semibold text-lg mt-6 mb-2">Invite to a role</h2>
-      {myJobs.length === 0 ? (
-        <p className="text-sm text-muted">
-          {activeJobs.length === 0 ? (
-            <>You don&apos;t have any active roles to invite them to yet — <Link href="/company/jobs/new" className="underline">post one first</Link>.</>
-          ) : (
-            "This candidate is already connected on all of your active roles."
-          )}
-        </p>
-      ) : (
-        <form action={inviteAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3">
-          <input type="hidden" name="candidateUserId" value={candidateUserId} />
-          <div>
-            <label className="text-xs font-medium text-muted">Which role?</label>
-            <select name="jobId" required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none">
-              {myJobs.map((j) => (
-                <option key={j.id} value={j.id}>{j.title}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted">Message (optional)</label>
-            <textarea name="message" rows={3} placeholder="Hi — your profile looks like a great fit, would you be open to a chat?" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-          </div>
-          <button type="submit" className="px-5 py-2.5 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
-            Send invite
-          </button>
-        </form>
-      )}
     </div>
   );
 }

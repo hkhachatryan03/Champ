@@ -65,6 +65,7 @@ export default async function MyApplicationsPage({
                 <Link href={`/companies/${a.company_user_id}`} className="hover:underline">
                   {a.company_name}
                 </Link>
+                {a.recruiter_name && ` · with ${a.recruiter_name}`}
                 {" · last activity "}{a.last_message_at || a.created_at}
               </div>
             </div>

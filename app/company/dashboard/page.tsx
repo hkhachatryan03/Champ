@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { listJobsForCompany, listActiveCandidatePool, parseSkills } from "@/lib/queries";
+import { listJobsForCompany } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -11,7 +11,6 @@ export default async function CompanyDashboard() {
   await requireOnboardedCompany(session.userId);
 
   const jobs = await listJobsForCompany(session.userId);
-  const pool = await listActiveCandidatePool();
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
@@ -59,30 +58,15 @@ export default async function CompanyDashboard() {
         {jobs.length === 0 && <p className="text-sm text-muted">You haven&apos;t posted a role yet.</p>}
       </div>
 
-      <h2 className="font-display font-semibold text-lg mt-10 mb-3">Candidates who are actively looking</h2>
-      <div className="flex flex-col gap-3">
-        {pool.slice(0, 10).map((c) => (
-          <Link
-            key={c.user_id}
-            href={`/company/candidates/${c.user_id}`}
-            className="p-4 rounded-xl border border-line bg-white flex items-center justify-between"
-          >
-            <div>
-              <div className="text-sm font-medium">{c.name || "(unnamed candidate)"}</div>
-              <div className="text-xs text-muted mt-0.5">{c.title} · {c.years_experience} yrs</div>
-              <div className="flex gap-1.5 mt-1.5">{parseSkills(c.skills).map((s) => <Tag key={s}>{s}</Tag>)}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-muted">wants</div>
-              <div className="font-mono-num text-sm text-apricot-deep">${c.salary_min}–{c.salary_max}</div>
-            </div>
-          </Link>
-        ))}
-        {pool.length === 0 && <p className="text-sm text-muted">No active candidates yet.</p>}
+      <div className="mt-10 p-4 rounded-xl border border-line bg-white flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">Looking for someone specific?</p>
+          <p className="text-xs text-muted mt-0.5">Browse every candidate actively looking, with filters for position, location, experience, skills, and salary.</p>
+        </div>
+        <Link href="/company/candidates" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper whitespace-nowrap">
+          Open Candidates →
+        </Link>
       </div>
-      <p className="text-xs text-muted mt-3">
-        Click a candidate to see their full profile and invite them to one of your roles directly.
-      </p>
     </div>
   );
 }
