@@ -91,6 +91,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               </div>
             </div>
             {profile.location && <p className="text-sm text-muted mt-2">📍 {profile.location}</p>}
+            {profile.birthdate && (
+              <p className="text-sm text-muted mt-0.5">
+                🎂 {new Date(profile.birthdate).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap gap-1.5">
               {skills.map((s) => <Tag key={s}>{s}</Tag>)}
               {!!profile.remote_ok && <Tag tone="moss">Remote OK</Tag>}

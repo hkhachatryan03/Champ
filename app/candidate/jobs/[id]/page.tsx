@@ -75,7 +75,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         <h1 className="font-display font-semibold text-3xl">{job.title}</h1>
       </div>
       <p className="text-sm text-muted mt-1">
-        <Link href={`/companies/${job.company_user_id}`} className="underline hover:text-ink">{job.company_name}</Link> · {job.location} · Posted {formatPostedAge(job.created_at)}
+        <Link href={`/companies/${job.company_user_id}`} className="underline hover:text-ink">{job.company_name}</Link> · {job.location}
+        {!!job.remote && " · Remote"} · Posted {formatPostedAge(job.created_at)}
       </p>
       <div className="mt-6 p-4 rounded-lg bg-paper-dim">
         <Ledger min={job.salary_min} max={job.salary_max} />
@@ -85,7 +86,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         <Tag tone="moss">{job.category}</Tag>
         <Tag>{job.employment_type}</Tag>
         {job.experience_level && <Tag>{job.experience_level}</Tag>}
-        {!!job.remote && <Tag tone="moss">Remote</Tag>}
         {parseSkills(job.skills).map((t) => <Tag key={t}>{t}</Tag>)}
       </div>
       {languages.length > 0 && (

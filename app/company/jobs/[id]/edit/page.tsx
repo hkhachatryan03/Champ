@@ -49,7 +49,7 @@ async function saveJobAction(
     languages: JSON.stringify(languages),
   });
 
-  redirect("/company/dashboard");
+  redirect(`/company/jobs/${jobId}`);
 }
 
 export default async function EditJobPage({ params }: { params: Promise<{ id: string }> }) {

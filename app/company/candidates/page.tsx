@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { listActiveCandidatePool, parseSkills, CandidateFilters } from "@/lib/queries";
+import { listActiveCandidatePool, parseSkills, CandidateFilters, listDistinctCandidateTitles } from "@/lib/queries";
 import { getSession } from "@/lib/auth";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { Ledger, Tag, LanguageTags } from "@/components/ui";
-import { ARMENIAN_LOCATIONS } from "@/lib/constants";
+import { ARMENIAN_LOCATIONS, COMMON_SKILLS } from "@/lib/constants";
 import SalaryRangeFilter from "@/components/SalaryRangeFilter";
 import ActiveFilterChips, { FilterChip } from "@/components/ActiveFilterChips";
+import MultiSelectFilter from "@/components/MultiSelectFilter";
 
 export default async function CandidatesHubPage({
   searchParams,
@@ -19,13 +20,18 @@ export default async function CandidatesHubPage({
 
   const filters = await searchParams;
   const candidates = await listActiveCandidatePool(filters);
+  const positionOptions = await listDistinctCandidateTitles();
 
   const locationLabel = ARMENIAN_LOCATIONS.find((l) => l.value === filters.location)?.label || filters.location;
   const chips: FilterChip[] = [];
-  if (filters.position) chips.push({ key: "position", label: `"${filters.position}"` });
+  if (filters.position) {
+    filters.position.split(",").filter(Boolean).forEach((p) => chips.push({ key: "position", label: p, removeValue: p }));
+  }
   if (filters.location) chips.push({ key: "location", label: locationLabel! });
   if (filters.minExperience) chips.push({ key: "minExperience", label: `${filters.minExperience}+ yrs` });
-  if (filters.skills) chips.push({ key: "skills", label: filters.skills });
+  if (filters.skills) {
+    filters.skills.split(",").filter(Boolean).forEach((s) => chips.push({ key: "skills", label: s, removeValue: s }));
+  }
   if (filters.salaryMin || filters.salaryMax) {
     const label = filters.salaryMin && filters.salaryMax
       ? `$${filters.salaryMin}–$${filters.salaryMax}`
@@ -85,7 +91,7 @@ export default async function CandidatesHubPage({
         <form method="get" className="order-1 md:order-2 flex flex-col gap-4 p-4 rounded-xl bg-paper-dim md:sticky md:top-4">
           <div>
             <label className="text-xs font-medium text-muted">Position</label>
-            <input name="position" defaultValue={filters.position} placeholder="e.g. Backend Engineer" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white" />
+            <MultiSelectFilter name="position" options={positionOptions} initial={filters.position ? filters.position.split(",") : []} placeholder="Type to search…" />
           </div>
           <div>
             <label className="text-xs font-medium text-muted">Location</label>
@@ -100,8 +106,8 @@ export default async function CandidatesHubPage({
           </div>
           <div>
             <label className="text-xs font-medium text-muted">Skills</label>
-            <input name="skills" defaultValue={filters.skills} placeholder="e.g. React, Go" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white" />
-            <p className="text-xs text-muted mt-1">Comma separated — matches any part of a skill name.</p>
+            <MultiSelectFilter name="skills" options={COMMON_SKILLS} initial={filters.skills ? filters.skills.split(",") : []} placeholder="Type to search…" />
+            <p className="text-xs text-muted mt-1">Matches candidates who have all selected skills.</p>
           </div>
           <div>
             <label className="text-xs font-medium text-muted">Salary ($/mo)</label>

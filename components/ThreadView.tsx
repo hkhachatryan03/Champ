@@ -21,6 +21,7 @@ import { StatusPill } from "@/components/ui";
 import { put } from "@vercel/blob";
 import MessageComposer from "@/components/MessageComposer";
 import MessageBubble from "@/components/MessageBubble";
+import AutoScrollMessages from "@/components/AutoScrollMessages";
 
 async function editMessageAction(applicationId: number, messageId: number, newBody: string) {
   "use server";
@@ -284,28 +285,30 @@ export default async function ThreadView({
       </div>
 
       <div className="flex-1 mt-4 px-4 overflow-y-auto flex flex-col gap-3 pr-1">
-        {hasMoreOlder && (
-          <Link
-            href={loadMoreHref}
-            prefetch={false}
-            className="text-xs text-center underline text-apricot-deep py-1"
-          >
-            Load earlier messages
-          </Link>
-        )}
-        {messages.map((m) => (
-          <MessageBubble
-            key={m.id}
-            message={m}
-            mine={m.sender_role === session.role}
-            applicationId={applicationId}
-            reactions={allReactions.filter((r) => r.message_id === m.id)}
-            onEdit={editMessageAction}
-            onDelete={deleteMessageAction}
-            onReact={reactAction}
-          />
-        ))}
-        {messages.length === 0 && <p className="text-sm text-muted">No messages yet — say hello.</p>}
+        <AutoScrollMessages watchKey={`${applicationId}-${messages.length}`}>
+          {hasMoreOlder && (
+            <Link
+              href={loadMoreHref}
+              prefetch={false}
+              className="text-xs text-center underline text-apricot-deep py-1 block"
+            >
+              Load earlier messages
+            </Link>
+          )}
+          {messages.map((m) => (
+            <MessageBubble
+              key={m.id}
+              message={m}
+              mine={m.sender_role === session.role}
+              applicationId={applicationId}
+              reactions={allReactions.filter((r) => r.message_id === m.id)}
+              onEdit={editMessageAction}
+              onDelete={deleteMessageAction}
+              onReact={reactAction}
+            />
+          ))}
+          {messages.length === 0 && <p className="text-sm text-muted">No messages yet — say hello.</p>}
+        </AutoScrollMessages>
       </div>
 
       <div className="px-4 pb-4">

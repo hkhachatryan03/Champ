@@ -20,10 +20,11 @@ export default async function BrowseJobsPage({
   if (!session || session.role !== "candidate") redirect("/login");
   await requireOnboardedCandidate(session.userId);
   const allJobs = await listActiveJobsWithCompany(filters);
-  const jobs = filters.language
+  const appliedIds = await getAppliedJobIds(session.userId);
+  const jobsAfterLanguage = filters.language
     ? allJobs.filter((j) => parseSkills(j.languages || "[]").some((l) => l.toLowerCase().startsWith(filters.language!.toLowerCase())))
     : allJobs;
-  const appliedIds = await getAppliedJobIds(session.userId);
+  const jobs = filters.hideApplied === "1" ? jobsAfterLanguage.filter((j) => !appliedIds.has(j.id)) : jobsAfterLanguage;
   const jobTitleOptions = await listDistinctJobTitles();
   const companyNameOptions = await listDistinctCompanyNames();
 
@@ -49,6 +50,7 @@ export default async function BrowseJobsPage({
       : `up to $${filters.salaryMax}`;
     chips.push({ key: ["salaryMin", "salaryMax"], label });
   }
+  if (filters.hideApplied === "1") chips.push({ key: "hideApplied", label: "Hiding applied" });
 
   return (
     <div className="px-6 py-8 max-w-5xl mx-auto">
@@ -76,7 +78,12 @@ export default async function BrowseJobsPage({
                   </div>
                   <p className="text-sm text-muted mt-0.5">
                     {job.company_name} · {job.location}
+                    {!!job.remote && " · Remote"} · {job.employment_type}
                   </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <Tag tone="moss">{job.category}</Tag>
+                    {job.experience_level && <Tag>{job.experience_level}</Tag>}
+                  </div>
                 </div>
                 <span className="text-xs text-muted whitespace-nowrap">{formatPostedAge(job.created_at)}</span>
               </div>
@@ -84,10 +91,6 @@ export default async function BrowseJobsPage({
                 <Ledger min={job.salary_min} max={job.salary_max} />
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                <Tag tone="moss">{job.category}</Tag>
-                <Tag>{job.employment_type}</Tag>
-                {job.experience_level && <Tag>{job.experience_level}</Tag>}
-                {!!job.remote && <Tag tone="moss">Remote</Tag>}
                 {parseSkills(job.skills).map((t) => (
                   <Tag key={t}>{t}</Tag>
                 ))}
@@ -165,6 +168,10 @@ export default async function BrowseJobsPage({
               <SalaryRangeFilter minName="salaryMin" maxName="salaryMax" defaultMin={filters.salaryMin} defaultMax={filters.salaryMax} />
             </div>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="hideApplied" value="1" defaultChecked={filters.hideApplied === "1"} />
+            Hide roles I&apos;ve already applied to
+          </label>
           <button type="submit" className="mt-1 px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper">
             Apply filters
           </button>

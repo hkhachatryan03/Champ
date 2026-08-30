@@ -51,6 +51,45 @@ export default function MessageComposer({
     el.selectionStart = el.selectionEnd = start + prefix.length;
   };
 
+  // Pressing Enter on a list line continues the same list on the next
+  // line, instead of requiring the toolbar button to be clicked again for
+  // every item.
+  const handleListContinuation = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    const el = e.currentTarget;
+    const start = el.selectionStart ?? 0;
+    const value = el.value;
+    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+    const lineEnd = value.indexOf("\n", start);
+    const currentLine = value.slice(lineStart, lineEnd === -1 ? value.length : lineEnd);
+
+    const bulletMatch = currentLine.match(/^(-\s+)(.*)/);
+    const numberedMatch = currentLine.match(/^(\d+)\.\s+(.*)/);
+    if (!bulletMatch && !numberedMatch) return; // let Enter submit normally otherwise
+
+    e.preventDefault();
+    if (bulletMatch) {
+      if (!bulletMatch[2].trim()) {
+        el.value = value.slice(0, lineStart) + value.slice(start);
+        el.selectionStart = el.selectionEnd = lineStart;
+      } else {
+        const insertion = "\n- ";
+        el.value = value.slice(0, start) + insertion + value.slice(start);
+        el.selectionStart = el.selectionEnd = start + insertion.length;
+      }
+    } else if (numberedMatch) {
+      if (!numberedMatch[2].trim()) {
+        el.value = value.slice(0, lineStart) + value.slice(start);
+        el.selectionStart = el.selectionEnd = lineStart;
+      } else {
+        const nextNum = Number(numberedMatch[1]) + 1;
+        const insertion = `\n${nextNum}. `;
+        el.value = value.slice(0, start) + insertion + value.slice(start);
+        el.selectionStart = el.selectionEnd = start + insertion.length;
+      }
+    }
+  };
+
   const toolBtn =
     "w-7 h-7 rounded-md text-muted flex items-center justify-center hover:bg-white hover:text-ink hover:shadow-sm transition-all";
 
@@ -106,6 +145,7 @@ export default function MessageComposer({
             defaultValue=""
             placeholder="Write a message…"
             rows={2}
+            onKeyDown={handleListContinuation}
             className="flex-1 text-sm outline-none resize-none bg-transparent"
           />
           <button

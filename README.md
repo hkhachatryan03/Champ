@@ -1,8 +1,44 @@
-# Champ — real codebase (v16)
+# Champ — real codebase (v17)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v17
+
+- Fixed a real bug in the route-protection middleware: it was
+  unconditionally redirecting candidates away from anything under
+  `/company/*`, including their own self-preview page — this is what made
+  "Preview as recruiters see me" open the wrong page entirely
+- Fixed: saving an edited role now returns to that role's own page,
+  not the dashboard
+- Position detail page: bigger stats chart with room for every status
+  label, applicants list moved under the stats (not under the
+  description), and a clean message when a role has no applicants yet
+  instead of an empty chart
+- Chat now auto-scrolls to the newest message on open, on both the
+  standalone thread page and the inbox — no more scrolling down manually
+- Company inbox: filters redesigned into one row of multi-select dropdowns
+  (type, status, position) so you can e.g. show every status except "Not
+  moving forward" at once; the position list now reflects your actual
+  active postings immediately, not just ones with existing conversations
+- Candidates Hub: Position and Skills filters are now real multi-select
+  autocomplete fields, same as the job-browsing filters
+- "All roles" and "For You" job cards redesigned: location/remote/
+  employment-type together, category on its own line, then salary, then
+  skills — no longer one long crowded row
+- New "Hide roles I've already applied to" filter on All Roles
+- Fixed: birthdate wasn't shown to companies viewing a candidate (a real
+  oversight, not intentional)
+- Remote/On-site now shown next to location instead of next to skills
+- Lists in the rich-text editor now continue automatically when you press
+  Enter, instead of needing the toolbar button clicked for every item
+
+**Known limitation, not fixed this round:** true WYSIWYG formatting (text
+that visibly looks bold/italic while you type, like Word) needs a
+different kind of editor than what we have now — this is a bigger,
+separate task, not a quick fix, and deserves its own dedicated round
+rather than a rushed version.
 
 ## What's new in v16
 

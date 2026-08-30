@@ -20,11 +20,20 @@ export async function proxy(req: NextRequest) {
   try {
     const { payload } = await jwtVerify(token, secret);
     const role = (payload as any).role;
+    const userId = (payload as any).userId;
+
     if (isCandidateArea && role !== "candidate") {
       return NextResponse.redirect(new URL("/company/dashboard", req.url));
     }
     if (isCompanyArea && role !== "company") {
-      return NextResponse.redirect(new URL("/candidate/jobs", req.url));
+      // Special case: a candidate is allowed to view their OWN self-preview
+      // page (how recruiters see them) — everything else under /company
+      // still redirects away as before.
+      const selfPreviewMatch = pathname.match(/^\/company\/candidates\/(\d+)$/);
+      if (role === "candidate" && selfPreviewMatch && Number(selfPreviewMatch[1]) === userId) {
+        return NextResponse.next();
+      }
+      return NextResponse.redirect(new URL("/candidate/jobs/for-you", req.url));
     }
     return NextResponse.next();
   } catch {

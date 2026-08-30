@@ -29,7 +29,7 @@ export default async function JobPositionPage({ params }: { params: Promise<{ id
   const languages = parseSkills(job.languages || "[]");
 
   return (
-    <div className="px-6 py-8 max-w-4xl mx-auto">
+    <div className="px-6 py-8 max-w-5xl mx-auto">
       <Link href="/company/dashboard" className="text-sm text-muted">← Back to your roles</Link>
 
       <div className="flex items-start justify-between mt-4">

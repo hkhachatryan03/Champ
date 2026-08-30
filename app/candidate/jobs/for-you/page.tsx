@@ -40,10 +40,16 @@ export default async function ForYouPage() {
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted mt-0.5">{job.company_name} · {job.location}</p>
+            <p className="text-sm text-muted mt-0.5">
+              {job.company_name} · {job.location}
+              {!!job.remote && " · Remote"} · {job.employment_type}
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <Tag tone="moss">{job.category}</Tag>
+              {job.experience_level && <Tag>{job.experience_level}</Tag>}
+            </div>
             <div className="mt-4"><Ledger min={job.salary_min} max={job.salary_max} /></div>
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {job.experience_level && <Tag>{job.experience_level}</Tag>}
               {parseSkills(job.skills).map((t) => <Tag key={t}>{t}</Tag>)}
             </div>
           </Link>

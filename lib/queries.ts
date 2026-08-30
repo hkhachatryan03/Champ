@@ -143,6 +143,7 @@ export type JobFilters = {
   language?: string;
   salaryMin?: string;
   salaryMax?: string;
+  hideApplied?: string;
 };
 
 export async function listDistinctJobTitles(): Promise<string[]> {
@@ -157,6 +158,15 @@ export async function listDistinctCompanyNames(): Promise<string[]> {
     SELECT DISTINCT name FROM company_profiles WHERE onboarded = 1 AND name != '' ORDER BY name ASC
   `) as { name: string }[];
   return rows.map((r) => r.name);
+}
+
+export async function listDistinctCandidateTitles(): Promise<string[]> {
+  const rows = (await sql`
+    SELECT DISTINCT title FROM candidate_profiles
+    WHERE actively_looking = 1 AND onboarded = 1 AND title != ''
+    ORDER BY title ASC
+  `) as { title: string }[];
+  return rows.map((r) => r.title);
 }
 
 export async function listActiveJobsWithCompany(filters: JobFilters = {}) {
@@ -495,7 +505,10 @@ export async function listActiveCandidatePool(filters: CandidateFilters = {}) {
   `) as CandidateProfile[];
 
   return rows.filter((c) => {
-    if (filters.position && !c.title.toLowerCase().includes(filters.position.toLowerCase())) return false;
+    if (filters.position) {
+      const wanted = filters.position.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+      if (wanted.length && !wanted.some((w) => c.title.toLowerCase().includes(w))) return false;
+    }
     if (filters.location && c.location !== filters.location) return false;
     if (filters.minExperience && c.years_experience < Number(filters.minExperience)) return false;
     if (filters.skills) {
