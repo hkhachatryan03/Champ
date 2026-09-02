@@ -242,6 +242,31 @@ async function main() {
   console.log("Applying eighth round of migrations (last-active tracking)...");
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TEXT`;
   console.log("Done. Eighth round of migrations applied.");
+
+  console.log("Applying ninth round of migrations (education, preferred positions, company details)...");
+  await sql`
+    CREATE TABLE IF NOT EXISTS candidate_education (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      institution TEXT NOT NULL,
+      degree TEXT NOT NULL,
+      field_of_study TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+  await sql`ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS preferred_positions TEXT NOT NULL DEFAULT '[]'`;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS address TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS company_social_links (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL,
+      url TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+  console.log("Done. Ninth round of migrations applied.");
 }
 
 main().catch((err) => {

@@ -9,7 +9,7 @@ import RichTextarea from "@/components/RichTextarea";
 import TagPicker from "@/components/TagPicker";
 import LanguagePicker from "@/components/LanguagePicker";
 import LocationSelect from "@/components/LocationSelect";
-import { COMMON_SKILLS } from "@/lib/constants";
+import { COMMON_SKILLS, PROFESSION_OPTIONS } from "@/lib/constants";
 
 // --- Step A actions: capture the CV or LinkedIn URL, then move to step B ---
 
@@ -108,6 +108,10 @@ async function completeProfileAction(formData: FormData) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const preferredPositions = String(formData.get("preferredPositions") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const salaryMin = Number(formData.get("salaryMin") || 0);
   const salaryMax = Number(formData.get("salaryMax") || 0);
   const method = String(formData.get("method") || "manual");
@@ -125,6 +129,7 @@ async function completeProfileAction(formData: FormData) {
     years_experience: years,
     skills: JSON.stringify(skills),
     languages: JSON.stringify(languages),
+    preferred_positions: JSON.stringify(preferredPositions),
     location,
     birthdate,
     salary_min: salaryMin,
@@ -325,6 +330,13 @@ export default async function CandidateOnboarding({
         <div>
           <label className="text-xs font-medium text-muted">Skills</label>
           <div className="mt-1"><TagPicker name="skills" options={COMMON_SKILLS} initial={JSON.parse(profile.skills || "[]")} /></div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Positions you&apos;re looking for</label>
+          <div className="mt-1"><TagPicker name="preferredPositions" options={PROFESSION_OPTIONS} initial={JSON.parse(profile.preferred_positions || "[]")} /></div>
+          <p className="text-xs text-muted mt-1">
+            This is what &quot;For You&quot; uses to match you with roles — companies never see this list.
+          </p>
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Languages (optional)</label>

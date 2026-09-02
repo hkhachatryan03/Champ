@@ -42,6 +42,10 @@ export default async function Home() {
             <Link href="/login" className="underline">
               Log in
             </Link>
+            {" · "}
+            <Link href="/jobs" className="underline">
+              Just want to see what&apos;s posted? Browse open roles
+            </Link>
           </p>
         </div>
       </div>

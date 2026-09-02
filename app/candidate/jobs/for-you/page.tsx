@@ -10,24 +10,28 @@ export default async function ForYouPage() {
   if (!session || session.role !== "candidate") redirect("/login");
 
   const profile = await requireOnboardedCandidate(session.userId);
-  const mySkills = parseSkills(profile.skills);
+  const preferredPositions = parseSkills(profile.preferred_positions || "[]");
   const appliedIds = await getAppliedJobIds(session.userId);
 
   const allJobs = await listActiveJobsWithCompany();
   const jobs = allJobs.filter((j) => {
-    const jobSkills = parseSkills(j.skills);
-    const overlaps = jobSkills.some((s) => mySkills.includes(s));
+    const matchesPosition = preferredPositions.some((p) => j.title.toLowerCase().includes(p.toLowerCase()));
     const salaryOverlap = j.salary_max >= profile.salary_min && j.salary_min <= profile.salary_max;
-    return overlaps && salaryOverlap;
+    return matchesPosition && salaryOverlap;
   });
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
       <h1 className="font-display font-semibold text-2xl">For you</h1>
       <p className="text-sm text-muted mt-1 mb-6">
-        {profile.onboarded
-          ? `Auto-matched to your profile: ${mySkills.join(", ") || "no skills listed yet"} and $${profile.salary_min}–${profile.salary_max}`
-          : "Finish your profile to see roles matched to you."}
+        {preferredPositions.length > 0
+          ? `Matched to roles like ${preferredPositions.join(", ")}, in your $${profile.salary_min}–${profile.salary_max} range.`
+          : (
+            <>
+              Add the positions you&apos;re looking for on{" "}
+              <Link href="/candidate/profile" className="underline">your profile</Link> to see matches here.
+            </>
+          )}
       </p>
       <div className="flex flex-col gap-3">
         {jobs.map((job) => (

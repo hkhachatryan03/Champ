@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import FormattedMessage from "./FormattedMessage";
 import type { Message } from "@/lib/queries";
 
@@ -28,8 +28,28 @@ export default function MessageBubble({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(message.body);
   const [pending, setPending] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isDeleted = !!message.deleted_at;
+
+  // The menu sits a few pixels outside the bubble's own box (absolute
+  // positioning doesn't count toward the parent's size), so there's a
+  // small real gap the cursor has to cross to get from one to the other.
+  // A delayed hide — cancelled if the cursor lands back on either the
+  // bubble or the menu in time — means that gap no longer matters.
+  const cancelHide = () => {
+    if (hideTimer.current) {
+      clearTimeout(hideTimer.current);
+      hideTimer.current = null;
+    }
+  };
+  const scheduleHide = () => {
+    cancelHide();
+    hideTimer.current = setTimeout(() => {
+      setShowMenu(false);
+      setShowReactionPicker(false);
+    }, 300);
+  };
 
   const saveEdit = async () => {
     if (!editValue.trim()) return;
@@ -47,11 +67,11 @@ export default function MessageBubble({
           itself (that was the "changes shape on hover" bug). */}
       <div
         className="relative"
-        onMouseEnter={() => !isDeleted && setShowMenu(true)}
-        onMouseLeave={() => {
-          setShowMenu(false);
-          setShowReactionPicker(false);
+        onMouseEnter={() => {
+          cancelHide();
+          if (!isDeleted) setShowMenu(true);
         }}
+        onMouseLeave={scheduleHide}
       >
         <div className={`px-3 py-2 rounded-xl text-sm ${isDeleted ? "bg-paper-dim/60 text-muted italic" : mine ? "bg-apricot" : "bg-paper-dim"}`}>
           {isDeleted ? (
@@ -94,6 +114,8 @@ export default function MessageBubble({
           <div
             className="absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-white border border-line rounded-full shadow-sm px-1 py-0.5 z-10"
             style={mine ? { right: "100%", marginRight: 6 } : { left: "100%", marginLeft: 6 }}
+            onMouseEnter={cancelHide}
+            onMouseLeave={scheduleHide}
           >
             <button
               type="button"
@@ -127,6 +149,8 @@ export default function MessageBubble({
               <div
                 className="absolute bottom-full mb-1 flex gap-0.5 bg-white border border-line rounded-full shadow-sm px-1.5 py-1 flex-wrap max-w-[180px]"
                 style={{ [mine ? "right" : "left"]: 0 }}
+                onMouseEnter={cancelHide}
+                onMouseLeave={scheduleHide}
               >
                 {REACTION_EMOJIS.map((emoji) => (
                   <button

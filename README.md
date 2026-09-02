@@ -1,8 +1,37 @@
-# Champ — real codebase (v17)
+# Champ — real codebase (v18)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v18
+
+- **Public job board** (`/jobs`) — anyone can browse open roles and
+  filter them without logging in, same as any real job board. Applying
+  (or seeing full details tied to an account) prompts sign-up/login.
+  Linked from both the nav bar (for guests) and the homepage hero.
+- **Education** section for candidates (institution, degree — chosen
+  from a list — and an optional field of study), shown on their own
+  profile and to companies viewing them.
+- **Preferred positions** — candidates now pick the roles they're
+  actually looking for (multi-select, a real list of professions) during
+  onboarding or from their profile. "For You" now matches on this plus
+  salary, instead of skill overlap. This field is never shown to
+  companies — candidate-only, same spirit as their private "about" notes.
+- **Company profile expanded**: address, phone, and multiple social
+  links (choose a platform, add a link, add as many as you want) — shown
+  on the public company page too, for a more professional look.
+- Fixed a real bug: the chat edit/delete/react menu disappeared the
+  instant your cursor crossed the small gap between the message bubble
+  and the menu itself, because that gap wasn't part of either element's
+  hoverable area. Fixed with a delayed-hide pattern (the standard fix for
+  this exact class of UI bug) — the menu now stays put crossing that gap.
+- Work Experience (and the new Education section) on the company-facing
+  candidate view redesigned with a cleaner timeline layout.
+
+**Not built this round, by design:** a real analytics/activity-tracking
+backoffice (Vercel doesn't provide this automatically — it would need its
+own dedicated build, either custom or via a third-party tool).
 
 ## What's new in v17
 

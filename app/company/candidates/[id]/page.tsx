@@ -4,6 +4,7 @@ import {
   parseSkills,
   listExperiences,
   listCertifications,
+  listEducation,
   listJobsForCompany,
   findApplication,
   createApplication,
@@ -60,6 +61,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const skills = parseSkills(profile.skills);
   const experiences = await listExperiences(candidateUserId);
   const certifications = await listCertifications(candidateUserId);
+  const education = await listEducation(candidateUserId);
   const activeJobs = isSelfPreview ? [] : (await listJobsForCompany(session.userId)).filter((j) => j.active);
   const myJobs = [];
   const existingConnections: { job: typeof activeJobs[number]; applicationId: number; status: string; expectedSalary: number | null }[] = [];
@@ -126,14 +128,41 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
           {experiences.length > 0 && (
             <div>
-              <h2 className="font-display font-semibold text-lg mb-2">Work experience</h2>
-              <div className="flex flex-col gap-2">
-                {experiences.map((e) => (
-                  <div key={e.id} className="p-3 rounded-lg border border-line bg-white">
-                    <div className="text-sm font-medium">{e.title} · {e.company}</div>
-                    <div className="text-xs text-muted">{e.start_year} – {e.end_year || "Present"}</div>
-                  </div>
-                ))}
+              <h2 className="font-display font-semibold text-lg mb-3">Work experience</h2>
+              <div className="relative pl-5">
+                <div className="absolute left-[5px] top-1.5 bottom-1.5 w-px bg-line" />
+                <div className="flex flex-col gap-4">
+                  {experiences.map((e) => (
+                    <div key={e.id} className="relative">
+                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-apricot border-2 border-white shadow-sm" />
+                      <div className="text-sm font-medium">{e.title}</div>
+                      <div className="text-sm text-muted">{e.company}</div>
+                      <div className="text-xs text-muted mt-0.5 font-mono-num">
+                        {e.start_year} – {e.end_year || "Present"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {education.length > 0 && (
+            <div>
+              <h2 className="font-display font-semibold text-lg mb-3">Education</h2>
+              <div className="relative pl-5">
+                <div className="absolute left-[5px] top-1.5 bottom-1.5 w-px bg-line" />
+                <div className="flex flex-col gap-4">
+                  {education.map((e) => (
+                    <div key={e.id} className="relative">
+                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-moss border-2 border-white shadow-sm" />
+                      <div className="text-sm font-medium">{e.institution}</div>
+                      <div className="text-sm text-muted">
+                        {e.degree}{e.field_of_study && ` · ${e.field_of_study}`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, deleteExperience, listCertifications, addCertification, deleteCertification } from "@/lib/queries";
+import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, deleteExperience, listCertifications, addCertification, deleteCertification, listEducation, addEducation, deleteEducation, DEGREE_OPTIONS } from "@/lib/queries";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -12,7 +12,7 @@ import CroppablePhotoInput from "@/components/CroppablePhotoInput";
 import TagPicker from "@/components/TagPicker";
 import LanguagePicker from "@/components/LanguagePicker";
 import LocationSelect from "@/components/LocationSelect";
-import { COMMON_SKILLS } from "@/lib/constants";
+import { COMMON_SKILLS, PROFESSION_OPTIONS } from "@/lib/constants";
 
 async function toggleActiveAction(formData: FormData) {
   "use server";
@@ -89,6 +89,28 @@ async function deleteCertificationAction(formData: FormData) {
   revalidatePath("/candidate/profile");
 }
 
+async function addEducationAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "candidate") redirect("/login");
+  const institution = String(formData.get("institution") || "").trim();
+  const degree = String(formData.get("degree") || "").trim();
+  const fieldOfStudy = String(formData.get("fieldOfStudy") || "").trim();
+  if (institution && degree) {
+    await addEducation(session.userId, institution, degree, fieldOfStudy);
+  }
+  revalidatePath("/candidate/profile");
+}
+
+async function deleteEducationAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "candidate") redirect("/login");
+  const id = Number(formData.get("id"));
+  await deleteEducation(id, session.userId);
+  revalidatePath("/candidate/profile");
+}
+
 async function saveProfileAction(formData: FormData) {
   "use server";
   const session = await getSession();
@@ -102,6 +124,10 @@ async function saveProfileAction(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
   const languages = String(formData.get("languages") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const preferredPositions = String(formData.get("preferredPositions") || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -158,6 +184,7 @@ async function saveProfileAction(formData: FormData) {
     years_experience: years,
     skills: JSON.stringify(skills),
     languages: JSON.stringify(languages),
+    preferred_positions: JSON.stringify(preferredPositions),
     location,
     birthdate,
     salary_min: salaryMin,
@@ -182,6 +209,7 @@ export default async function CandidateProfilePage({
   const skills = parseSkills(profile.skills);
   const experiences = await listExperiences(session.userId);
   const certifications = await listCertifications(session.userId);
+  const education = await listEducation(session.userId);
   const { expError, error, avatarError } = await searchParams;
 
   return (
@@ -289,6 +317,45 @@ export default async function CandidateProfilePage({
         </button>
       </form>
 
+      <h2 className="font-display font-semibold text-lg mb-3">Education</h2>
+      <div className="flex flex-col gap-2 mb-4">
+        {education.map((e) => (
+          <div key={e.id} className="p-3 rounded-lg border border-line bg-white flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium">{e.institution}</div>
+              <div className="text-xs text-muted">
+                {e.degree}{e.field_of_study && ` · ${e.field_of_study}`}
+              </div>
+            </div>
+            <form action={deleteEducationAction}>
+              <input type="hidden" name="id" value={e.id} />
+              <button type="submit" className="text-xs text-muted underline">Remove</button>
+            </form>
+          </div>
+        ))}
+        {education.length === 0 && <p className="text-sm text-muted">No education added yet.</p>}
+      </div>
+      <form action={addEducationAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3 mb-8">
+        <div>
+          <label className="text-xs font-medium text-muted">School or university (required)</label>
+          <input name="institution" required placeholder="e.g. Yerevan State University" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Degree (required)</label>
+          <select name="degree" required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none">
+            <option value="">Choose one</option>
+            {DEGREE_OPTIONS.map((d) => <option key={d}>{d}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Field of study (optional)</label>
+          <input name="fieldOfStudy" placeholder="e.g. Data Science" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper w-fit">
+          + Add education
+        </button>
+      </form>
+
       <h2 className="font-display font-semibold text-lg mb-3">Certifications</h2>
       <div className="flex flex-col gap-2 mb-4">
         {certifications.map((c) => (
@@ -349,6 +416,13 @@ export default async function CandidateProfilePage({
         <div>
           <label className="text-xs font-medium text-muted">Skills</label>
           <div className="mt-1"><TagPicker name="skills" options={COMMON_SKILLS} initial={skills} /></div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Positions you&apos;re looking for</label>
+          <div className="mt-1"><TagPicker name="preferredPositions" options={PROFESSION_OPTIONS} initial={JSON.parse(profile.preferred_positions || "[]")} /></div>
+          <p className="text-xs text-muted mt-1">
+            This is what &quot;For You&quot; uses to match you with roles — companies never see this list.
+          </p>
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Languages (optional)</label>

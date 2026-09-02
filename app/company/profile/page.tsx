@@ -1,7 +1,8 @@
 import { getSession } from "@/lib/auth";
-import { getCompanyProfile, updateCompanyProfile } from "@/lib/queries";
+import { getCompanyProfile, updateCompanyProfile, listSocialLinks, addSocialLink, deleteSocialLink, SOCIAL_PLATFORMS } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import CroppablePhotoInput from "@/components/CroppablePhotoInput";
 import RichTextarea from "@/components/RichTextarea";
@@ -38,10 +39,33 @@ async function saveAction(formData: FormData) {
     industry: String(formData.get("industry") || ""),
     size: String(formData.get("size") || ""),
     website,
+    address: String(formData.get("address") || "").trim(),
+    phone: String(formData.get("phone") || "").trim(),
     about,
     ...avatarUpdate,
   });
   redirect(avatarFailed ? "/company/profile?avatarError=1" : "/company/profile");
+}
+
+async function addSocialLinkAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "company") redirect("/login");
+  const platform = String(formData.get("platform") || "").trim();
+  const url = String(formData.get("url") || "").trim();
+  if (platform && url) {
+    await addSocialLink(session.userId, platform, url);
+  }
+  revalidatePath("/company/profile");
+}
+
+async function deleteSocialLinkAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "company") redirect("/login");
+  const id = Number(formData.get("id"));
+  await deleteSocialLink(id, session.userId);
+  revalidatePath("/company/profile");
 }
 
 export default async function CompanyProfilePage({
@@ -53,6 +77,7 @@ export default async function CompanyProfilePage({
   if (!session || session.role !== "company") redirect("/login");
   await requireOnboardedCompany(session.userId);
   const profile = await getCompanyProfile(session.userId);
+  const socialLinks = await listSocialLinks(session.userId);
   const { error, avatarError } = await searchParams;
 
   return (
@@ -76,6 +101,23 @@ export default async function CompanyProfilePage({
         <div className="text-sm text-muted mt-1">
           {profile.industry} {profile.industry && "·"} {profile.size} {profile.website && "· " + profile.website}
         </div>
+        {profile.address && <p className="text-sm text-muted mt-1">📍 {profile.address}</p>}
+        {profile.phone && <p className="text-sm text-muted mt-0.5">📞 {profile.phone}</p>}
+        {socialLinks.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {socialLinks.map((s) => (
+              <a
+                key={s.id}
+                href={s.url.startsWith("http") ? s.url : `https://${s.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs underline text-apricot-deep"
+              >
+                {s.platform}
+              </a>
+            ))}
+          </div>
+        )}
         {profile.about && <div className="text-sm mt-3"><FormattedMessage body={profile.about} /></div>}
 
         {!profile.verified && (
@@ -94,6 +136,35 @@ export default async function CompanyProfilePage({
           </div>
         )}
       </div>
+
+      <h2 className="font-display font-semibold text-lg mb-3">Social links</h2>
+      <div className="flex flex-col gap-2 mb-4">
+        {socialLinks.map((s) => (
+          <div key={s.id} className="p-3 rounded-lg border border-line bg-white flex items-center justify-between">
+            <div>
+              <span className="text-sm font-medium">{s.platform}</span>
+              <span className="text-xs text-muted ml-2">{s.url}</span>
+            </div>
+            <form action={deleteSocialLinkAction}>
+              <input type="hidden" name="id" value={s.id} />
+              <button type="submit" className="text-xs text-muted underline">Remove</button>
+            </form>
+          </div>
+        ))}
+        {socialLinks.length === 0 && <p className="text-sm text-muted">No social links added yet.</p>}
+      </div>
+      <form action={addSocialLinkAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3 mb-8">
+        <div className="flex gap-2">
+          <select name="platform" required className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none">
+            <option value="">Choose platform</option>
+            {SOCIAL_PLATFORMS.map((p) => <option key={p}>{p}</option>)}
+          </select>
+          <input name="url" required placeholder="Link" className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper w-fit">
+          + Add link
+        </button>
+      </form>
 
       {error && (
         <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
@@ -121,6 +192,14 @@ export default async function CompanyProfilePage({
         <div>
           <label className="text-xs font-medium text-muted">Website or LinkedIn (required)</label>
           <input name="website" defaultValue={profile.website} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Address (optional)</label>
+          <input name="address" defaultValue={profile.address} placeholder="e.g. 12 Northern Ave, Yerevan" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Phone (optional)</label>
+          <input name="phone" defaultValue={profile.phone} placeholder="+374 XX XXX XXX" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
         <div>
           <label className="text-xs font-medium text-muted">About us (required)</label>

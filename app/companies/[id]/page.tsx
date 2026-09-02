@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getCompanyProfile, listActiveJobsForCompanyPublic, parseSkills } from "@/lib/queries";
+import { getCompanyProfile, listActiveJobsForCompanyPublic, parseSkills, listSocialLinks } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Ledger, Tag } from "@/components/ui";
@@ -18,6 +18,7 @@ export default async function PublicCompanyPage({ params }: { params: Promise<{ 
   }
 
   const jobs = await listActiveJobsForCompanyPublic(companyUserId);
+  const socialLinks = await listSocialLinks(companyUserId);
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
@@ -47,6 +48,23 @@ export default async function PublicCompanyPage({ params }: { params: Promise<{ 
             </p>
           </div>
         </div>
+        {profile.address && <p className="text-sm text-muted mt-2">📍 {profile.address}</p>}
+        {profile.phone && <p className="text-sm text-muted mt-0.5">📞 {profile.phone}</p>}
+        {socialLinks.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {socialLinks.map((s) => (
+              <a
+                key={s.id}
+                href={s.url.startsWith("http") ? s.url : `https://${s.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs underline text-apricot-deep"
+              >
+                {s.platform}
+              </a>
+            ))}
+          </div>
+        )}
         {profile.about && (
           <div className="mt-4 pt-4 border-t border-line">
             <p className="text-xs font-medium text-muted mb-2">About</p>

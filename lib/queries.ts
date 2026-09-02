@@ -7,6 +7,7 @@ export type CandidateProfile = {
   years_experience: number;
   skills: string; // JSON array string
   languages: string; // JSON array string, e.g. ["English:C1", "Russian:Native"]
+  preferred_positions: string; // JSON array string — hidden from companies, used only for "For You" matching
   location: string;
   birthdate: string | null;
   avatar_url: string | null;
@@ -27,6 +28,8 @@ export type CompanyProfile = {
   industry: string;
   size: string;
   website: string;
+  address: string;
+  phone: string;
   about: string;
   avatar_url: string | null;
   verified: number;
@@ -100,7 +103,8 @@ export async function updateCandidateProfile(
   await sql`
     UPDATE candidate_profiles SET
       name = ${m.name}, title = ${m.title}, years_experience = ${m.years_experience},
-      skills = ${m.skills}, languages = ${m.languages}, location = ${m.location},
+      skills = ${m.skills}, languages = ${m.languages}, preferred_positions = ${m.preferred_positions},
+      location = ${m.location},
       birthdate = ${m.birthdate}, avatar_url = ${m.avatar_url},
       salary_min = ${m.salary_min}, salary_max = ${m.salary_max},
       remote_ok = ${m.remote_ok}, cv_filename = ${m.cv_filename},
@@ -125,7 +129,8 @@ export async function updateCompanyProfile(
   await sql`
     UPDATE company_profiles SET
       name = ${m.name}, recruiter_name = ${m.recruiter_name}, industry = ${m.industry}, size = ${m.size},
-      website = ${m.website}, about = ${m.about}, avatar_url = ${m.avatar_url},
+      website = ${m.website}, address = ${m.address}, phone = ${m.phone},
+      about = ${m.about}, avatar_url = ${m.avatar_url},
       verified = ${m.verified}, onboarded = ${m.onboarded}
     WHERE user_id = ${userId}
   `;
@@ -487,6 +492,52 @@ export async function addCertification(
 
 export async function deleteCertification(id: number, userId: number) {
   await sql`DELETE FROM candidate_certifications WHERE id = ${id} AND user_id = ${userId}`;
+}
+
+// ---------- Education ----------
+export type Education = {
+  id: number;
+  user_id: number;
+  institution: string;
+  degree: string;
+  field_of_study: string;
+  created_at: string;
+};
+
+export const DEGREE_OPTIONS = ["High School", "Associate's", "Bachelor's", "Master's", "PhD", "Other"];
+
+export async function listEducation(userId: number): Promise<Education[]> {
+  return (await sql`
+    SELECT * FROM candidate_education WHERE user_id = ${userId} ORDER BY created_at DESC
+  `) as Education[];
+}
+
+export async function addEducation(userId: number, institution: string, degree: string, fieldOfStudy: string) {
+  await sql`
+    INSERT INTO candidate_education (user_id, institution, degree, field_of_study)
+    VALUES (${userId}, ${institution}, ${degree}, ${fieldOfStudy})
+  `;
+}
+
+export async function deleteEducation(id: number, userId: number) {
+  await sql`DELETE FROM candidate_education WHERE id = ${id} AND user_id = ${userId}`;
+}
+
+// ---------- Company social links ----------
+export type SocialLink = { id: number; user_id: number; platform: string; url: string };
+
+export const SOCIAL_PLATFORMS = ["LinkedIn", "Facebook", "Instagram", "X (Twitter)", "YouTube", "TikTok", "Other"];
+
+export async function listSocialLinks(userId: number): Promise<SocialLink[]> {
+  return (await sql`SELECT * FROM company_social_links WHERE user_id = ${userId} ORDER BY id ASC`) as SocialLink[];
+}
+
+export async function addSocialLink(userId: number, platform: string, url: string) {
+  await sql`INSERT INTO company_social_links (user_id, platform, url) VALUES (${userId}, ${platform}, ${url})`;
+}
+
+export async function deleteSocialLink(id: number, userId: number) {
+  await sql`DELETE FROM company_social_links WHERE id = ${id} AND user_id = ${userId}`;
 }
 
 // ---------- Candidate pool (for companies) ----------
