@@ -49,6 +49,7 @@ export type Job = {
   skills: string;
   description: string;
   active: number;
+  archived_at: string | null;
   created_at: string;
   experience_level: string | null;
   languages: string;
@@ -227,7 +228,7 @@ export async function listJobsForCompany(companyUserId: number) {
 
 export async function createJob(
   companyUserId: number,
-  data: Omit<Job, "id" | "company_user_id" | "active" | "created_at">
+  data: Omit<Job, "id" | "company_user_id" | "active" | "created_at" | "archived_at">
 ) {
   const rows = await sql`
     INSERT INTO jobs
@@ -353,6 +354,7 @@ export async function listApplicationsForJob(jobId: number, companyUserId: numbe
 export async function getApplicationContext(applicationId: number) {
   const rows = (await sql`
     SELECT applications.*, jobs.title as job_title, jobs.company_user_id as company_user_id,
+      jobs.active as job_active, jobs.archived_at as job_archived_at,
       company_profiles.name as company_name, company_profiles.recruiter_name as recruiter_name,
       company_profiles.avatar_url as company_avatar_url,
       candidate_profiles.name as candidate_name, candidate_profiles.linkedin_url as candidate_linkedin_url,
@@ -377,10 +379,39 @@ export async function updateApplicationStatus(applicationId: number, status: str
 }
 
 export async function closeJobForApplication(applicationId: number) {
+  // A confirmed hire automatically archives the role — not just pauses
+  // it — since the position is genuinely filled, not just temporarily on
+  // hold.
   await sql`
-    UPDATE jobs SET active = 0
+    UPDATE jobs SET active = 0, archived_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
     WHERE id = (SELECT job_id FROM applications WHERE id = ${applicationId})
   `;
+}
+
+export async function archiveJob(jobId: number, companyUserId: number) {
+  await sql`
+    UPDATE jobs SET active = 0, archived_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    WHERE id = ${jobId} AND company_user_id = ${companyUserId}
+  `;
+}
+
+export async function restoreArchivedJob(jobId: number, companyUserId: number) {
+  await sql`
+    UPDATE jobs SET archived_at = NULL
+    WHERE id = ${jobId} AND company_user_id = ${companyUserId}
+  `;
+}
+
+// Permanently deletes any job archived more than 90 days ago, per the
+// restore-within-3-months policy — cascades to its applications and
+// messages automatically via the foreign keys.
+export async function permanentlyDeleteExpiredArchivedJobs(): Promise<number> {
+  const rows = (await sql`
+    DELETE FROM jobs
+    WHERE archived_at IS NOT NULL AND archived_at::timestamp < (now() - interval '90 days')
+    RETURNING id
+  `) as { id: number }[];
+  return rows.length;
 }
 
 // ---------- Messages ----------

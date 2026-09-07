@@ -1,7 +1,8 @@
 import { getSession } from "@/lib/auth";
 import { updateCompanyProfile, isEmailVerified, getCompanyProfile } from "@/lib/queries";
 import { redirect } from "next/navigation";
-import RichTextarea from "@/components/RichTextarea";
+import RichEditor from "@/components/RichEditor";
+import { sanitizeRichText } from "@/lib/sanitize";
 
 async function saveCompanyAction(formData: FormData) {
   "use server";
@@ -11,9 +12,9 @@ async function saveCompanyAction(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const recruiterName = String(formData.get("recruiterName") || "").trim();
   const website = String(formData.get("website") || "").trim();
-  const about = String(formData.get("about") || "").trim();
+  const about = sanitizeRichText(String(formData.get("about") || ""));
 
-  if (!name || !recruiterName || !website || !about) {
+  if (!name || !recruiterName || !website || !about.replace(/<[^>]*>/g, "").trim()) {
     redirect("/company/onboarding?error=1");
   }
 
@@ -80,7 +81,7 @@ export default async function CompanyOnboarding({
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Short &quot;about us&quot; (required)</label>
-          <RichTextarea name="about" required rows={3} placeholder="One or two sentences on what you do." />
+          <RichEditor name="about" required minHeight={80} placeholder="One or two sentences on what you do." />
         </div>
         <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
           Continue to dashboard

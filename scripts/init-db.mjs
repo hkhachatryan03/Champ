@@ -267,6 +267,10 @@ async function main() {
     )
   `;
   console.log("Done. Ninth round of migrations applied.");
+
+  console.log("Applying tenth round of migrations (job archiving)...");
+  await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS archived_at TEXT`;
+  console.log("Done. Tenth round of migrations applied.");
 }
 
 main().catch((err) => {

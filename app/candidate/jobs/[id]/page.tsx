@@ -8,6 +8,7 @@ import { put } from "@vercel/blob";
 import Link from "next/link";
 import ClearableFileInput from "@/components/ClearableFileInput";
 import FormattedMessage from "@/components/FormattedMessage";
+import { getJobLockReason, LOCK_BANNER_TEXT } from "@/lib/jobLock";
 
 async function applyAction(formData: FormData) {
   "use server";
@@ -22,6 +23,11 @@ async function applyAction(formData: FormData) {
   const existing = await findApplication(jobId, session.userId);
   if (existing) {
     redirect(`/thread/${existing.id}`);
+  }
+
+  const job = await getJobWithCompany(jobId);
+  if (!job || getJobLockReason(job)) {
+    redirect(`/candidate/jobs/${jobId}`);
   }
 
   const profile = await getCandidateProfile(session.userId);
@@ -95,6 +101,17 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         </div>
       )}
 
+      {(() => {
+        const lockReason = getJobLockReason(job);
+        if (!lockReason) return null;
+        return (
+          <div className="mt-6 p-4 rounded-lg bg-apricot/10 border border-apricot/20">
+            <p className="text-sm font-medium text-apricot-deep">{LOCK_BANNER_TEXT[lockReason].title}</p>
+            <p className="text-xs text-muted mt-1">{LOCK_BANNER_TEXT[lockReason].body}</p>
+          </div>
+        );
+      })()}
+
       {existing ? (
         <div className="mt-8 p-5 rounded-xl border border-line bg-white">
           <div className="flex items-center gap-2 mb-3">
@@ -108,6 +125,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             Go to conversation
           </Link>
         </div>
+      ) : getJobLockReason(job) ? (
+        <p className="mt-8 text-sm text-muted">This role isn&apos;t accepting new applications right now.</p>
       ) : (
         <ApplyBlock job={job} action={applyAction} />
       )}

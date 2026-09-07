@@ -50,20 +50,36 @@ export default async function NavBar() {
         </Link>
         <div className="flex items-center gap-3">
           {!session && (
-            <Link
-              href="/jobs"
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
-            >
-              Browse open roles
-            </Link>
+            <>
+              <Link
+                href="/jobs"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
+              >
+                Browse open roles
+              </Link>
+              <Link
+                href="/about"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
+              >
+                What is Champ?
+              </Link>
+            </>
           )}
           {session && (
-            <Link
-              href="/settings"
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
-            >
-              Settings
-            </Link>
+            <>
+              <Link
+                href="/settings"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
+              >
+                Settings
+              </Link>
+              <Link
+                href="/about"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
+              >
+                What is Champ?
+              </Link>
+            </>
           )}
           <Link
             href="/contact"

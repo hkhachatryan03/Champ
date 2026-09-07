@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, List, ListOrdered, Paperclip, Send, X } from "lucide-react";
 
 export default function MessageComposer({
@@ -11,108 +13,80 @@ export default function MessageComposer({
   action: (prevState: number, formData: FormData) => Promise<number>;
 }) {
   const [sentCount, formAction, isPending] = useActionState(action, 0);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hiddenBodyRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({ heading: false, codeBlock: false, blockquote: false, horizontalRule: false }),
+    ],
+    content: "",
+    editorProps: {
+      attributes: { class: "prose-sm max-w-none outline-none text-sm" },
+    },
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => {
+      if (hiddenBodyRef.current) hiddenBodyRef.current.value = editor.isEmpty ? "" : editor.getHTML();
+    };
+    editor.on("update", handler);
+    return () => {
+      editor.off("update", handler);
+    };
+  }, [editor]);
+
   // Reset the composer only once the server actually confirms the send —
-  // this is a hard DOM reset via ref, not a React-controlled value, so
-  // there's no race between "did the browser submit the old text" and
+  // a hard reset via the editor's own API, not a React-controlled value,
+  // so there's no race between "did the browser submit the old text" and
   // "did we clear it in time." It just can't go stale.
   useEffect(() => {
     if (sentCount === 0) return;
-    if (textareaRef.current) textareaRef.current.value = "";
+    editor?.commands.clearContent();
+    if (hiddenBodyRef.current) hiddenBodyRef.current.value = "";
     if (fileInputRef.current) fileInputRef.current.value = "";
     setFileName(null);
-    textareaRef.current?.focus();
-  }, [sentCount]);
+    editor?.commands.focus();
+  }, [sentCount, editor]);
 
-  const wrapSelection = (before: string, after: string = before) => {
-    const el = textareaRef.current;
-    if (!el) return;
-    const start = el.selectionStart ?? 0;
-    const end = el.selectionEnd ?? 0;
-    const value = el.value;
-    const selected = value.slice(start, end);
-    el.value = value.slice(0, start) + before + selected + after + value.slice(end);
-    el.focus();
-    el.selectionStart = start + before.length;
-    el.selectionEnd = start + before.length + selected.length;
-  };
-
-  const insertLinePrefix = (prefix: string) => {
-    const el = textareaRef.current;
-    if (!el) return;
-    const start = el.selectionStart ?? 0;
-    const value = el.value;
-    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-    el.value = value.slice(0, lineStart) + prefix + value.slice(lineStart);
-    el.focus();
-    el.selectionStart = el.selectionEnd = start + prefix.length;
-  };
-
-  // Pressing Enter on a list line continues the same list on the next
-  // line, instead of requiring the toolbar button to be clicked again for
-  // every item.
-  const handleListContinuation = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key !== "Enter" || e.shiftKey) return;
-    const el = e.currentTarget;
-    const start = el.selectionStart ?? 0;
-    const value = el.value;
-    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-    const lineEnd = value.indexOf("\n", start);
-    const currentLine = value.slice(lineStart, lineEnd === -1 ? value.length : lineEnd);
-
-    const bulletMatch = currentLine.match(/^(-\s+)(.*)/);
-    const numberedMatch = currentLine.match(/^(\d+)\.\s+(.*)/);
-    if (!bulletMatch && !numberedMatch) return; // let Enter submit normally otherwise
-
-    e.preventDefault();
-    if (bulletMatch) {
-      if (!bulletMatch[2].trim()) {
-        el.value = value.slice(0, lineStart) + value.slice(start);
-        el.selectionStart = el.selectionEnd = lineStart;
-      } else {
-        const insertion = "\n- ";
-        el.value = value.slice(0, start) + insertion + value.slice(start);
-        el.selectionStart = el.selectionEnd = start + insertion.length;
-      }
-    } else if (numberedMatch) {
-      if (!numberedMatch[2].trim()) {
-        el.value = value.slice(0, lineStart) + value.slice(start);
-        el.selectionStart = el.selectionEnd = lineStart;
-      } else {
-        const nextNum = Number(numberedMatch[1]) + 1;
-        const insertion = `\n${nextNum}. `;
-        el.value = value.slice(0, start) + insertion + value.slice(start);
-        el.selectionStart = el.selectionEnd = start + insertion.length;
-      }
-    }
-  };
-
-  const toolBtn =
-    "w-7 h-7 rounded-md text-muted flex items-center justify-center hover:bg-white hover:text-ink hover:shadow-sm transition-all";
+  const toolBtn = (active: boolean) =>
+    `w-7 h-7 rounded-md flex items-center justify-center transition-all ${
+      active ? "bg-ink text-paper" : "text-muted hover:bg-white hover:text-ink hover:shadow-sm"
+    }`;
 
   return (
-    <form action={formAction} encType="multipart/form-data" className="mt-4">
+    <form
+      ref={formRef}
+      action={formAction}
+      encType="multipart/form-data"
+      className="mt-4"
+      onSubmit={() => {
+        if (hiddenBodyRef.current) hiddenBodyRef.current.value = editor?.isEmpty ? "" : editor?.getHTML() || "";
+      }}
+    >
       <input type="hidden" name="applicationId" value={applicationId} />
+      <input type="hidden" name="body" ref={hiddenBodyRef} defaultValue="" />
       <div className="rounded-xl border border-line bg-white overflow-hidden focus-within:border-apricot/50 transition-colors">
         <div className="flex items-center gap-0.5 px-2 py-1.5 bg-paper-dim/60 border-b border-line">
-          <button type="button" onClick={() => wrapSelection("**")} className={toolBtn} title="Bold">
+          <button type="button" onClick={() => editor?.chain().focus().toggleBold().run()} className={toolBtn(!!editor?.isActive("bold"))} title="Bold">
             <Bold size={14} />
           </button>
-          <button type="button" onClick={() => wrapSelection("*")} className={toolBtn} title="Italic">
+          <button type="button" onClick={() => editor?.chain().focus().toggleItalic().run()} className={toolBtn(!!editor?.isActive("italic"))} title="Italic">
             <Italic size={14} />
           </button>
           <span className="w-px h-4 bg-line mx-1" />
-          <button type="button" onClick={() => insertLinePrefix("- ")} className={toolBtn} title="Bullet list">
+          <button type="button" onClick={() => editor?.chain().focus().toggleBulletList().run()} className={toolBtn(!!editor?.isActive("bulletList"))} title="Bullet list">
             <List size={14} />
           </button>
-          <button type="button" onClick={() => insertLinePrefix("1. ")} className={toolBtn} title="Numbered list">
+          <button type="button" onClick={() => editor?.chain().focus().toggleOrderedList().run()} className={toolBtn(!!editor?.isActive("orderedList"))} title="Numbered list">
             <ListOrdered size={14} />
           </button>
           <span className="w-px h-4 bg-line mx-1" />
-          <label className={`${toolBtn} cursor-pointer`} title="Attach a file">
+          <label className={`${toolBtn(false)} cursor-pointer`} title="Attach a file">
             <Paperclip size={14} />
             <input
               ref={fileInputRef}
@@ -139,15 +113,12 @@ export default function MessageComposer({
           )}
         </div>
         <div className="flex items-end gap-2 px-3 py-2">
-          <textarea
-            ref={textareaRef}
-            name="body"
-            defaultValue=""
-            placeholder="Write a message…"
-            rows={2}
-            onKeyDown={handleListContinuation}
-            className="flex-1 text-sm outline-none resize-none bg-transparent"
-          />
+          <div className="flex-1 relative" style={{ minHeight: 40 }}>
+            {editor?.isEmpty && (
+              <p className="absolute top-0 left-0 text-sm text-muted pointer-events-none">Write a message…</p>
+            )}
+            <EditorContent editor={editor} />
+          </div>
           <button
             type="submit"
             disabled={isPending}

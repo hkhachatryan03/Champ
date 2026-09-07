@@ -1,8 +1,47 @@
-# Champ — real codebase (v18)
+# Champ — real codebase (v19)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v19
+
+**Real rich text editor.** Replaced the old markdown-in-a-textarea
+approach with [Tiptap](https://tiptap.dev), a genuine, widely-used editor
+library — used for chat, job descriptions, and both "about" sections.
+This fixes the whole class of bugs the old approach had: selecting
+multiple lines and clicking bullet/numbered now applies to the whole
+selection (not just the first line), clicking it again correctly toggles
+it off, and formatting renders live while typing instead of showing raw
+`**`/`-` characters. Content is sanitized server-side against a strict
+allowlist before it's ever saved, regardless of what a request claims to
+contain. **Note:** existing text saved under the old format will display
+as plain unformatted text now — new content looks correct going forward.
+
+**Job lifecycle: Pause vs. Archive.** Two distinct actions now exist —
+Pause (temporary, reversible any time, hides the role) and Archive
+(the role and its conversations are hidden immediately; nothing is
+permanently deleted for 90 days, during which it can be restored;
+after that, it's gone for good). Getting a candidate to "Hired" now
+automatically archives the role. Paused/archived roles, and any
+conversation marked "Not moving forward," now show a clear banner and
+lock the chat — informing everyone involved that nothing was deleted,
+just closed.
+
+**Recruiter quick actions.** Companies reviewing a fresh, candidate-
+initiated application now get one-click "Move to Interviewing" / "Decline"
+buttons, mirroring what candidates already had for invites. Declining
+sends an automatic message and closes the conversation.
+
+**Other fixes and additions:**
+- Reactions now display horizontally, not vertically
+- "Cancel" buttons added next to every "Save changes" (profiles, job
+  posting/editing) — discards edits and returns to the last saved version
+- Photo picker redesigned: an edit-pencil overlay on existing photos
+  (reposition the current one, or replace it) instead of a bare "choose
+  file" button; a centered plus icon for the empty state
+- New "What is Champ?" page — linked next to Settings when logged in, or
+  next to Browse Open Roles on the logged-out homepage
 
 ## What's new in v18
 

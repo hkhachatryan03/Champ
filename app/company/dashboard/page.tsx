@@ -10,7 +10,9 @@ export default async function CompanyDashboard() {
   if (!session || session.role !== "company") redirect("/login");
   await requireOnboardedCompany(session.userId);
 
-  const jobs = await listJobsForCompany(session.userId);
+  const allJobs = await listJobsForCompany(session.userId);
+  const jobs = allJobs.filter((j) => !j.archived_at);
+  const archivedJobs = allJobs.filter((j) => j.archived_at);
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
@@ -57,6 +59,24 @@ export default async function CompanyDashboard() {
         ))}
         {jobs.length === 0 && <p className="text-sm text-muted">You haven&apos;t posted a role yet.</p>}
       </div>
+
+      {archivedJobs.length > 0 && (
+        <div className="mt-10">
+          <h2 className="font-display font-semibold text-lg mb-3">Archived roles</h2>
+          <div className="flex flex-col gap-2">
+            {archivedJobs.map((j) => (
+              <Link
+                key={j.id}
+                href={`/company/jobs/${j.id}`}
+                className="p-3 rounded-lg border border-line bg-white flex items-center justify-between opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <span className="text-sm font-medium">{j.title}</span>
+                <Tag>Archived</Tag>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-10 p-4 rounded-xl border border-line bg-white flex items-center justify-between">
         <div>

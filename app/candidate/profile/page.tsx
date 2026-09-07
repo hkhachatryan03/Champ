@@ -7,7 +7,8 @@ import { Ledger, Tag, LanguageTags } from "@/components/ui";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
 import ClearableFileInput from "@/components/ClearableFileInput";
-import RichTextarea from "@/components/RichTextarea";
+import RichEditor from "@/components/RichEditor";
+import { sanitizeRichText } from "@/lib/sanitize";
 import CroppablePhotoInput from "@/components/CroppablePhotoInput";
 import TagPicker from "@/components/TagPicker";
 import LanguagePicker from "@/components/LanguagePicker";
@@ -135,7 +136,7 @@ async function saveProfileAction(formData: FormData) {
   const salaryMax = Number(formData.get("salaryMax") || 0);
   if (salaryMax < salaryMin) redirect("/candidate/profile?error=salary");
   const remoteOk = formData.get("remoteOk") ? 1 : 0;
-  const about = String(formData.get("about") || "");
+  const about = sanitizeRichText(String(formData.get("about") || ""));
   const linkedinUrl = String(formData.get("linkedinUrl") || "").trim();
   const location = String(formData.get("location") || "");
   const birthdate = String(formData.get("birthdate") || "").trim() || null;
@@ -456,7 +457,7 @@ export default async function CandidateProfilePage({
         </label>
         <div>
           <label className="text-xs font-medium text-muted">About you</label>
-          <RichTextarea name="about" defaultValue={profile.about} rows={3} />
+          <RichEditor name="about" defaultValue={profile.about} minHeight={80} />
         </div>
         <div>
           <label className="text-xs font-medium text-muted">LinkedIn URL</label>
@@ -480,11 +481,16 @@ export default async function CandidateProfilePage({
         )}
         <div>
           <label className="text-xs font-medium text-muted">Profile photo (optional)</label>
-          <CroppablePhotoInput name="avatar" />
+          <CroppablePhotoInput name="avatar" existingPhotoUrl={profile.avatar_url} />
         </div>
-        <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
-          Save changes
-        </button>
+        <div className="flex items-center gap-3 mt-2">
+          <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
+            Save changes
+          </button>
+          <a href="/candidate/profile" className="text-sm text-muted underline">
+            Cancel
+          </a>
+        </div>
       </form>
     </div>
   );

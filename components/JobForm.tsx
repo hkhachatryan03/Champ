@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import TagPicker from "./TagPicker";
 import LanguagePicker from "./LanguagePicker";
 import LocationSelect from "./LocationSelect";
-import RichTextarea from "./RichTextarea";
+import RichEditor from "./RichEditor";
 import { COMMON_SKILLS } from "@/lib/constants";
 
 export type JobFormState = { error?: string } | null;
@@ -13,6 +13,7 @@ export default function JobForm({
   action,
   defaults,
   isEdit,
+  cancelHref,
 }: {
   action: (prevState: JobFormState, formData: FormData) => Promise<JobFormState>;
   defaults?: {
@@ -30,6 +31,7 @@ export default function JobForm({
     languages?: string;
   };
   isEdit?: boolean;
+  cancelHref: string;
 }) {
   const d = defaults || {};
   const [state, formAction, isPending] = useActionState<JobFormState, FormData>(action, null);
@@ -90,7 +92,7 @@ export default function JobForm({
       </div>
       <div>
         <label className="text-xs font-medium text-muted">Description (required — this is what candidates see)</label>
-        <RichTextarea name="description" defaultValue={d.description} required rows={4} placeholder="What will they actually be doing? What's the team like?" />
+        <RichEditor name="description" defaultValue={d.description} required minHeight={110} placeholder="What will they actually be doing? What's the team like?" />
       </div>
       <div className="flex gap-3">
         <div className="flex-1">
@@ -111,9 +113,14 @@ export default function JobForm({
       )}
 
       <p className="text-xs text-muted">A visible salary range is required to post — it&apos;s the whole point of Champ.</p>
-      <button type="submit" disabled={isPending} className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit disabled:opacity-60">
-        {isEdit ? "Save changes" : "Publish role"}
-      </button>
+      <div className="flex items-center gap-3 mt-2">
+        <button type="submit" disabled={isPending} className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit disabled:opacity-60">
+          {isEdit ? "Save changes" : "Publish role"}
+        </button>
+        <a href={cancelHref} className="text-sm text-muted underline">
+          Cancel
+        </a>
+      </div>
     </form>
   );
 }

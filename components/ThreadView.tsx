@@ -14,6 +14,8 @@ import {
   listReactionsForApplication,
 } from "@/lib/queries";
 import { formatLastActive } from "@/lib/dates";
+import { getThreadLockReason, LOCK_BANNER_TEXT } from "@/lib/jobLock";
+import { sanitizeRichText } from "@/lib/sanitize";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
@@ -27,7 +29,7 @@ async function editMessageAction(applicationId: number, messageId: number, newBo
   "use server";
   const session = await getSession();
   if (!session) redirect("/login");
-  await editMessage(messageId, session.role, newBody);
+  await editMessage(messageId, session.role, sanitizeRichText(newBody));
   revalidatePath(`/thread/${applicationId}`);
   revalidatePath("/company/inbox");
 }
@@ -55,7 +57,17 @@ async function sendAction(prevCount: number, formData: FormData): Promise<number
   const session = await getSession();
   if (!session) redirect("/login");
   const applicationId = Number(formData.get("applicationId"));
-  const body = String(formData.get("body") || "").trim();
+
+  // Enforced here too, not just by hiding the composer in the UI — this
+  // is the actual guarantee that a paused/archived/closed conversation
+  // can't keep receiving new messages.
+  const context = await getApplicationContext(applicationId);
+  if (!context) return prevCount;
+  if (getThreadLockReason({ active: context.job_active, archived_at: context.job_archived_at }, context.status)) {
+    return prevCount;
+  }
+
+  const body = sanitizeRichText(String(formData.get("body") || "").trim());
 
   let attachment: { url: string; name: string } | null = null;
   const file = formData.get("attachment") as File | null;
@@ -70,7 +82,7 @@ async function sendAction(prevCount: number, formData: FormData): Promise<number
     }
   }
 
-  if (!body && !attachment) return prevCount;
+  if ((!body || !body.replace(/<[^>]*>/g, "").trim()) && !attachment) return prevCount;
   await sendMessage(applicationId, session.role, body, attachment);
   revalidatePath(`/thread/${applicationId}`);
   revalidatePath("/candidate/applications");
@@ -102,6 +114,25 @@ async function statusAction(formData: FormData) {
   revalidatePath("/candidate/applications");
   revalidatePath("/company/inbox");
   revalidatePath("/company/dashboard");
+}
+
+async function respondToApplicationAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "company") redirect("/login");
+  const applicationId = Number(formData.get("applicationId"));
+  const response = String(formData.get("response") || "");
+
+  if (response === "approve") {
+    await updateApplicationStatus(applicationId, "Interviewing");
+  } else {
+    await updateApplicationStatus(applicationId, "Not moving forward");
+    await sendMessage(applicationId, "company", "Thank you for your interest — we've decided not to move forward with your application at this time.");
+  }
+
+  revalidatePath(`/thread/${applicationId}`);
+  revalidatePath("/candidate/applications");
+  revalidatePath("/company/inbox");
 }
 
 async function respondToInviteAction(formData: FormData) {
@@ -147,6 +178,8 @@ export default async function ThreadView({
   if (!isCandidate && !isCompany) {
     return <div className="px-6 py-10 text-sm text-muted">You don&apos;t have access to this conversation.</div>;
   }
+
+  const lockReason = getThreadLockReason({ active: app.job_active, archived_at: app.job_archived_at }, app.status);
 
   await markMessagesRead(applicationId, session.role);
   const limit = showLimit || 30;
@@ -282,6 +315,37 @@ export default async function ThreadView({
             Invite status: <span className="font-medium">{app.invite_status}</span>
           </p>
         )}
+        {isCompany && !app.invite_status && app.status === "New" && (
+          <div className="mt-3 p-4 rounded-lg border border-line bg-white">
+            <p className="text-sm font-medium mb-1">New application</p>
+            <p className="text-xs text-muted mb-3">
+              Move them to Interviewing if you want to talk further, or decline now to save time —
+              either way they&apos;ll be notified.
+            </p>
+            <div className="flex gap-2">
+              <form action={respondToApplicationAction}>
+                <input type="hidden" name="applicationId" value={applicationId} />
+                <input type="hidden" name="response" value="approve" />
+                <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-apricot text-ink">
+                  Move to Interviewing
+                </button>
+              </form>
+              <form action={respondToApplicationAction}>
+                <input type="hidden" name="applicationId" value={applicationId} />
+                <input type="hidden" name="response" value="decline" />
+                <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium border border-line">
+                  Decline
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+        {lockReason && (
+          <div className="mt-3 p-3 rounded-lg bg-apricot/10 border border-apricot/20">
+            <p className="text-sm font-medium text-apricot-deep">{LOCK_BANNER_TEXT[lockReason].title}</p>
+            <p className="text-xs text-muted mt-1">{LOCK_BANNER_TEXT[lockReason].body}</p>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 mt-4 px-4 overflow-y-auto flex flex-col gap-3 pr-1">
@@ -312,7 +376,13 @@ export default async function ThreadView({
       </div>
 
       <div className="px-4 pb-4">
-        <MessageComposer applicationId={applicationId} action={sendAction} />
+        {lockReason ? (
+          <p className="text-xs text-center text-muted py-3">
+            This conversation is closed — nothing was deleted, but new messages can&apos;t be sent here.
+          </p>
+        ) : (
+          <MessageComposer applicationId={applicationId} action={sendAction} />
+        )}
       </div>
     </div>
   );

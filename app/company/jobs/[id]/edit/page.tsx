@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import JobForm, { JobFormState } from "@/components/JobForm";
 import sql from "@/lib/db";
 import { Job } from "@/lib/queries";
+import { sanitizeRichText } from "@/lib/sanitize";
 
 async function saveJobAction(
   jobId: number,
@@ -19,8 +20,8 @@ async function saveJobAction(
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const description = String(formData.get("description") || "").trim();
-  if (!description) return { error: "A description is required." };
+  const description = sanitizeRichText(String(formData.get("description") || ""));
+  if (!description.replace(/<[^>]*>/g, "").trim()) return { error: "A description is required." };
 
   const salaryMin = Number(formData.get("salaryMin") || 0);
   const salaryMax = Number(formData.get("salaryMax") || 0);
@@ -75,6 +76,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
       <JobForm
         action={boundAction}
         isEdit
+        cancelHref={`/company/jobs/${job.id}`}
         defaults={{
           title: job.title,
           category: job.category,

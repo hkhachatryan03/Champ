@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import CroppablePhotoInput from "@/components/CroppablePhotoInput";
-import RichTextarea from "@/components/RichTextarea";
+import RichEditor from "@/components/RichEditor";
+import { sanitizeRichText } from "@/lib/sanitize";
 import FormattedMessage from "@/components/FormattedMessage";
 
 async function saveAction(formData: FormData) {
@@ -15,8 +16,8 @@ async function saveAction(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const recruiterName = String(formData.get("recruiterName") || "").trim();
   const website = String(formData.get("website") || "").trim();
-  const about = String(formData.get("about") || "").trim();
-  if (!name || !recruiterName || !website || !about) redirect("/company/profile?error=1");
+  const about = sanitizeRichText(String(formData.get("about") || ""));
+  if (!name || !recruiterName || !website || !about.replace(/<[^>]*>/g, "").trim()) redirect("/company/profile?error=1");
 
   let avatarUpdate: { avatar_url?: string } = {};
   const avatarFile = formData.get("avatar") as File | null;
@@ -203,20 +204,25 @@ export default async function CompanyProfilePage({
         </div>
         <div>
           <label className="text-xs font-medium text-muted">About us (required)</label>
-          <RichTextarea name="about" defaultValue={profile.about} required rows={3} />
+          <RichEditor name="about" defaultValue={profile.about} required minHeight={80} />
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Company logo (optional)</label>
-          <CroppablePhotoInput name="avatar" />
+          <CroppablePhotoInput name="avatar" existingPhotoUrl={profile.avatar_url} />
         </div>
         {avatarError === "1" && (
           <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
             Everything else saved, but your logo failed to upload — try a different file or try again in a moment.
           </div>
         )}
-        <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
-          Save changes
-        </button>
+        <div className="flex items-center gap-3 mt-2">
+          <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
+            Save changes
+          </button>
+          <a href="/company/profile" className="text-sm text-muted underline">
+            Cancel
+          </a>
+        </div>
       </form>
     </div>
   );

@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
 import ClearableFileInput from "@/components/ClearableFileInput";
-import RichTextarea from "@/components/RichTextarea";
+import RichEditor from "@/components/RichEditor";
+import { sanitizeRichText } from "@/lib/sanitize";
 import TagPicker from "@/components/TagPicker";
 import LanguagePicker from "@/components/LanguagePicker";
 import LocationSelect from "@/components/LocationSelect";
@@ -119,7 +120,7 @@ async function completeProfileAction(formData: FormData) {
     redirect(`/candidate/onboarding?method=${method}&step=details&error=salary`);
   }
   const remoteOk = formData.get("remoteOk") ? 1 : 0;
-  const about = String(formData.get("about") || "");
+  const about = sanitizeRichText(String(formData.get("about") || ""));
   const location = String(formData.get("location") || "");
   const birthdate = String(formData.get("birthdate") || "").trim() || null;
 
@@ -365,7 +366,7 @@ export default async function CandidateOnboarding({
         </label>
         <div>
           <label className="text-xs font-medium text-muted">About you (2-3 sentences)</label>
-          <RichTextarea name="about" defaultValue={profile.about} required rows={3} />
+          <RichEditor name="about" defaultValue={profile.about} required minHeight={80} />
         </div>
         <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
           Save & browse roles

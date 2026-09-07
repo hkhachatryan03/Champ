@@ -3,6 +3,7 @@ import { createJob } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import JobForm, { JobFormState } from "@/components/JobForm";
+import { sanitizeRichText } from "@/lib/sanitize";
 
 async function createJobAction(prevState: JobFormState, formData: FormData): Promise<JobFormState> {
   "use server";
@@ -13,8 +14,8 @@ async function createJobAction(prevState: JobFormState, formData: FormData): Pro
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const description = String(formData.get("description") || "").trim();
-  if (!description) return { error: "A description is required." };
+  const description = sanitizeRichText(String(formData.get("description") || ""));
+  if (!description.replace(/<[^>]*>/g, "").trim()) return { error: "A description is required." };
 
   const salaryMin = Number(formData.get("salaryMin") || 0);
   const salaryMax = Number(formData.get("salaryMax") || 0);
@@ -53,7 +54,7 @@ export default async function NewJobPage() {
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
       <h1 className="font-display font-semibold text-2xl mb-6">Post a role</h1>
-      <JobForm action={createJobAction} />
+      <JobForm action={createJobAction} cancelHref="/company/dashboard" />
     </div>
   );
 }

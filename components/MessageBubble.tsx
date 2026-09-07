@@ -1,10 +1,53 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import FormattedMessage from "./FormattedMessage";
 import type { Message } from "@/lib/queries";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👏"];
+
+function InlineEditor({
+  initialValue,
+  onCancel,
+  onSave,
+}: {
+  initialValue: string;
+  onCancel: () => void;
+  onSave: (html: string) => Promise<void>;
+}) {
+  const [pending, setPending] = useState(false);
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [StarterKit.configure({ heading: false, codeBlock: false, blockquote: false, horizontalRule: false })],
+    content: initialValue,
+    editorProps: { attributes: { class: "prose-sm max-w-none outline-none text-sm text-ink" } },
+  });
+
+  const save = async () => {
+    if (!editor || editor.isEmpty) return;
+    setPending(true);
+    await onSave(editor.getHTML());
+    setPending(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-[200px]">
+      <div className="bg-white/70 rounded px-2 py-1">
+        <EditorContent editor={editor} />
+      </div>
+      <div className="flex gap-2 justify-end">
+        <button type="button" onClick={onCancel} className="text-xs underline">
+          Cancel
+        </button>
+        <button type="button" onClick={save} disabled={pending} className="text-xs font-medium underline">
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function MessageBubble({
   message,
@@ -26,8 +69,6 @@ export default function MessageBubble({
   const [showMenu, setShowMenu] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(message.body);
-  const [pending, setPending] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isDeleted = !!message.deleted_at;
@@ -51,14 +92,6 @@ export default function MessageBubble({
     }, 300);
   };
 
-  const saveEdit = async () => {
-    if (!editValue.trim()) return;
-    setPending(true);
-    await onEdit(applicationId, message.id, editValue.trim());
-    setPending(false);
-    setEditing(false);
-  };
-
   return (
     <div className="flex flex-col max-w-[75%]" style={{ alignItems: mine ? "flex-end" : "flex-start", alignSelf: mine ? "flex-end" : "flex-start" }}>
       {/* This wrapper's box never changes size regardless of hover state —
@@ -77,22 +110,14 @@ export default function MessageBubble({
           {isDeleted ? (
             "Message deleted"
           ) : editing ? (
-            <div className="flex flex-col gap-1.5 min-w-[180px]">
-              <textarea
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                rows={2}
-                className="text-sm outline-none resize-none bg-white/70 rounded px-2 py-1 text-ink"
-              />
-              <div className="flex gap-2 justify-end">
-                <button type="button" onClick={() => setEditing(false)} className="text-xs underline">
-                  Cancel
-                </button>
-                <button type="button" onClick={saveEdit} disabled={pending} className="text-xs font-medium underline">
-                  Save
-                </button>
-              </div>
-            </div>
+            <InlineEditor
+              initialValue={message.body}
+              onCancel={() => setEditing(false)}
+              onSave={async (html) => {
+                await onEdit(applicationId, message.id, html);
+                setEditing(false);
+              }}
+            />
           ) : (
             <>
               {message.body && <FormattedMessage body={message.body} />}
@@ -147,7 +172,7 @@ export default function MessageBubble({
             )}
             {showReactionPicker && (
               <div
-                className="absolute bottom-full mb-1 flex gap-0.5 bg-white border border-line rounded-full shadow-sm px-1.5 py-1 flex-wrap max-w-[180px]"
+                className="absolute bottom-full mb-1 flex items-center gap-0.5 bg-white border border-line rounded-full shadow-sm px-1.5 py-1 whitespace-nowrap"
                 style={{ [mine ? "right" : "left"]: 0 }}
                 onMouseEnter={cancelHide}
                 onMouseLeave={scheduleHide}
@@ -160,7 +185,7 @@ export default function MessageBubble({
                       onReact(applicationId, message.id, emoji);
                       setShowReactionPicker(false);
                     }}
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-sm hover:bg-paper-dim"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-sm hover:bg-paper-dim flex-shrink-0"
                   >
                     {emoji}
                   </button>
