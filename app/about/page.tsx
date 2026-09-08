@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { getSession } from "@/lib/auth";
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const session = await getSession();
   return (
     <div>
       <div className="bg-ink">
@@ -89,12 +91,16 @@ export default function AboutPage() {
       <div className="px-6 py-16 max-w-2xl mx-auto text-center">
         <h2 className="font-display font-semibold text-2xl">Come see for yourself</h2>
         <div className="mt-6 flex flex-wrap gap-3 justify-center">
-          <Link href="/jobs" className="px-5 py-3 rounded-lg font-medium text-sm border border-line">
-            Browse open roles
-          </Link>
-          <Link href="/signup?role=company" className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink">
-            Post a role
-          </Link>
+          {(!session || session.role === "candidate") && (
+            <Link href="/jobs" className="px-5 py-3 rounded-lg font-medium text-sm border border-line">
+              Browse open roles
+            </Link>
+          )}
+          {(!session || session.role === "company") && (
+            <Link href={session ? "/company/jobs/new" : "/signup?role=company"} className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink">
+              Post a role
+            </Link>
+          )}
         </div>
       </div>
     </div>

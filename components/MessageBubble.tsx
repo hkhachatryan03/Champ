@@ -22,7 +22,7 @@ function InlineEditor({
     immediatelyRender: false,
     extensions: [StarterKit.configure({ heading: false, codeBlock: false, blockquote: false, horizontalRule: false })],
     content: initialValue,
-    editorProps: { attributes: { class: "prose-sm max-w-none outline-none text-sm text-ink" } },
+    editorProps: { attributes: { class: "prose-sm max-w-none outline-none text-sm text-ink [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5" } },
   });
 
   const save = async () => {

@@ -19,21 +19,6 @@ async function saveAction(formData: FormData) {
   const about = sanitizeRichText(String(formData.get("about") || ""));
   if (!name || !recruiterName || !website || !about.replace(/<[^>]*>/g, "").trim()) redirect("/company/profile?error=1");
 
-  let avatarUpdate: { avatar_url?: string } = {};
-  const avatarFile = formData.get("avatar") as File | null;
-  let avatarFailed = false;
-  if (avatarFile && avatarFile.size > 0) {
-    try {
-      const buffer = Buffer.from(await avatarFile.arrayBuffer());
-      const safeName = `avatar/${session.userId}_${Date.now()}_${avatarFile.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
-      const blob = await put(safeName, buffer, { access: "public", contentType: avatarFile.type || "image/jpeg" });
-      avatarUpdate.avatar_url = blob.url;
-    } catch (err) {
-      console.error("Blob upload failed (avatar):", err);
-      avatarFailed = true;
-    }
-  }
-
   await updateCompanyProfile(session.userId, {
     name,
     recruiter_name: recruiterName,
@@ -43,9 +28,28 @@ async function saveAction(formData: FormData) {
     address: String(formData.get("address") || "").trim(),
     phone: String(formData.get("phone") || "").trim(),
     about,
-    ...avatarUpdate,
   });
-  redirect(avatarFailed ? "/company/profile?avatarError=1" : "/company/profile");
+  redirect("/company/profile");
+}
+
+async function updateAvatarAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "company") redirect("/login");
+
+  const avatarFile = formData.get("avatar") as File | null;
+  if (!avatarFile || avatarFile.size === 0) return;
+
+  try {
+    const buffer = Buffer.from(await avatarFile.arrayBuffer());
+    const safeName = `avatar/${session.userId}_${Date.now()}_${avatarFile.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
+    const blob = await put(safeName, buffer, { access: "public", contentType: avatarFile.type || "image/jpeg" });
+    await updateCompanyProfile(session.userId, { avatar_url: blob.url });
+    revalidatePath("/company/profile");
+  } catch (err) {
+    console.error("Blob upload failed (avatar):", err);
+    redirect("/company/profile?avatarError=1");
+  }
 }
 
 async function addSocialLinkAction(formData: FormData) {
@@ -91,11 +95,15 @@ export default async function CompanyProfilePage({
       </div>
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white mb-8">
+        {avatarError === "1" && (
+          <div className="mb-3 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+            Your logo failed to upload — try a different file or try again in a moment.
+          </div>
+        )}
         <div className="flex items-center gap-3">
-          {profile.avatar_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
-          )}
+          <form id="avatarForm" action={updateAvatarAction} encType="multipart/form-data">
+            <CroppablePhotoInput name="avatar" existingPhotoUrl={profile.avatar_url} formIdToSubmit="avatarForm" />
+          </form>
           <div className="font-display font-semibold text-lg">{profile.name || "(unnamed company)"}</div>
         </div>
         {profile.recruiter_name && <div className="text-sm text-muted mt-2">Recruiter: {profile.recruiter_name}</div>}
@@ -206,15 +214,6 @@ export default async function CompanyProfilePage({
           <label className="text-xs font-medium text-muted">About us (required)</label>
           <RichEditor name="about" defaultValue={profile.about} required minHeight={80} />
         </div>
-        <div>
-          <label className="text-xs font-medium text-muted">Company logo (optional)</label>
-          <CroppablePhotoInput name="avatar" existingPhotoUrl={profile.avatar_url} />
-        </div>
-        {avatarError === "1" && (
-          <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-            Everything else saved, but your logo failed to upload — try a different file or try again in a moment.
-          </div>
-        )}
         <div className="flex items-center gap-3 mt-2">
           <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
             Save changes

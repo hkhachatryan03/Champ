@@ -33,9 +33,11 @@ async function getCroppedBlob(imageSrc: string, area: Area): Promise<Blob> {
 export default function CroppablePhotoInput({
   name,
   existingPhotoUrl,
+  formIdToSubmit,
 }: {
   name: string;
   existingPhotoUrl?: string | null;
+  formIdToSubmit?: string;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLInputElement>(null);
@@ -71,6 +73,9 @@ export default function CroppablePhotoInput({
       if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(URL.createObjectURL(blob));
       setImageSrc(null);
+      if (formIdToSubmit) {
+        (document.getElementById(formIdToSubmit) as HTMLFormElement | null)?.requestSubmit();
+      }
     } catch (err) {
       console.error("Crop failed:", err);
       setCropError(true);

@@ -41,6 +41,28 @@ export const PROFESSION_OPTIONS = [
   "UX/UI Designer",
 ];
 
+export const ARMENIAN_UNIVERSITIES = [
+  "American University of Armenia (AUA)",
+  "Armenian State University of Economics",
+  "Artsakh State University",
+  "Eurasia International University",
+  "European Regional Educational Academy (EREA)",
+  "French University in Armenia (UFAR)",
+  "Gavar State University",
+  "Goris State University",
+  "International Scientific-Educational Center of NAS RA",
+  "Khachatur Abovyan Armenian State Pedagogical University",
+  "National Polytechnic University of Armenia",
+  "National University of Architecture and Construction of Armenia",
+  "Russian-Armenian (Slavonic) University",
+  "Shirak State University",
+  "TUMO Center for Creative Technologies",
+  "Vanadzor State University",
+  "Yerevan Brusov State University",
+  "Yerevan State Medical University",
+  "Yerevan State University (YSU)",
+];
+
 export type LocationOption = { value: string; label: string };
 
 export const ARMENIAN_LOCATIONS: LocationOption[] = [

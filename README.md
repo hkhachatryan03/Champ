@@ -1,8 +1,47 @@
-# Champ — real codebase (v19)
+# Champ — real codebase (v20)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v20
+
+Two real bugs found in last version's rich-text editor, both fixed:
+
+- **Bullet points/numbering appeared to do nothing when clicked.** The
+  list actually was being created correctly — but Tailwind's CSS reset
+  strips the visual bullet/number markers from every `<ul>`/`<ol>` by
+  default, and that fix had only been applied to the read-only display,
+  not the live editor itself. Now fixed in both places.
+- **The "Write a message…" placeholder never disappeared while typing,**
+  and toolbar buttons never highlighted when your cursor was on
+  bold/italic/list text. Root cause: reading the editor's live state
+  directly during render doesn't make React re-render when that state
+  changes internally. Fixed by tracking it as real React state, updated
+  through the editor's own change events.
+
+**On old content showing raw `**text**` and run-together lines:** based on
+what you shared, this is very likely content saved before the rich-text
+editor rewrite (v19) — the old format stored literal markdown-style text,
+and the new display doesn't parse that syntax anymore. Re-editing and
+re-saving that specific content through the current editor should fix how
+it displays. If you're still seeing this on genuinely new content typed
+after upgrading to v20, that would be worth flagging as a separate bug.
+
+**Other fixes and additions:**
+- "What is Champ?" now appears first in the nav, before Browse
+  Roles/Settings, in every context
+- The "What is Champ?" page's bottom buttons now adapt to who's viewing:
+  only "Browse open roles" for candidates, only "Post a role" for
+  companies, both for guests
+- Profile photo editing moved to directly overlay the top avatar (an
+  edit-pencil icon, saves independently and immediately) instead of a
+  separate field buried in the edit form below — for both candidates
+  and companies
+- University/school field now offers a searchable list of major Armenian
+  universities, with free text still accepted (same pattern as skills)
+- Confirmed and documented: skills you type that aren't in the suggestion
+  list are saved exactly as typed, with no capitalization normalization
 
 ## What's new in v19
 

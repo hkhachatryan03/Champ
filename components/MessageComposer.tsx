@@ -18,6 +18,19 @@ export default function MessageComposer({
   const formRef = useRef<HTMLFormElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
+  const [isEmpty, setIsEmpty] = useState(true);
+  const [activeMarks, setActiveMarks] = useState({ bold: false, italic: false, bulletList: false, orderedList: false });
+
+  const syncState = (editorInstance: NonNullable<ReturnType<typeof useEditor>>) => {
+    setIsEmpty(editorInstance.isEmpty);
+    setActiveMarks({
+      bold: editorInstance.isActive("bold"),
+      italic: editorInstance.isActive("italic"),
+      bulletList: editorInstance.isActive("bulletList"),
+      orderedList: editorInstance.isActive("orderedList"),
+    });
+  };
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -25,20 +38,14 @@ export default function MessageComposer({
     ],
     content: "",
     editorProps: {
-      attributes: { class: "prose-sm max-w-none outline-none text-sm" },
+      attributes: { class: "prose-sm max-w-none outline-none text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5" },
     },
-  });
-
-  useEffect(() => {
-    if (!editor) return;
-    const handler = () => {
+    onUpdate: ({ editor }) => {
       if (hiddenBodyRef.current) hiddenBodyRef.current.value = editor.isEmpty ? "" : editor.getHTML();
-    };
-    editor.on("update", handler);
-    return () => {
-      editor.off("update", handler);
-    };
-  }, [editor]);
+      syncState(editor);
+    },
+    onSelectionUpdate: ({ editor }) => syncState(editor),
+  });
 
   // Reset the composer only once the server actually confirms the send —
   // a hard reset via the editor's own API, not a React-controlled value,
@@ -50,6 +57,7 @@ export default function MessageComposer({
     if (hiddenBodyRef.current) hiddenBodyRef.current.value = "";
     if (fileInputRef.current) fileInputRef.current.value = "";
     setFileName(null);
+    setIsEmpty(true);
     editor?.commands.focus();
   }, [sentCount, editor]);
 
@@ -72,17 +80,17 @@ export default function MessageComposer({
       <input type="hidden" name="body" ref={hiddenBodyRef} defaultValue="" />
       <div className="rounded-xl border border-line bg-white overflow-hidden focus-within:border-apricot/50 transition-colors">
         <div className="flex items-center gap-0.5 px-2 py-1.5 bg-paper-dim/60 border-b border-line">
-          <button type="button" onClick={() => editor?.chain().focus().toggleBold().run()} className={toolBtn(!!editor?.isActive("bold"))} title="Bold">
+          <button type="button" onClick={() => editor?.chain().focus().toggleBold().run()} className={toolBtn(activeMarks.bold)} title="Bold">
             <Bold size={14} />
           </button>
-          <button type="button" onClick={() => editor?.chain().focus().toggleItalic().run()} className={toolBtn(!!editor?.isActive("italic"))} title="Italic">
+          <button type="button" onClick={() => editor?.chain().focus().toggleItalic().run()} className={toolBtn(activeMarks.italic)} title="Italic">
             <Italic size={14} />
           </button>
           <span className="w-px h-4 bg-line mx-1" />
-          <button type="button" onClick={() => editor?.chain().focus().toggleBulletList().run()} className={toolBtn(!!editor?.isActive("bulletList"))} title="Bullet list">
+          <button type="button" onClick={() => editor?.chain().focus().toggleBulletList().run()} className={toolBtn(activeMarks.bulletList)} title="Bullet list">
             <List size={14} />
           </button>
-          <button type="button" onClick={() => editor?.chain().focus().toggleOrderedList().run()} className={toolBtn(!!editor?.isActive("orderedList"))} title="Numbered list">
+          <button type="button" onClick={() => editor?.chain().focus().toggleOrderedList().run()} className={toolBtn(activeMarks.orderedList)} title="Numbered list">
             <ListOrdered size={14} />
           </button>
           <span className="w-px h-4 bg-line mx-1" />
@@ -114,7 +122,7 @@ export default function MessageComposer({
         </div>
         <div className="flex items-end gap-2 px-3 py-2">
           <div className="flex-1 relative" style={{ minHeight: 40 }}>
-            {editor?.isEmpty && (
+            {isEmpty && (
               <p className="absolute top-0 left-0 text-sm text-muted pointer-events-none">Write a message…</p>
             )}
             <EditorContent editor={editor} />

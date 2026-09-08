@@ -3,7 +3,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
-import { useEffect } from "react";
+import { useState } from "react";
 
 export default function RichEditor({
   name,
@@ -18,6 +18,19 @@ export default function RichEditor({
   required?: boolean;
   minHeight?: number;
 }) {
+  const [isEmpty, setIsEmpty] = useState(!defaultValue);
+  const [activeMarks, setActiveMarks] = useState({ bold: false, italic: false, bulletList: false, orderedList: false });
+
+  const syncState = (editorInstance: NonNullable<ReturnType<typeof useEditor>>) => {
+    setIsEmpty(editorInstance.isEmpty);
+    setActiveMarks({
+      bold: editorInstance.isActive("bold"),
+      italic: editorInstance.isActive("italic"),
+      bulletList: editorInstance.isActive("bulletList"),
+      orderedList: editorInstance.isActive("orderedList"),
+    });
+  };
+
   const editor = useEditor({
     // Next.js renders this on the server first for the initial HTML;
     // without this flag, Tiptap tries to render real editor content
@@ -37,28 +50,17 @@ export default function RichEditor({
     content: defaultValue || "",
     editorProps: {
       attributes: {
-        class: "prose-sm max-w-none outline-none px-3 py-2 text-sm",
+        class: "prose-sm max-w-none outline-none px-3 py-2 text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1",
       },
     },
-  });
-
-  // Keep a hidden native input in sync with the editor's HTML, since our
-  // forms are plain <form action={serverAction}> submissions reading
-  // FormData — the editor itself isn't a form field.
-  useEffect(() => {
-    if (!editor) return;
-    const hidden = document.getElementById(`rich-${name}`) as HTMLInputElement | null;
-    const sync = () => {
+    onCreate: ({ editor }) => syncState(editor),
+    onUpdate: ({ editor }) => {
+      const hidden = document.getElementById(`rich-${name}`) as HTMLInputElement | null;
       if (hidden) hidden.value = editor.isEmpty ? "" : editor.getHTML();
-    };
-    sync();
-    editor.on("update", sync);
-    return () => {
-      editor.off("update", sync);
-    };
-  }, [editor, name]);
-
-  const isEmpty = editor?.isEmpty ?? !defaultValue;
+      syncState(editor);
+    },
+    onSelectionUpdate: ({ editor }) => syncState(editor),
+  });
 
   const toolBtn = (active: boolean) =>
     `w-7 h-7 rounded-md flex items-center justify-center transition-all ${
@@ -71,7 +73,7 @@ export default function RichEditor({
         <button
           type="button"
           onClick={() => editor?.chain().focus().toggleBold().run()}
-          className={toolBtn(!!editor?.isActive("bold"))}
+          className={toolBtn(activeMarks.bold)}
           title="Bold"
         >
           <Bold size={14} />
@@ -79,7 +81,7 @@ export default function RichEditor({
         <button
           type="button"
           onClick={() => editor?.chain().focus().toggleItalic().run()}
-          className={toolBtn(!!editor?.isActive("italic"))}
+          className={toolBtn(activeMarks.italic)}
           title="Italic"
         >
           <Italic size={14} />
@@ -88,7 +90,7 @@ export default function RichEditor({
         <button
           type="button"
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
-          className={toolBtn(!!editor?.isActive("bulletList"))}
+          className={toolBtn(activeMarks.bulletList)}
           title="Bullet list"
         >
           <List size={14} />
@@ -96,7 +98,7 @@ export default function RichEditor({
         <button
           type="button"
           onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-          className={toolBtn(!!editor?.isActive("orderedList"))}
+          className={toolBtn(activeMarks.orderedList)}
           title="Numbered list"
         >
           <ListOrdered size={14} />

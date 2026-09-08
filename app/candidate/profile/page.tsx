@@ -13,7 +13,8 @@ import CroppablePhotoInput from "@/components/CroppablePhotoInput";
 import TagPicker from "@/components/TagPicker";
 import LanguagePicker from "@/components/LanguagePicker";
 import LocationSelect from "@/components/LocationSelect";
-import { COMMON_SKILLS, PROFESSION_OPTIONS } from "@/lib/constants";
+import { COMMON_SKILLS, PROFESSION_OPTIONS, ARMENIAN_UNIVERSITIES } from "@/lib/constants";
+import SingleAutocomplete from "@/components/SingleAutocomplete";
 
 async function toggleActiveAction(formData: FormData) {
   "use server";
@@ -161,19 +162,6 @@ async function saveProfileAction(formData: FormData) {
       if (guessed) cvUpdate.name = guessed;
     }
   }
-  const avatarFile = formData.get("avatar") as File | null;
-  let avatarFailed = false;
-  if (avatarFile && avatarFile.size > 0) {
-    try {
-      const buffer = Buffer.from(await avatarFile.arrayBuffer());
-      const safeName = `avatar/${session.userId}_${Date.now()}_${avatarFile.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
-      const blob = await put(safeName, buffer, { access: "public", contentType: avatarFile.type || "image/jpeg" });
-      cvUpdate.avatar_url = blob.url;
-    } catch (err) {
-      console.error("Blob upload failed (avatar):", err);
-      avatarFailed = true;
-    }
-  }
   if (!name && !cvUpdate.name && linkedinUrl) {
     const guessed = guessNameFromLinkedinUrl(linkedinUrl);
     if (guessed) cvUpdate.name = guessed;
@@ -195,7 +183,27 @@ async function saveProfileAction(formData: FormData) {
     linkedin_url: linkedinUrl,
     ...cvUpdate,
   });
-  redirect(avatarFailed ? "/candidate/profile?avatarError=1" : "/candidate/profile");
+  redirect("/candidate/profile");
+}
+
+async function updateAvatarAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "candidate") redirect("/login");
+
+  const avatarFile = formData.get("avatar") as File | null;
+  if (!avatarFile || avatarFile.size === 0) return;
+
+  try {
+    const buffer = Buffer.from(await avatarFile.arrayBuffer());
+    const safeName = `avatar/${session.userId}_${Date.now()}_${avatarFile.name.replace(/[^a-zA-Z0-9._-]/g, "")}`;
+    const blob = await put(safeName, buffer, { access: "public", contentType: avatarFile.type || "image/jpeg" });
+    await updateCandidateProfile(session.userId, { avatar_url: blob.url });
+    revalidatePath("/candidate/profile");
+  } catch (err) {
+    console.error("Blob upload failed (avatar):", err);
+    redirect("/candidate/profile?avatarError=1");
+  }
 }
 
 export default async function CandidateProfilePage({
@@ -245,11 +253,15 @@ export default async function CandidateProfilePage({
       </div>
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white">
+        {avatarError === "1" && (
+          <div className="mb-3 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+            Your photo failed to upload — try a different file or try again in a moment.
+          </div>
+        )}
         <div className="flex items-center gap-3">
-          {profile.avatar_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
-          )}
+          <form id="avatarForm" action={updateAvatarAction} encType="multipart/form-data">
+            <CroppablePhotoInput name="avatar" existingPhotoUrl={profile.avatar_url} formIdToSubmit="avatarForm" />
+          </form>
           <div>
             <div className="font-display font-semibold text-lg">{profile.name || "(no name yet)"}</div>
             <div className="text-sm text-muted">{profile.title} · {profile.years_experience} yrs experience</div>
@@ -339,7 +351,9 @@ export default async function CandidateProfilePage({
       <form action={addEducationAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3 mb-8">
         <div>
           <label className="text-xs font-medium text-muted">School or university (required)</label>
-          <input name="institution" required placeholder="e.g. Yerevan State University" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <div className="mt-1">
+            <SingleAutocomplete name="institution" options={ARMENIAN_UNIVERSITIES} placeholder="Type to search, or enter your own" required />
+          </div>
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Degree (required)</label>
@@ -473,15 +487,6 @@ export default async function CandidateProfilePage({
         <div>
           <label className="text-xs font-medium text-muted">Replace CV (PDF)</label>
           <ClearableFileInput name="cv" />
-        </div>
-        {avatarError === "1" && (
-          <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-            Everything else saved, but your photo failed to upload — try a different file or try again in a moment.
-          </div>
-        )}
-        <div>
-          <label className="text-xs font-medium text-muted">Profile photo (optional)</label>
-          <CroppablePhotoInput name="avatar" existingPhotoUrl={profile.avatar_url} />
         </div>
         <div className="flex items-center gap-3 mt-2">
           <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
