@@ -1,11 +1,12 @@
 import { getSession } from "@/lib/auth";
-import { updateJob } from "@/lib/queries";
+import { updateJob, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import JobForm, { JobFormState } from "@/components/JobForm";
 import sql from "@/lib/db";
 import { Job } from "@/lib/queries";
 import { sanitizeRichText } from "@/lib/sanitize";
+import { COMMON_SKILLS } from "@/lib/constants";
 
 async function saveJobAction(
   jobId: number,
@@ -16,10 +17,11 @@ async function saveJobAction(
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
 
-  const skills = String(formData.get("skills") || "")
+  const rawSkills = String(formData.get("skills") || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const skills = await normalizeAndRegisterTerms("skill", rawSkills);
   const description = sanitizeRichText(String(formData.get("description") || ""));
   if (!description.replace(/<[^>]*>/g, "").trim()) return { error: "A description is required." };
 
@@ -69,6 +71,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
   }
 
   const boundAction = saveJobAction.bind(null, job.id);
+  const skillOptions = [...COMMON_SKILLS, ...(await listCustomTerms("skill"))];
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
@@ -77,6 +80,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
         action={boundAction}
         isEdit
         cancelHref={`/company/jobs/${job.id}`}
+        skillOptions={skillOptions}
         defaults={{
           title: job.title,
           category: job.category,

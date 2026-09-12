@@ -1,19 +1,21 @@
 import { getSession } from "@/lib/auth";
-import { createJob } from "@/lib/queries";
+import { createJob, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import JobForm, { JobFormState } from "@/components/JobForm";
 import { sanitizeRichText } from "@/lib/sanitize";
+import { COMMON_SKILLS } from "@/lib/constants";
 
 async function createJobAction(prevState: JobFormState, formData: FormData): Promise<JobFormState> {
   "use server";
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
 
-  const skills = String(formData.get("skills") || "")
+  const rawSkills = String(formData.get("skills") || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const skills = await normalizeAndRegisterTerms("skill", rawSkills);
   const description = sanitizeRichText(String(formData.get("description") || ""));
   if (!description.replace(/<[^>]*>/g, "").trim()) return { error: "A description is required." };
 
@@ -50,11 +52,12 @@ export default async function NewJobPage() {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
   await requireOnboardedCompany(session.userId);
+  const skillOptions = [...COMMON_SKILLS, ...(await listCustomTerms("skill"))];
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
       <h1 className="font-display font-semibold text-2xl mb-6">Post a role</h1>
-      <JobForm action={createJobAction} cancelHref="/company/dashboard" />
+      <JobForm action={createJobAction} cancelHref="/company/dashboard" skillOptions={skillOptions} />
     </div>
   );
 }

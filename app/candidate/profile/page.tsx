@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
-import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, deleteExperience, listCertifications, addCertification, deleteCertification, listEducation, addEducation, deleteEducation, DEGREE_OPTIONS } from "@/lib/queries";
+import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, deleteExperience, listCertifications, addCertification, deleteCertification, listEducation, addEducation, deleteEducation, DEGREE_OPTIONS, normalizeAndRegisterTerm, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
+import { formatTermCasing } from "@/lib/termCasing";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -10,6 +11,7 @@ import ClearableFileInput from "@/components/ClearableFileInput";
 import RichEditor from "@/components/RichEditor";
 import { sanitizeRichText } from "@/lib/sanitize";
 import CroppablePhotoInput from "@/components/CroppablePhotoInput";
+import UnsavedChangesGuard from "@/components/UnsavedChangesGuard";
 import TagPicker from "@/components/TagPicker";
 import LanguagePicker from "@/components/LanguagePicker";
 import LocationSelect from "@/components/LocationSelect";
@@ -58,7 +60,8 @@ async function addCertificationAction(formData: FormData) {
   if (!session || session.role !== "candidate") redirect("/login");
 
   const name = String(formData.get("certName") || "").trim();
-  if (!name) {
+  const issueDate = String(formData.get("certIssueDate") || "").trim();
+  if (!name || !issueDate) {
     revalidatePath("/candidate/profile");
     return;
   }
@@ -78,7 +81,7 @@ async function addCertificationAction(formData: FormData) {
     }
   }
 
-  await addCertification(session.userId, name, provider, linkUrl, fileUrl);
+  await addCertification(session.userId, name, provider, linkUrl, fileUrl, issueDate);
   revalidatePath("/candidate/profile");
 }
 
@@ -95,11 +98,17 @@ async function addEducationAction(formData: FormData) {
   "use server";
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
-  const institution = String(formData.get("institution") || "").trim();
+  const rawInstitution = String(formData.get("institution") || "").trim();
   const degree = String(formData.get("degree") || "").trim();
-  const fieldOfStudy = String(formData.get("fieldOfStudy") || "").trim();
-  if (institution && degree) {
-    await addEducation(session.userId, institution, degree, fieldOfStudy);
+  const rawFieldOfStudy = String(formData.get("fieldOfStudy") || "").trim();
+  const startYearRaw = String(formData.get("startYear") || "").trim();
+  const endYearRaw = String(formData.get("endYear") || "").trim();
+  const startYear = startYearRaw ? Number(startYearRaw) : null;
+  const endYear = endYearRaw ? Number(endYearRaw) : null;
+  if (rawInstitution && degree) {
+    const institution = await normalizeAndRegisterTerm("institution", rawInstitution);
+    const fieldOfStudy = rawFieldOfStudy ? formatTermCasing(rawFieldOfStudy) : "";
+    await addEducation(session.userId, institution, degree, fieldOfStudy, startYear, endYear);
   }
   revalidatePath("/candidate/profile");
 }
@@ -121,18 +130,20 @@ async function saveProfileAction(formData: FormData) {
   const name = String(formData.get("name") || "");
   const title = String(formData.get("title") || "");
   const years = Number(formData.get("years") || 0);
-  const skills = String(formData.get("skills") || "")
+  const rawSkills = String(formData.get("skills") || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const skills = await normalizeAndRegisterTerms("skill", rawSkills);
   const languages = String(formData.get("languages") || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const preferredPositions = String(formData.get("preferredPositions") || "")
+  const rawPreferredPositions = String(formData.get("preferredPositions") || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const preferredPositions = await normalizeAndRegisterTerms("position", rawPreferredPositions);
   const salaryMin = Number(formData.get("salaryMin") || 0);
   const salaryMax = Number(formData.get("salaryMax") || 0);
   if (salaryMax < salaryMin) redirect("/candidate/profile?error=salary");
@@ -220,6 +231,9 @@ export default async function CandidateProfilePage({
   const certifications = await listCertifications(session.userId);
   const education = await listEducation(session.userId);
   const { expError, error, avatarError } = await searchParams;
+  const skillOptions = [...COMMON_SKILLS, ...(await listCustomTerms("skill"))];
+  const positionOptions = [...PROFESSION_OPTIONS, ...(await listCustomTerms("position"))];
+  const institutionOptions = [...ARMENIAN_UNIVERSITIES, ...(await listCustomTerms("institution"))];
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
@@ -339,6 +353,9 @@ export default async function CandidateProfilePage({
               <div className="text-xs text-muted">
                 {e.degree}{e.field_of_study && ` · ${e.field_of_study}`}
               </div>
+              {e.start_year && (
+                <div className="text-xs text-muted font-mono-num">{e.start_year} – {e.end_year || "Present"}</div>
+              )}
             </div>
             <form action={deleteEducationAction}>
               <input type="hidden" name="id" value={e.id} />
@@ -352,7 +369,7 @@ export default async function CandidateProfilePage({
         <div>
           <label className="text-xs font-medium text-muted">School or university (required)</label>
           <div className="mt-1">
-            <SingleAutocomplete name="institution" options={ARMENIAN_UNIVERSITIES} placeholder="Type to search, or enter your own" required />
+            <SingleAutocomplete name="institution" options={institutionOptions} placeholder="Type to search, or enter your own" required />
           </div>
         </div>
         <div>
@@ -366,6 +383,14 @@ export default async function CandidateProfilePage({
           <label className="text-xs font-medium text-muted">Field of study (optional)</label>
           <input name="fieldOfStudy" placeholder="e.g. Data Science" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
+        <div>
+          <label className="text-xs font-medium text-muted">Years (optional)</label>
+          <div className="flex gap-2 items-center mt-1">
+            <input name="startYear" type="number" placeholder="Start year" className="w-28 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
+            <span className="text-sm text-muted">to</span>
+            <input name="endYear" type="number" placeholder="End year (blank = present)" className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
+          </div>
+        </div>
         <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper w-fit">
           + Add education
         </button>
@@ -378,6 +403,11 @@ export default async function CandidateProfilePage({
             <div>
               <div className="text-sm font-medium">{c.name}</div>
               {c.provider && <div className="text-xs text-muted">{c.provider}</div>}
+              {c.issue_date && (
+                <div className="text-xs text-muted font-mono-num">
+                  {new Date(c.issue_date + "-02").toLocaleDateString(undefined, { year: "numeric", month: "long" })}
+                </div>
+              )}
               {(c.link_url || c.file_url) && (
                 <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
                   View
@@ -398,6 +428,10 @@ export default async function CandidateProfilePage({
           <input name="certName" required placeholder="e.g. AWS Certified Developer" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
         <div>
+          <label className="text-xs font-medium text-muted">Issue date (required)</label>
+          <input name="certIssueDate" type="month" required max={new Date().toISOString().slice(0, 7)} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        </div>
+        <div>
           <label className="text-xs font-medium text-muted">Issued by (optional)</label>
           <input name="certProvider" placeholder="e.g. Amazon Web Services" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
@@ -415,7 +449,7 @@ export default async function CandidateProfilePage({
       </form>
 
       <h2 className="font-display font-semibold text-lg mb-3">Edit profile</h2>
-      <form action={saveProfileAction} encType="multipart/form-data" className="flex flex-col gap-4">
+      <form id="candidateProfileForm" action={saveProfileAction} encType="multipart/form-data" className="flex flex-col gap-4">
         <div>
           <label className="text-xs font-medium text-muted">Full name</label>
           <input name="name" defaultValue={profile.name} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
@@ -430,11 +464,11 @@ export default async function CandidateProfilePage({
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Skills</label>
-          <div className="mt-1"><TagPicker name="skills" options={COMMON_SKILLS} initial={skills} /></div>
+          <div className="mt-1"><TagPicker name="skills" options={skillOptions} initial={skills} /></div>
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Positions you&apos;re looking for</label>
-          <div className="mt-1"><TagPicker name="preferredPositions" options={PROFESSION_OPTIONS} initial={JSON.parse(profile.preferred_positions || "[]")} /></div>
+          <div className="mt-1"><TagPicker name="preferredPositions" options={positionOptions} initial={JSON.parse(profile.preferred_positions || "[]")} /></div>
           <p className="text-xs text-muted mt-1">
             This is what &quot;For You&quot; uses to match you with roles — companies never see this list.
           </p>
@@ -497,6 +531,7 @@ export default async function CandidateProfilePage({
           </a>
         </div>
       </form>
+      <UnsavedChangesGuard formId="candidateProfileForm" />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getCandidateProfile, updateCandidateProfile, listExperiences, addExperience, deleteExperience, isEmailVerified } from "@/lib/queries";
+import { getCandidateProfile, updateCandidateProfile, listExperiences, addExperience, deleteExperience, isEmailVerified, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
@@ -101,18 +101,20 @@ async function completeProfileAction(formData: FormData) {
   const name = String(formData.get("name") || "");
   const title = String(formData.get("title") || "");
   const years = Number(formData.get("years") || 0);
-  const skills = String(formData.get("skills") || "")
+  const rawSkills = String(formData.get("skills") || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const skills = await normalizeAndRegisterTerms("skill", rawSkills);
   const languages = String(formData.get("languages") || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const preferredPositions = String(formData.get("preferredPositions") || "")
+  const rawPreferredPositions = String(formData.get("preferredPositions") || "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const preferredPositions = await normalizeAndRegisterTerms("position", rawPreferredPositions);
   const salaryMin = Number(formData.get("salaryMin") || 0);
   const salaryMax = Number(formData.get("salaryMax") || 0);
   const method = String(formData.get("method") || "manual");
@@ -243,6 +245,8 @@ export default async function CandidateOnboarding({
   // --- Screen 3: full details, pre-filled with whatever we already know ---
   const cameFromImport = method === "cv" || method === "linkedin";
   const experiences = await listExperiences(session.userId);
+  const skillOptions = [...COMMON_SKILLS, ...(await listCustomTerms("skill"))];
+  const positionOptions = [...PROFESSION_OPTIONS, ...(await listCustomTerms("position"))];
   return (
     <div className="px-6 py-10 max-w-lg mx-auto">
       <a href="/candidate/onboarding" className="text-sm text-muted">← Change method</a>
@@ -330,11 +334,11 @@ export default async function CandidateOnboarding({
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Skills</label>
-          <div className="mt-1"><TagPicker name="skills" options={COMMON_SKILLS} initial={JSON.parse(profile.skills || "[]")} /></div>
+          <div className="mt-1"><TagPicker name="skills" options={skillOptions} initial={JSON.parse(profile.skills || "[]")} /></div>
         </div>
         <div>
           <label className="text-xs font-medium text-muted">Positions you&apos;re looking for</label>
-          <div className="mt-1"><TagPicker name="preferredPositions" options={PROFESSION_OPTIONS} initial={JSON.parse(profile.preferred_positions || "[]")} /></div>
+          <div className="mt-1"><TagPicker name="preferredPositions" options={positionOptions} initial={JSON.parse(profile.preferred_positions || "[]")} /></div>
           <p className="text-xs text-muted mt-1">
             This is what &quot;For You&quot; uses to match you with roles — companies never see this list.
           </p>

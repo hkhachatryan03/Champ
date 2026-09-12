@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import CroppablePhotoInput from "@/components/CroppablePhotoInput";
+import UnsavedChangesGuard from "@/components/UnsavedChangesGuard";
 import RichEditor from "@/components/RichEditor";
 import { sanitizeRichText } from "@/lib/sanitize";
 import FormattedMessage from "@/components/FormattedMessage";
@@ -181,7 +182,7 @@ export default async function CompanyProfilePage({
         </div>
       )}
 
-      <form action={saveAction} encType="multipart/form-data" className="flex flex-col gap-4">
+      <form id="companyProfileForm" action={saveAction} encType="multipart/form-data" className="flex flex-col gap-4">
         <div>
           <label className="text-xs font-medium text-muted">Your name (the recruiter)</label>
           <input name="recruiterName" defaultValue={profile.recruiter_name} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
@@ -223,6 +224,7 @@ export default async function CompanyProfilePage({
           </a>
         </div>
       </form>
+      <UnsavedChangesGuard formId="companyProfileForm" />
     </div>
   );
 }

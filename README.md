@@ -1,8 +1,45 @@
-# Champ — real codebase (v20)
+# Champ — real codebase (v21)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v21
+
+**Fixed the "Save doesn't work" bug** for job descriptions and profile
+"about" sections. Root cause: the rich text editor was looking up its
+hidden form field by ID at save time, which could silently fail; switched
+to a direct reference, matching the pattern already working correctly in
+chat.
+
+**Shared, auto-capitalized vocabulary for skills, positions, and
+universities.** Typing a term that isn't in our list now normalizes its
+casing (title case, with small words like "of"/"the" kept lowercase, and
+~50 known tech acronyms/compounds like SQL, MySQL, DevOps, Node.js kept
+in their proper form) and adds it to a shared list — so it shows up as a
+suggestion for everyone afterward, on either side.
+
+**Unsaved-changes warning**, on profile editing and job posting/editing.
+Reliably warns on closing the tab or refreshing (the browser's own
+mechanism), and now also intercepts clicks on our own in-app links with a
+custom "Stay & keep editing" / "Leave without saving" dialog.
+
+**My Applications now matches the Inbox** — same two-pane layout, same
+shared `ThreadView` component, multi-select status filter, and a new
+position filter that auto-updates as you apply to more roles. The stats
+chart stays at the top, as requested.
+
+**Other fixes and additions:**
+- Photo edit menu now closes when clicking anywhere else
+- Chat timestamps at minute-level (not seconds), shown for both sides of
+  a conversation, not just your own messages
+- Education: start/end years, sorted like work experience when dates are
+  given, falling back to degree seniority (PhD → Master's → Bachelor's →
+  Associate's → High School) when they're not
+- Certification issue date is now required (month + year), and its
+  display on the company side redesigned to match the Work
+  Experience/Education timeline style
+- Contact page and Settings page visually redesigned (content unchanged)
 
 ## What's new in v20
 

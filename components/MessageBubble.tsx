@@ -5,6 +5,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import FormattedMessage from "./FormattedMessage";
 import type { Message } from "@/lib/queries";
+import { formatChatTimestamp } from "@/lib/dates";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👏"];
 
@@ -206,10 +207,11 @@ export default function MessageBubble({
         </div>
       )}
 
-      {mine && !isDeleted && (
+      {!isDeleted && (
         <span className="text-[10px] mt-0.5 text-muted">
-          {message.read_at ? "Read" : "Sent"}
-          {message.edited_at ? " · edited" : ""} · {message.created_at}
+          {mine && (message.read_at ? "Read" : "Sent") + " · "}
+          {message.edited_at ? "edited · " : ""}
+          {formatChatTimestamp(message.created_at)}
         </span>
       )}
     </div>

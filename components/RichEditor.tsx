@@ -3,7 +3,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function RichEditor({
   name,
@@ -18,6 +18,7 @@ export default function RichEditor({
   required?: boolean;
   minHeight?: number;
 }) {
+  const hiddenRef = useRef<HTMLInputElement>(null);
   const [isEmpty, setIsEmpty] = useState(!defaultValue);
   const [activeMarks, setActiveMarks] = useState({ bold: false, italic: false, bulletList: false, orderedList: false });
 
@@ -55,8 +56,7 @@ export default function RichEditor({
     },
     onCreate: ({ editor }) => syncState(editor),
     onUpdate: ({ editor }) => {
-      const hidden = document.getElementById(`rich-${name}`) as HTMLInputElement | null;
-      if (hidden) hidden.value = editor.isEmpty ? "" : editor.getHTML();
+      if (hiddenRef.current) hiddenRef.current.value = editor.isEmpty ? "" : editor.getHTML();
       syncState(editor);
     },
     onSelectionUpdate: ({ editor }) => syncState(editor),
@@ -111,7 +111,7 @@ export default function RichEditor({
         <EditorContent editor={editor} />
       </div>
       {/* The actual form field our server actions read via formData.get(name). */}
-      <input type="hidden" id={`rich-${name}`} name={name} required={required} defaultValue={defaultValue || ""} />
+      <input type="hidden" ref={hiddenRef} name={name} required={required} defaultValue={defaultValue || ""} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import TagPicker from "./TagPicker";
 import LanguagePicker from "./LanguagePicker";
 import LocationSelect from "./LocationSelect";
 import RichEditor from "./RichEditor";
+import UnsavedChangesGuard from "./UnsavedChangesGuard";
 import { COMMON_SKILLS } from "@/lib/constants";
 
 export type JobFormState = { error?: string } | null;
@@ -14,6 +15,7 @@ export default function JobForm({
   defaults,
   isEdit,
   cancelHref,
+  skillOptions,
 }: {
   action: (prevState: JobFormState, formData: FormData) => Promise<JobFormState>;
   defaults?: {
@@ -32,12 +34,14 @@ export default function JobForm({
   };
   isEdit?: boolean;
   cancelHref: string;
+  skillOptions?: string[];
 }) {
   const d = defaults || {};
   const [state, formAction, isPending] = useActionState<JobFormState, FormData>(action, null);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <>
+    <form id="jobPostingForm" action={formAction} className="flex flex-col gap-4">
       {state?.error && (
         <div className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
           {state.error}
@@ -84,7 +88,7 @@ export default function JobForm({
       </div>
       <div>
         <label className="text-xs font-medium text-muted">Key skills (optional)</label>
-        <div className="mt-1"><TagPicker name="skills" options={COMMON_SKILLS} initial={d.skills ? d.skills.split(",").map((s) => s.trim()).filter(Boolean) : []} /></div>
+        <div className="mt-1"><TagPicker name="skills" options={skillOptions || COMMON_SKILLS} initial={d.skills ? d.skills.split(",").map((s) => s.trim()).filter(Boolean) : []} /></div>
       </div>
       <div>
         <label className="text-xs font-medium text-muted">Languages needed (optional)</label>
@@ -122,5 +126,7 @@ export default function JobForm({
         </a>
       </div>
     </form>
+    <UnsavedChangesGuard formId="jobPostingForm" />
+    </>
   );
 }

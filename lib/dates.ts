@@ -33,3 +33,23 @@ export function formatLastActive(lastSeenAt: string | null): string {
   const diffMonths = Math.floor(diffDays / 30);
   return `${diffMonths}mo ago`;
 }
+
+// Formats a message timestamp for chat display — minute-level precision,
+// never seconds. Shows just the time for today, or a date + time for
+// anything older, e.g. "2:34 PM" or "Sep 8, 2:34 PM".
+export function formatChatTimestamp(dateStr: string): string {
+  const date = new Date(dateStr.replace(" ", "T"));
+  if (isNaN(date.getTime())) return dateStr;
+
+  const now = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  const time = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (isToday) return time;
+
+  const dateLabel = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `${dateLabel}, ${time}`;
+}

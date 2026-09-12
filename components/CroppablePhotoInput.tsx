@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import { Pencil, Plus } from "lucide-react";
 
@@ -48,6 +48,18 @@ export default function CroppablePhotoInput({
   const [previewUrl, setPreviewUrl] = useState<string | null>(existingPhotoUrl || null);
   const [showMenu, setShowMenu] = useState(false);
   const [cropError, setCropError] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showMenu]);
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,7 +113,7 @@ export default function CroppablePhotoInput({
       {/* This is just the picker the person actually clicks. */}
       <input ref={pickerRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
 
-      <div className="relative w-16 h-16">
+      <div ref={containerRef} className="relative w-16 h-16">
         {previewUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}

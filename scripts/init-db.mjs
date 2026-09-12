@@ -271,6 +271,25 @@ async function main() {
   console.log("Applying tenth round of migrations (job archiving)...");
   await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS archived_at TEXT`;
   console.log("Done. Tenth round of migrations applied.");
+
+  console.log("Applying eleventh round of migrations (education dates, certification issue date)...");
+  await sql`ALTER TABLE candidate_education ADD COLUMN IF NOT EXISTS start_year INTEGER`;
+  await sql`ALTER TABLE candidate_education ADD COLUMN IF NOT EXISTS end_year INTEGER`;
+  await sql`ALTER TABLE candidate_certifications ADD COLUMN IF NOT EXISTS issue_date TEXT`;
+  console.log("Done. Eleventh round of migrations applied.");
+
+  console.log("Applying twelfth round of migrations (shared vocabulary)...");
+  await sql`
+    CREATE TABLE IF NOT EXISTS custom_terms (
+      id SERIAL PRIMARY KEY,
+      category TEXT NOT NULL,
+      value TEXT NOT NULL,
+      value_lower TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
+      UNIQUE(category, value_lower)
+    )
+  `;
+  console.log("Done. Twelfth round of migrations applied.");
 }
 
 main().catch((err) => {

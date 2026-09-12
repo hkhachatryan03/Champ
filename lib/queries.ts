@@ -1,4 +1,5 @@
 import sql from "./db";
+import { formatTermCasing } from "./termCasing";
 
 export type CandidateProfile = {
   user_id: number;
@@ -313,6 +314,7 @@ export async function listApplicationsForCandidate(candidateUserId: number) {
   return (await sql`
     SELECT applications.*, jobs.title as job_title, jobs.company_user_id as company_user_id,
       company_profiles.name as company_name, company_profiles.recruiter_name as recruiter_name,
+      company_profiles.avatar_url as company_avatar_url,
       (SELECT COUNT(*) FROM messages m WHERE m.application_id = applications.id AND m.sender_role = 'company' AND m.read_at IS NULL) as unread_count,
       (SELECT MAX(created_at) FROM messages m WHERE m.application_id = applications.id) as last_message_at
     FROM applications
@@ -499,12 +501,13 @@ export type Certification = {
   provider: string;
   link_url: string | null;
   file_url: string | null;
+  issue_date: string | null;
   created_at: string;
 };
 
 export async function listCertifications(userId: number): Promise<Certification[]> {
   return (await sql`
-    SELECT * FROM candidate_certifications WHERE user_id = ${userId} ORDER BY created_at DESC
+    SELECT * FROM candidate_certifications WHERE user_id = ${userId} ORDER BY issue_date DESC NULLS LAST
   `) as Certification[];
 }
 
@@ -513,11 +516,12 @@ export async function addCertification(
   name: string,
   provider: string,
   linkUrl: string | null,
-  fileUrl: string | null
+  fileUrl: string | null,
+  issueDate: string
 ) {
   await sql`
-    INSERT INTO candidate_certifications (user_id, name, provider, link_url, file_url)
-    VALUES (${userId}, ${name}, ${provider}, ${linkUrl}, ${fileUrl})
+    INSERT INTO candidate_certifications (user_id, name, provider, link_url, file_url, issue_date)
+    VALUES (${userId}, ${name}, ${provider}, ${linkUrl}, ${fileUrl}, ${issueDate})
   `;
 }
 
@@ -532,21 +536,61 @@ export type Education = {
   institution: string;
   degree: string;
   field_of_study: string;
+  start_year: number | null;
+  end_year: number | null;
   created_at: string;
 };
 
 export const DEGREE_OPTIONS = ["High School", "Associate's", "Bachelor's", "Master's", "PhD", "Other"];
 
+// Used to sort entries that have no dates — PhD first, working down to
+// High School, with "Other" placed last since it's ambiguous.
+const DEGREE_RANK: Record<string, number> = {
+  "PhD": 0,
+  "Master's": 1,
+  "Bachelor's": 2,
+  "Associate's": 3,
+  "High School": 4,
+  "Other": 5,
+};
+
 export async function listEducation(userId: number): Promise<Education[]> {
-  return (await sql`
-    SELECT * FROM candidate_education WHERE user_id = ${userId} ORDER BY created_at DESC
+  const rows = (await sql`
+    SELECT * FROM candidate_education WHERE user_id = ${userId}
   `) as Education[];
+
+  // Entries with real dates sort like work experience (most recent /
+  // ongoing first). Entries without dates (both fields optional) fall
+  // back to degree seniority, and are shown after any dated entries.
+  return rows.sort((a, b) => {
+    const aHasDate = a.start_year !== null;
+    const bHasDate = b.start_year !== null;
+    if (aHasDate && !bHasDate) return -1;
+    if (!aHasDate && bHasDate) return 1;
+    if (aHasDate && bHasDate) {
+      const aOngoing = a.end_year === null;
+      const bOngoing = b.end_year === null;
+      if (aOngoing !== bOngoing) return aOngoing ? -1 : 1;
+      const aEnd = a.end_year ?? 9999;
+      const bEnd = b.end_year ?? 9999;
+      if (aEnd !== bEnd) return bEnd - aEnd;
+      return (b.start_year ?? 0) - (a.start_year ?? 0);
+    }
+    return (DEGREE_RANK[a.degree] ?? 99) - (DEGREE_RANK[b.degree] ?? 99);
+  });
 }
 
-export async function addEducation(userId: number, institution: string, degree: string, fieldOfStudy: string) {
+export async function addEducation(
+  userId: number,
+  institution: string,
+  degree: string,
+  fieldOfStudy: string,
+  startYear: number | null,
+  endYear: number | null
+) {
   await sql`
-    INSERT INTO candidate_education (user_id, institution, degree, field_of_study)
-    VALUES (${userId}, ${institution}, ${degree}, ${fieldOfStudy})
+    INSERT INTO candidate_education (user_id, institution, degree, field_of_study, start_year, end_year)
+    VALUES (${userId}, ${institution}, ${degree}, ${fieldOfStudy}, ${startYear}, ${endYear})
   `;
 }
 
@@ -606,6 +650,44 @@ export async function listActiveCandidatePool(filters: CandidateFilters = {}) {
 
 export async function touchLastSeen(userId: number) {
   await sql`UPDATE users SET last_seen_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS') WHERE id = ${userId}`;
+}
+
+// ---------- Shared vocabulary (skills, institutions, positions) ----------
+// When someone types a term that isn't in our curated static list, we
+// normalize its casing and add it here — so it shows up as a suggestion
+// for everyone else too, on either side (candidate or company).
+export type TermCategory = "skill" | "institution" | "position";
+
+export async function normalizeAndRegisterTerm(category: TermCategory, rawValue: string): Promise<string> {
+  const normalized = formatTermCasing(rawValue);
+  if (!normalized) return normalized;
+  const lower = normalized.toLowerCase();
+
+  const existing = (await sql`
+    SELECT value FROM custom_terms WHERE category = ${category} AND value_lower = ${lower}
+  `) as { value: string }[];
+  if (existing[0]) return existing[0].value;
+
+  await sql`
+    INSERT INTO custom_terms (category, value, value_lower) VALUES (${category}, ${normalized}, ${lower})
+    ON CONFLICT (category, value_lower) DO NOTHING
+  `;
+  return normalized;
+}
+
+export async function normalizeAndRegisterTerms(category: TermCategory, rawValues: string[]): Promise<string[]> {
+  const results: string[] = [];
+  for (const v of rawValues) {
+    if (v.trim()) results.push(await normalizeAndRegisterTerm(category, v));
+  }
+  return results;
+}
+
+export async function listCustomTerms(category: TermCategory): Promise<string[]> {
+  const rows = (await sql`
+    SELECT value FROM custom_terms WHERE category = ${category} ORDER BY value ASC
+  `) as { value: string }[];
+  return rows.map((r) => r.value);
 }
 
 // ---------- Contact ----------

@@ -59,44 +59,58 @@ export default async function ContactPage({
   const topics = session?.role === "candidate" ? CANDIDATE_TOPICS : session?.role === "company" ? COMPANY_TOPICS : GENERAL_TOPICS;
 
   return (
-    <div className="px-6 py-10 max-w-md mx-auto">
-      <h1 className="font-display font-semibold text-2xl">Contact us</h1>
-      <p className="text-sm text-muted mt-1 mb-6">
-        Got a question or ran into a problem? Write to us — we usually reply within one business day.
-      </p>
-      {!process.env.RESEND_API_KEY && (
-        <p className="text-xs text-muted mb-6">
-          Forgot your password? Mention the email you signed up with and we&apos;ll reset it manually for now —
-          real self-service reset needs an email-sending service, which isn&apos;t connected on this deployment yet.
-        </p>
-      )}
-      {sent && (
-        <p className="text-sm mb-4 text-moss">Thanks — your message has been sent.</p>
-      )}
-      <form action={contactAction} encType="multipart/form-data" className="flex flex-col gap-3">
-        {session ? (
-          <p className="text-xs text-muted">
-            We&apos;ll reply to <strong>{session.email}</strong> — the email on your account.
+    <div>
+      <div className="bg-ink">
+        <div className="px-6 pt-14 pb-16 max-w-lg mx-auto">
+          <p className="text-xs font-medium text-apricot uppercase tracking-wide">We&apos;re here to help</p>
+          <h1 className="font-display font-semibold text-3xl md:text-4xl text-paper mt-3">
+            Get in touch
+          </h1>
+          <p className="mt-4 text-base text-paper/70 leading-relaxed">
+            Got a question or ran into a problem? Send us a note — we usually reply within one business day.
           </p>
-        ) : (
-          <div>
-            <label className="text-xs font-medium text-muted">Your email (optional, so we can reply)</label>
-            <input name="email" type="email" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-          </div>
-        )}
-        <TopicSelect topics={topics} />
-        <div>
-          <label className="text-xs font-medium text-muted">Message</label>
-          <textarea name="body" rows={4} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
-        <div>
-          <label className="text-xs font-medium text-muted">Attach a screenshot or file (optional)</label>
-          <ClearableFileInput name="attachment" accept="image/*,application/pdf" />
+      </div>
+
+      <div className="px-6 -mt-8 pb-16 max-w-lg mx-auto">
+        <div className="p-6 rounded-2xl border border-line bg-white shadow-sm">
+          {!process.env.RESEND_API_KEY && (
+            <p className="text-xs text-muted mb-5 p-3 rounded-lg bg-paper-dim">
+              Forgot your password? Mention the email you signed up with and we&apos;ll reset it manually for now —
+              real self-service reset needs an email-sending service, which isn&apos;t connected on this deployment yet.
+            </p>
+          )}
+          {sent && (
+            <p className="text-sm mb-5 px-3 py-2 rounded-lg bg-moss/10 text-moss">
+              Thanks — your message has been sent.
+            </p>
+          )}
+          <form action={contactAction} encType="multipart/form-data" className="flex flex-col gap-4">
+            {session ? (
+              <p className="text-xs text-muted -mt-1">
+                We&apos;ll reply to <strong>{session.email}</strong> — the email on your account.
+              </p>
+            ) : (
+              <div>
+                <label className="text-xs font-medium text-muted">Your email (optional, so we can reply)</label>
+                <input name="email" type="email" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+              </div>
+            )}
+            <TopicSelect topics={topics} />
+            <div>
+              <label className="text-xs font-medium text-muted">Message</label>
+              <textarea name="body" rows={4} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted">Attach a screenshot or file (optional)</label>
+              <div className="mt-1"><ClearableFileInput name="attachment" accept="image/*,application/pdf" /></div>
+            </div>
+            <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
+              Send message
+            </button>
+          </form>
         </div>
-        <button type="submit" className="mt-1 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
-          Send
-        </button>
-      </form>
+      </div>
     </div>
   );
 }

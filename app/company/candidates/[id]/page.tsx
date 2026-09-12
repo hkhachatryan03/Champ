@@ -169,21 +169,30 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
           {certifications.length > 0 && (
             <div>
-              <h2 className="font-display font-semibold text-lg mb-2">Certifications</h2>
-              <div className="flex flex-col gap-2">
-                {certifications.map((c) => (
-                  <div key={c.id} className="p-3 rounded-lg border border-line bg-white flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium">{c.name}</div>
-                      {c.provider && <div className="text-xs text-muted">{c.provider}</div>}
+              <h2 className="font-display font-semibold text-lg mb-3">Certifications</h2>
+              <div className="relative pl-5">
+                <div className="absolute left-[5px] top-1.5 bottom-1.5 w-px bg-line" />
+                <div className="flex flex-col gap-4">
+                  {certifications.map((c) => (
+                    <div key={c.id} className="relative">
+                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-stone border-2 border-white shadow-sm" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{c.name}</span>
+                        {(c.link_url || c.file_url) && (
+                          <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
+                            View →
+                          </a>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted">{c.provider}</div>
+                      {c.issue_date && (
+                        <div className="text-xs text-muted font-mono-num">
+                          {new Date(c.issue_date + "-02").toLocaleDateString(undefined, { year: "numeric", month: "long" })}
+                        </div>
+                      )}
                     </div>
-                    {(c.link_url || c.file_url) && (
-                      <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
-                        View →
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
