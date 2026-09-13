@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, deleteExperience, listCertifications, addCertification, deleteCertification, listEducation, addEducation, deleteEducation, DEGREE_OPTIONS, normalizeAndRegisterTerm, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
+import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, updateExperience, deleteExperience, listCertifications, addCertification, updateCertification, deleteCertification, listEducation, addEducation, updateEducation, deleteEducation, DEGREE_OPTIONS, normalizeAndRegisterTerm, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
 import { formatTermCasing } from "@/lib/termCasing";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
@@ -17,6 +17,9 @@ import LanguagePicker from "@/components/LanguagePicker";
 import LocationSelect from "@/components/LocationSelect";
 import { COMMON_SKILLS, PROFESSION_OPTIONS, ARMENIAN_UNIVERSITIES } from "@/lib/constants";
 import SingleAutocomplete from "@/components/SingleAutocomplete";
+import ExperienceItem from "@/components/ExperienceItem";
+import EducationItem from "@/components/EducationItem";
+import CertificationItem from "@/components/CertificationItem";
 
 async function toggleActiveAction(formData: FormData) {
   "use server";
@@ -36,8 +39,9 @@ async function addExperienceAction(formData: FormData) {
   const startYear = Number(formData.get("startYear") || 0);
   const endYearRaw = String(formData.get("endYear") || "").trim();
   const endYear = endYearRaw ? Number(endYearRaw) : null;
+  const description = String(formData.get("description") || "").trim();
   if (company && title && startYear) {
-    const result = await addExperience(session.userId, company, title, startYear, endYear);
+    const result = await addExperience(session.userId, company, title, startYear, endYear, description);
     if (!result.ok) {
       redirect(`/candidate/profile?expError=${encodeURIComponent(result.error!)}`);
     }
@@ -45,11 +49,59 @@ async function addExperienceAction(formData: FormData) {
   revalidatePath("/candidate/profile");
 }
 
-async function deleteExperienceAction(formData: FormData) {
+async function updateExperienceAction(id: number, formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "candidate") return { ok: false, error: "Not signed in." };
+  const company = String(formData.get("company") || "").trim();
+  const title = String(formData.get("title") || "").trim();
+  const startYear = Number(formData.get("startYear") || 0);
+  const endYearRaw = String(formData.get("endYear") || "").trim();
+  const endYear = endYearRaw ? Number(endYearRaw) : null;
+  const description = String(formData.get("description") || "").trim();
+  if (!company || !title || !startYear) return { ok: false, error: "Fill in role, company, and start year." };
+  const result = await updateExperience(id, session.userId, company, title, startYear, endYear, description);
+  revalidatePath("/candidate/profile");
+  return result;
+}
+
+async function updateEducationAction(id: number, formData: FormData) {
   "use server";
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
-  const id = Number(formData.get("id"));
+  const rawInstitution = String(formData.get("institution") || "").trim();
+  const degree = String(formData.get("degree") || "").trim();
+  const rawFieldOfStudy = String(formData.get("fieldOfStudy") || "").trim();
+  const startYearRaw = String(formData.get("startYear") || "").trim();
+  const endYearRaw = String(formData.get("endYear") || "").trim();
+  const startYear = startYearRaw ? Number(startYearRaw) : null;
+  const endYear = endYearRaw ? Number(endYearRaw) : null;
+  if (rawInstitution && degree) {
+    const institution = await normalizeAndRegisterTerm("institution", rawInstitution);
+    const fieldOfStudy = rawFieldOfStudy ? formatTermCasing(rawFieldOfStudy) : "";
+    await updateEducation(id, session.userId, institution, degree, fieldOfStudy, startYear, endYear);
+  }
+  revalidatePath("/candidate/profile");
+}
+
+async function updateCertificationAction(id: number, formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "candidate") redirect("/login");
+  const name = String(formData.get("certName") || "").trim();
+  const issueDate = String(formData.get("certIssueDate") || "").trim();
+  const provider = String(formData.get("certProvider") || "").trim();
+  const linkUrl = String(formData.get("certLink") || "").trim() || null;
+  if (name && issueDate) {
+    await updateCertification(id, session.userId, name, provider, linkUrl, issueDate);
+  }
+  revalidatePath("/candidate/profile");
+}
+
+async function deleteExperienceAction(id: number) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "candidate") redirect("/login");
   await deleteExperience(id, session.userId);
   revalidatePath("/candidate/profile");
 }
@@ -85,11 +137,10 @@ async function addCertificationAction(formData: FormData) {
   revalidatePath("/candidate/profile");
 }
 
-async function deleteCertificationAction(formData: FormData) {
+async function deleteCertificationAction(id: number) {
   "use server";
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
-  const id = Number(formData.get("id"));
   await deleteCertification(id, session.userId);
   revalidatePath("/candidate/profile");
 }
@@ -113,11 +164,10 @@ async function addEducationAction(formData: FormData) {
   revalidatePath("/candidate/profile");
 }
 
-async function deleteEducationAction(formData: FormData) {
+async function deleteEducationAction(id: number) {
   "use server";
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
-  const id = Number(formData.get("id"));
   await deleteEducation(id, session.userId);
   revalidatePath("/candidate/profile");
 }
@@ -310,16 +360,7 @@ export default async function CandidateProfilePage({
       <h2 className="font-display font-semibold text-lg mt-8 mb-3">Work experience</h2>
       <div className="flex flex-col gap-2 mb-4">
         {experiences.map((e) => (
-          <div key={e.id} className="p-3 rounded-lg border border-line bg-white flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">{e.title} · {e.company}</div>
-              <div className="text-xs text-muted">{e.start_year} – {e.end_year || "Present"}</div>
-            </div>
-            <form action={deleteExperienceAction}>
-              <input type="hidden" name="id" value={e.id} />
-              <button type="submit" className="text-xs text-muted underline">Remove</button>
-            </form>
-          </div>
+          <ExperienceItem key={e.id} experience={e} onUpdate={updateExperienceAction} onDelete={deleteExperienceAction} />
         ))}
         {experiences.length === 0 && <p className="text-sm text-muted">No work experience added yet.</p>}
       </div>
@@ -339,6 +380,12 @@ export default async function CandidateProfilePage({
           <span className="text-sm text-muted">to</span>
           <input name="endYear" type="number" placeholder="End year (blank = present)" className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
         </div>
+        <textarea
+          name="description"
+          rows={3}
+          placeholder="What did you do in this role? (optional)"
+          className="w-full px-3 py-2 rounded-lg border border-line text-sm outline-none resize-none bg-white"
+        />
         <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper w-fit">
           + Add
         </button>
@@ -347,21 +394,14 @@ export default async function CandidateProfilePage({
       <h2 className="font-display font-semibold text-lg mb-3">Education</h2>
       <div className="flex flex-col gap-2 mb-4">
         {education.map((e) => (
-          <div key={e.id} className="p-3 rounded-lg border border-line bg-white flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">{e.institution}</div>
-              <div className="text-xs text-muted">
-                {e.degree}{e.field_of_study && ` · ${e.field_of_study}`}
-              </div>
-              {e.start_year && (
-                <div className="text-xs text-muted font-mono-num">{e.start_year} – {e.end_year || "Present"}</div>
-              )}
-            </div>
-            <form action={deleteEducationAction}>
-              <input type="hidden" name="id" value={e.id} />
-              <button type="submit" className="text-xs text-muted underline">Remove</button>
-            </form>
-          </div>
+          <EducationItem
+            key={e.id}
+            education={e}
+            degreeOptions={DEGREE_OPTIONS}
+            institutionOptions={institutionOptions}
+            onUpdate={updateEducationAction}
+            onDelete={deleteEducationAction}
+          />
         ))}
         {education.length === 0 && <p className="text-sm text-muted">No education added yet.</p>}
       </div>
@@ -399,26 +439,7 @@ export default async function CandidateProfilePage({
       <h2 className="font-display font-semibold text-lg mb-3">Certifications</h2>
       <div className="flex flex-col gap-2 mb-4">
         {certifications.map((c) => (
-          <div key={c.id} className="p-3 rounded-lg border border-line bg-white flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">{c.name}</div>
-              {c.provider && <div className="text-xs text-muted">{c.provider}</div>}
-              {c.issue_date && (
-                <div className="text-xs text-muted font-mono-num">
-                  {new Date(c.issue_date + "-02").toLocaleDateString(undefined, { year: "numeric", month: "long" })}
-                </div>
-              )}
-              {(c.link_url || c.file_url) && (
-                <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
-                  View
-                </a>
-              )}
-            </div>
-            <form action={deleteCertificationAction}>
-              <input type="hidden" name="id" value={c.id} />
-              <button type="submit" className="text-xs text-muted underline">Remove</button>
-            </form>
-          </div>
+          <CertificationItem key={c.id} certification={c} onUpdate={updateCertificationAction} onDelete={deleteCertificationAction} />
         ))}
         {certifications.length === 0 && <p className="text-sm text-muted">No certifications added yet.</p>}
       </div>

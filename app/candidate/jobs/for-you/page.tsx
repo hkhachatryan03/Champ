@@ -2,8 +2,8 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { listActiveJobsWithCompany, parseSkills, getAppliedJobIds } from "@/lib/queries";
 import { requireOnboardedCandidate } from "@/lib/guards";
-import { Ledger, Tag } from "@/components/ui";
 import { redirect } from "next/navigation";
+import JobCard from "@/components/JobCard";
 
 export default async function ForYouPage() {
   const session = await getSession();
@@ -35,28 +35,7 @@ export default async function ForYouPage() {
       </p>
       <div className="flex flex-col gap-3">
         {jobs.map((job) => (
-          <Link key={job.id} href={`/candidate/jobs/${job.id}`} className="block p-5 rounded-xl border border-line bg-white hover:shadow-sm transition">
-            <div className="flex items-center gap-2">
-              <h3 className="font-display font-semibold text-lg">{job.title}</h3>
-              {appliedIds.has(job.id) && (
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-moss/15 text-moss whitespace-nowrap">
-                  ✓ Applied
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-muted mt-0.5">
-              {job.company_name} · {job.location}
-              {!!job.remote && " · Remote"} · {job.employment_type}
-            </p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Tag tone="moss">{job.category}</Tag>
-              {job.experience_level && <Tag>{job.experience_level}</Tag>}
-            </div>
-            <div className="mt-4"><Ledger min={job.salary_min} max={job.salary_max} /></div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {parseSkills(job.skills).map((t) => <Tag key={t}>{t}</Tag>)}
-            </div>
-          </Link>
+          <JobCard key={job.id} job={job} applied={appliedIds.has(job.id)} />
         ))}
         {jobs.length === 0 && (
           <p className="text-sm text-center py-10 text-muted">Nothing matches your profile yet — check &quot;All roles&quot; instead.</p>

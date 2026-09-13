@@ -140,6 +140,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                       <div className="text-xs text-muted mt-0.5 font-mono-num">
                         {e.start_year} – {e.end_year || "Present"}
                       </div>
+                      {e.description && (
+                        <p className="text-sm text-muted mt-1.5 whitespace-pre-line">{e.description}</p>
+                      )}
                     </div>
                   ))}
                 </div>

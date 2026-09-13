@@ -9,6 +9,7 @@ import { ARMENIAN_LOCATIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
 import SalaryRangeFilter from "@/components/SalaryRangeFilter";
 import ActiveFilterChips, { FilterChip } from "@/components/ActiveFilterChips";
 import MultiSelectFilter from "@/components/MultiSelectFilter";
+import JobCard from "@/components/JobCard";
 
 export default async function BrowseJobsPage({
   searchParams,
@@ -61,41 +62,7 @@ export default async function BrowseJobsPage({
         {/* Job list — everything stacked vertically */}
         <div className="flex flex-col gap-3 order-2 md:order-1">
           {jobs.map((job) => (
-            <Link
-              key={job.id}
-              href={`/candidate/jobs/${job.id}`}
-              className="block p-5 rounded-xl border border-line bg-white hover:shadow-sm transition"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-display font-semibold text-lg">{job.title}</h3>
-                    {appliedIds.has(job.id) && (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-moss/15 text-moss whitespace-nowrap">
-                        ✓ Applied
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted mt-0.5">
-                    {job.company_name} · {job.location}
-                    {!!job.remote && " · Remote"} · {job.employment_type}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    <Tag tone="moss">{job.category}</Tag>
-                    {job.experience_level && <Tag>{job.experience_level}</Tag>}
-                  </div>
-                </div>
-                <span className="text-xs text-muted whitespace-nowrap">{formatPostedAge(job.created_at)}</span>
-              </div>
-              <div className="mt-4">
-                <Ledger min={job.salary_min} max={job.salary_max} />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {parseSkills(job.skills).map((t) => (
-                  <Tag key={t}>{t}</Tag>
-                ))}
-              </div>
-            </Link>
+            <JobCard key={job.id} job={job} applied={appliedIds.has(job.id)} />
           ))}
           {jobs.length === 0 && (
             <p className="text-sm text-center py-10 text-muted">
@@ -105,7 +72,7 @@ export default async function BrowseJobsPage({
         </div>
 
         {/* Filters — stacked one under another, on the right */}
-        <form method="get" className="order-1 md:order-2 flex flex-col gap-4 p-4 rounded-xl bg-paper-dim md:sticky md:top-4">
+        <form method="get" className="order-1 md:order-2 flex flex-col gap-4 p-5 rounded-2xl bg-paper-dim md:sticky md:top-4">
           <div>
             <label className="text-xs font-medium text-muted">Position</label>
             <MultiSelectFilter name="position" options={jobTitleOptions} initial={filters.position ? filters.position.split(",") : []} placeholder="Type to search…" />

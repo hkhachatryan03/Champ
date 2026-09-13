@@ -1,9 +1,11 @@
 export function Logo() {
   return (
     <div className="flex items-center gap-2">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2 L20 8 L20 16 L12 22 L4 16 L4 8 Z" stroke="#FAF6EE" strokeWidth="1.4" />
-        <path d="M12 2 L12 22 M4 8 L20 16 M20 8 L4 16" stroke="#EA9A2E" strokeWidth="1.4" />
+      <svg width="24" height="24" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+        <path
+          fill="#E8A24F"
+          d="M130 55 a75 75 0 1 0 0 150 a75 75 0 0 0 59 -30 l-26 -19 a44 44 0 1 1 0 -72 l26 -19 a75 75 0 0 0 -59 -30 z"
+        />
       </svg>
       <span className="font-display font-semibold text-xl text-paper">Champ</span>
     </div>

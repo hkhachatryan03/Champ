@@ -208,11 +208,12 @@ export async function listActiveJobsWithCompany(filters: JobFilters = {}) {
 
 export async function getJobWithCompany(jobId: number) {
   const rows = (await sql`
-    SELECT jobs.*, company_profiles.name as company_name, company_profiles.verified as company_verified
+    SELECT jobs.*, company_profiles.name as company_name, company_profiles.verified as company_verified,
+      company_profiles.avatar_url as company_avatar_url
     FROM jobs JOIN company_profiles ON company_profiles.user_id = jobs.company_user_id
     WHERE jobs.id = ${jobId}
-  `) as (Job & { company_name: string; company_verified: number })[];
-  return rows[0] as (Job & { company_name: string; company_verified: number }) | undefined;
+  `) as (Job & { company_name: string; company_verified: number; company_avatar_url: string | null })[];
+  return rows[0] as (Job & { company_name: string; company_verified: number; company_avatar_url: string | null }) | undefined;
 }
 
 export async function listActiveJobsForCompanyPublic(companyUserId: number) {
@@ -525,6 +526,21 @@ export async function addCertification(
   `;
 }
 
+export async function updateCertification(
+  id: number,
+  userId: number,
+  name: string,
+  provider: string,
+  linkUrl: string | null,
+  issueDate: string
+) {
+  await sql`
+    UPDATE candidate_certifications
+    SET name = ${name}, provider = ${provider}, link_url = ${linkUrl}, issue_date = ${issueDate}
+    WHERE id = ${id} AND user_id = ${userId}
+  `;
+}
+
 export async function deleteCertification(id: number, userId: number) {
   await sql`DELETE FROM candidate_certifications WHERE id = ${id} AND user_id = ${userId}`;
 }
@@ -591,6 +607,23 @@ export async function addEducation(
   await sql`
     INSERT INTO candidate_education (user_id, institution, degree, field_of_study, start_year, end_year)
     VALUES (${userId}, ${institution}, ${degree}, ${fieldOfStudy}, ${startYear}, ${endYear})
+  `;
+}
+
+export async function updateEducation(
+  id: number,
+  userId: number,
+  institution: string,
+  degree: string,
+  fieldOfStudy: string,
+  startYear: number | null,
+  endYear: number | null
+) {
+  await sql`
+    UPDATE candidate_education
+    SET institution = ${institution}, degree = ${degree}, field_of_study = ${fieldOfStudy},
+      start_year = ${startYear}, end_year = ${endYear}
+    WHERE id = ${id} AND user_id = ${userId}
   `;
 }
 
@@ -703,6 +736,7 @@ export type Experience = {
   title: string;
   start_year: number;
   end_year: number | null;
+  description: string;
   created_at: string;
 };
 
@@ -718,14 +752,35 @@ export async function addExperience(
   company: string,
   title: string,
   startYear: number,
-  endYear: number | null
+  endYear: number | null,
+  description: string = ""
 ): Promise<{ ok: boolean; error?: string }> {
   if (endYear !== null && endYear < startYear) {
     return { ok: false, error: "End year can't be before the start year." };
   }
   await sql`
-    INSERT INTO candidate_experiences (user_id, company, title, start_year, end_year)
-    VALUES (${userId}, ${company}, ${title}, ${startYear}, ${endYear})
+    INSERT INTO candidate_experiences (user_id, company, title, start_year, end_year, description)
+    VALUES (${userId}, ${company}, ${title}, ${startYear}, ${endYear}, ${description})
+  `;
+  return { ok: true };
+}
+
+export async function updateExperience(
+  id: number,
+  userId: number,
+  company: string,
+  title: string,
+  startYear: number,
+  endYear: number | null,
+  description: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (endYear !== null && endYear < startYear) {
+    return { ok: false, error: "End year can't be before the start year." };
+  }
+  await sql`
+    UPDATE candidate_experiences
+    SET company = ${company}, title = ${title}, start_year = ${startYear}, end_year = ${endYear}, description = ${description}
+    WHERE id = ${id} AND user_id = ${userId}
   `;
   return { ok: true };
 }

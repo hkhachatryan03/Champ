@@ -290,6 +290,10 @@ async function main() {
     )
   `;
   console.log("Done. Twelfth round of migrations applied.");
+
+  console.log("Applying thirteenth round of migrations (work experience description)...");
+  await sql`ALTER TABLE candidate_experiences ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''`;
+  console.log("Done. Thirteenth round of migrations applied.");
 }
 
 main().catch((err) => {

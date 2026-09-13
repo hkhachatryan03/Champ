@@ -77,17 +77,31 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
       <Link href="/candidate/jobs" className="text-sm text-muted">← Back to roles</Link>
-      <div className="flex items-center gap-2 mt-4">
-        <h1 className="font-display font-semibold text-3xl">{job.title}</h1>
+
+      <div className="flex items-start gap-4 mt-4">
+        <div className="w-14 h-14 rounded-2xl bg-paper-dim flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {job.company_avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={job.company_avatar_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-display font-semibold text-2xl text-apricot-deep">
+              {job.company_name?.charAt(0).toUpperCase() || "?"}
+            </span>
+          )}
+        </div>
+        <div>
+          <h1 className="font-display font-semibold text-3xl leading-tight">{job.title}</h1>
+          <p className="text-sm text-muted mt-1">
+            <Link href={`/companies/${job.company_user_id}`} className="underline hover:text-ink">{job.company_name}</Link> · {job.location}
+            {!!job.remote && " · Remote"} · Posted {formatPostedAge(job.created_at)}
+          </p>
+        </div>
       </div>
-      <p className="text-sm text-muted mt-1">
-        <Link href={`/companies/${job.company_user_id}`} className="underline hover:text-ink">{job.company_name}</Link> · {job.location}
-        {!!job.remote && " · Remote"} · Posted {formatPostedAge(job.created_at)}
-      </p>
-      <div className="mt-6 p-4 rounded-lg bg-paper-dim">
+
+      <div className="mt-6 p-4 rounded-2xl bg-apricot/10">
         <Ledger min={job.salary_min} max={job.salary_max} />
       </div>
-      <div className="mt-6 text-base leading-relaxed"><FormattedMessage body={job.description} /></div>
+
       <div className="mt-4 flex flex-wrap gap-1.5">
         <Tag tone="moss">{job.category}</Tag>
         <Tag>{job.employment_type}</Tag>
@@ -101,11 +115,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         </div>
       )}
 
+      <div className="mt-8 p-6 rounded-2xl border border-line bg-white">
+        <p className="text-xs font-medium text-muted uppercase tracking-wide mb-3">About the role</p>
+        <div className="text-base leading-relaxed"><FormattedMessage body={job.description} /></div>
+      </div>
+
       {(() => {
         const lockReason = getJobLockReason(job);
         if (!lockReason) return null;
         return (
-          <div className="mt-6 p-4 rounded-lg bg-apricot/10 border border-apricot/20">
+          <div className="mt-6 p-4 rounded-2xl bg-apricot/10 border border-apricot/20">
             <p className="text-sm font-medium text-apricot-deep">{LOCK_BANNER_TEXT[lockReason].title}</p>
             <p className="text-xs text-muted mt-1">{LOCK_BANNER_TEXT[lockReason].body}</p>
           </div>
@@ -113,7 +132,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       })()}
 
       {existing ? (
-        <div className="mt-8 p-5 rounded-xl border border-line bg-white">
+        <div className="mt-6 p-6 rounded-2xl border border-line bg-white">
           <div className="flex items-center gap-2 mb-3">
             <p className="text-sm font-medium">✓ You&apos;ve already applied to this role.</p>
             <StatusPill status={existing.status} />
@@ -126,7 +145,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </Link>
         </div>
       ) : getJobLockReason(job) ? (
-        <p className="mt-8 text-sm text-muted">This role isn&apos;t accepting new applications right now.</p>
+        <p className="mt-6 text-sm text-muted">This role isn&apos;t accepting new applications right now.</p>
       ) : (
         <ApplyBlock job={job} action={applyAction} />
       )}
@@ -145,7 +164,7 @@ async function ApplyBlock({
   const profile = session && session.role === "candidate" ? await getCandidateProfile(session.userId) : null;
 
   return (
-    <form action={action} encType="multipart/form-data" className="mt-8 p-5 rounded-xl border border-line bg-white">
+    <form action={action} encType="multipart/form-data" className="mt-6 p-6 rounded-2xl border border-line bg-white">
       <input type="hidden" name="jobId" value={job!.id} />
       <label className="text-xs font-medium text-muted">Say why you&apos;re a fit (2-3 sentences)</label>
       <textarea name="note" rows={3} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
