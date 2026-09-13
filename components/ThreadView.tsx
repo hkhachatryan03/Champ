@@ -29,6 +29,11 @@ async function editMessageAction(applicationId: number, messageId: number, newBo
   "use server";
   const session = await getSession();
   if (!session) redirect("/login");
+  const context = await getApplicationContext(applicationId);
+  if (!context) return;
+  if (getThreadLockReason({ active: context.job_active, archived_at: context.job_archived_at }, context.status)) {
+    return;
+  }
   await editMessage(messageId, session.role, sanitizeRichText(newBody));
   revalidatePath(`/thread/${applicationId}`);
   revalidatePath("/company/inbox");
@@ -38,6 +43,11 @@ async function deleteMessageAction(applicationId: number, messageId: number) {
   "use server";
   const session = await getSession();
   if (!session) redirect("/login");
+  const context = await getApplicationContext(applicationId);
+  if (!context) return;
+  if (getThreadLockReason({ active: context.job_active, archived_at: context.job_archived_at }, context.status)) {
+    return;
+  }
   await deleteMessage(messageId, session.role);
   revalidatePath(`/thread/${applicationId}`);
   revalidatePath("/company/inbox");
@@ -369,6 +379,7 @@ export default async function ThreadView({
               onEdit={editMessageAction}
               onDelete={deleteMessageAction}
               onReact={reactAction}
+              locked={!!lockReason}
             />
           ))}
           {messages.length === 0 && <p className="text-sm text-muted">No messages yet — say hello.</p>}

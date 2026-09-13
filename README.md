@@ -1,8 +1,34 @@
-# Champ — real codebase (v21)
+# Champ — real codebase (v22)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v22
+
+**On the recurring "Save doesn't work" bug:** I want to be honest that I
+couldn't identify one single, deterministic cause through code review
+alone this time — I don't have a way to run a live browser test from
+where I work. What I did do: added a genuine second layer of defense, so
+the editor's content is now re-read directly from the live editor
+instance at the exact moment the form submits, rather than depending on
+an earlier update event having already fired. This closes off a real
+category of possible failure regardless of the exact original cause. If
+it still happens after this, the most useful thing you can tell me is the
+exact steps that trigger it (which field, which browser, how much time
+between typing and clicking Save) so this can be narrowed down precisely
+instead of guessed at again.
+
+**Editing/deleting messages is now disabled in closed conversations** —
+enforced both in the interface and on the server (so it can't be
+bypassed), while reactions stay available.
+
+**Two full page redesigns** — "What is Champ?" and the homepage both got
+a bolder, more interactive treatment: larger typography, a textured hero
+background, icon-based feature cards with hover effects, and (on the
+homepage) a live mockup of an actual salary listing to make the core
+promise concrete rather than just a line of text. Content and messaging
+are unchanged — this was a visual pass only.
 
 ## What's new in v21
 

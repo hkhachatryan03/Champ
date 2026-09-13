@@ -3,7 +3,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function RichEditor({
   name,
@@ -61,6 +61,22 @@ export default function RichEditor({
     },
     onSelectionUpdate: ({ editor }) => syncState(editor),
   });
+
+  // Defense in depth: whatever the exact cause of a stale value might be
+  // (a missed update event, a race between typing and clicking Save),
+  // this re-reads directly from the live editor instance the moment the
+  // surrounding form actually submits — so submission can never carry a
+  // value older than what's genuinely on screen right now.
+  useEffect(() => {
+    const hidden = hiddenRef.current;
+    const form = hidden?.form;
+    if (!form || !editor) return;
+    const handleSubmit = () => {
+      hidden.value = editor.isEmpty ? "" : editor.getHTML();
+    };
+    form.addEventListener("submit", handleSubmit);
+    return () => form.removeEventListener("submit", handleSubmit);
+  }, [editor]);
 
   const toolBtn = (active: boolean) =>
     `w-7 h-7 rounded-md flex items-center justify-center transition-all ${

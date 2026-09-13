@@ -58,6 +58,7 @@ export default function MessageBubble({
   onEdit,
   onDelete,
   onReact,
+  locked = false,
 }: {
   message: Message;
   mine: boolean;
@@ -66,6 +67,7 @@ export default function MessageBubble({
   onEdit: (applicationId: number, messageId: number, newBody: string) => Promise<void>;
   onDelete: (applicationId: number, messageId: number) => Promise<void>;
   onReact: (applicationId: number, messageId: number, emoji: string) => Promise<void>;
+  locked?: boolean;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -151,7 +153,7 @@ export default function MessageBubble({
             >
               🙂
             </button>
-            {mine && (
+            {mine && !locked && (
               <>
                 <button
                   type="button"
