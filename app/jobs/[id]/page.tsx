@@ -36,7 +36,6 @@ export default async function PublicJobDetailPage({ params }: { params: Promise<
       </div>
       <div className="mt-6 text-base leading-relaxed"><FormattedMessage body={job.description} /></div>
       <div className="mt-4 flex flex-wrap gap-1.5">
-        <Tag tone="moss">{job.category}</Tag>
         <Tag>{job.employment_type}</Tag>
         {job.experience_level && <Tag>{job.experience_level}</Tag>}
         {parseSkills(job.skills).map((t) => <Tag key={t}>{t}</Tag>)}

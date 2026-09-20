@@ -178,12 +178,13 @@ export async function listDistinctCandidateTitles(): Promise<string[]> {
 
 export async function listActiveJobsWithCompany(filters: JobFilters = {}) {
   const rows = (await sql`
-    SELECT jobs.*, company_profiles.name as company_name, company_profiles.verified as company_verified
+    SELECT jobs.*, company_profiles.name as company_name, company_profiles.verified as company_verified,
+      company_profiles.avatar_url as company_avatar_url
     FROM jobs
     JOIN company_profiles ON company_profiles.user_id = jobs.company_user_id
     WHERE jobs.active = 1
     ORDER BY jobs.created_at DESC
-  `) as (Job & { company_name: string; company_verified: number })[];
+  `) as (Job & { company_name: string; company_verified: number; company_avatar_url: string | null })[];
 
   return rows.filter((j) => {
     if (filters.position) {

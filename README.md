@@ -1,8 +1,26 @@
-# Champ — real codebase (v23)
+# Champ — real codebase (v24)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v24
+
+- **Logo redesigned**: the icon now sits directly against "hamp," reading
+  as "Champ" — icon + hamp = Champ, everywhere the logo appears.
+- **Public "Open roles" listing now uses the same job card** as the
+  logged-in "All roles"/"For you" pages — one shared component, so they
+  can never drift apart from each other again.
+- **Company logos now show on job cards** wherever a company has
+  uploaded one, falling back to the first-letter avatar only when they
+  haven't.
+- **Tech/Non-tech category label removed from job cards and the job
+  detail page** — still fully usable as a filter behind the scenes, just
+  no longer shown as a tag, per feedback that it was cluttering the card.
+- **Skills and languages redesigned** on the job detail page: skills now
+  sit in their own card with a cleaner chip style, and languages show a
+  segmented proficiency bar (visualizing A1 through Native) instead of
+  plain "· C1" text.
 
 ## What's new in v23
 

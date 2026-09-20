@@ -12,6 +12,7 @@ import { ARMENIAN_LOCATIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
 import SalaryRangeFilter from "@/components/SalaryRangeFilter";
 import ActiveFilterChips, { FilterChip } from "@/components/ActiveFilterChips";
 import MultiSelectFilter from "@/components/MultiSelectFilter";
+import JobCard from "@/components/JobCard";
 
 // Public — no login required. Anyone can browse what's posted; applying
 // (or seeing full contact/chat features) requires signing up, same as any
@@ -64,34 +65,7 @@ export default async function PublicJobsPage({
       <div className="grid md:grid-cols-[1fr_260px] gap-8 items-start">
         <div className="flex flex-col gap-3 order-2 md:order-1">
           {jobs.map((job) => (
-            <Link
-              key={job.id}
-              href={`/jobs/${job.id}`}
-              className="block p-5 rounded-xl border border-line bg-white hover:shadow-sm transition"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-display font-semibold text-lg">{job.title}</h3>
-                  <p className="text-sm text-muted mt-0.5">
-                    {job.company_name} · {job.location}
-                    {!!job.remote && " · Remote"} · {job.employment_type}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    <Tag tone="moss">{job.category}</Tag>
-                    {job.experience_level && <Tag>{job.experience_level}</Tag>}
-                  </div>
-                </div>
-                <span className="text-xs text-muted whitespace-nowrap">{formatPostedAge(job.created_at)}</span>
-              </div>
-              <div className="mt-4">
-                <Ledger min={job.salary_min} max={job.salary_max} />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {parseSkills(job.skills).map((t) => (
-                  <Tag key={t}>{t}</Tag>
-                ))}
-              </div>
-            </Link>
+            <JobCard key={job.id} job={job} applied={false} href={`/jobs/${job.id}`} />
           ))}
           {jobs.length === 0 && (
             <p className="text-sm text-center py-10 text-muted">No roles match — try loosening a filter.</p>

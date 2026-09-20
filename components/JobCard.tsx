@@ -7,6 +7,7 @@ type JobCardData = {
   id: number;
   title: string;
   company_name: string;
+  company_avatar_url?: string | null;
   location: string;
   remote: number;
   employment_type: string;
@@ -18,19 +19,32 @@ type JobCardData = {
   created_at: string;
 };
 
-export default function JobCard({ job, applied }: { job: JobCardData; applied: boolean }) {
+export default function JobCard({
+  job,
+  applied,
+  href,
+}: {
+  job: JobCardData;
+  applied: boolean;
+  href?: string;
+}) {
   const skills = parseSkills(job.skills);
   const visibleSkills = skills.slice(0, 4);
   const extraSkillCount = skills.length - visibleSkills.length;
 
   return (
     <Link
-      href={`/candidate/jobs/${job.id}`}
+      href={href || `/candidate/jobs/${job.id}`}
       className="group block p-5 rounded-2xl border border-line bg-white hover:shadow-lg hover:-translate-y-0.5 transition-all"
     >
       <div className="flex items-start gap-3.5">
-        <div className="w-11 h-11 rounded-xl bg-paper-dim flex items-center justify-center flex-shrink-0 font-display font-semibold text-apricot-deep text-lg">
-          {job.company_name?.charAt(0).toUpperCase() || "?"}
+        <div className="w-11 h-11 rounded-xl bg-paper-dim flex items-center justify-center flex-shrink-0 font-display font-semibold text-apricot-deep text-lg overflow-hidden">
+          {job.company_avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={job.company_avatar_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            job.company_name?.charAt(0).toUpperCase() || "?"
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3">
@@ -50,10 +64,11 @@ export default function JobCard({ job, applied }: { job: JobCardData; applied: b
             {job.company_name} · {job.location}
             {!!job.remote && " · Remote"} · {job.employment_type}
           </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <Tag tone="moss">{job.category}</Tag>
-            {job.experience_level && <Tag>{job.experience_level}</Tag>}
-          </div>
+          {job.experience_level && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Tag>{job.experience_level}</Tag>
+            </div>
+          )}
         </div>
       </div>
 

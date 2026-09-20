@@ -3,12 +3,13 @@ import { formatPostedAge } from "@/lib/dates";
 import { getSession } from "@/lib/auth";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
-import { Ledger, Tag, StatusPill, LanguageTags } from "@/components/ui";
+import { Ledger, Tag, StatusPill } from "@/components/ui";
 import { put } from "@vercel/blob";
 import Link from "next/link";
 import ClearableFileInput from "@/components/ClearableFileInput";
 import FormattedMessage from "@/components/FormattedMessage";
 import { getJobLockReason, LOCK_BANNER_TEXT } from "@/lib/jobLock";
+import { LANGUAGE_LEVELS } from "@/lib/constants";
 
 async function applyAction(formData: FormData) {
   "use server";
@@ -103,15 +104,51 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       </div>
 
       <div className="mt-4 flex flex-wrap gap-1.5">
-        <Tag tone="moss">{job.category}</Tag>
         <Tag>{job.employment_type}</Tag>
         {job.experience_level && <Tag>{job.experience_level}</Tag>}
-        {parseSkills(job.skills).map((t) => <Tag key={t}>{t}</Tag>)}
       </div>
+
+      {parseSkills(job.skills).length > 0 && (
+        <div className="mt-4 p-5 rounded-2xl border border-line bg-white">
+          <p className="text-xs font-medium text-muted uppercase tracking-wide mb-3">Skills</p>
+          <div className="flex flex-wrap gap-2">
+            {parseSkills(job.skills).map((s) => (
+              <span
+                key={s}
+                className="text-sm font-medium px-3 py-1.5 rounded-lg bg-paper-dim border border-transparent hover:border-apricot-deep hover:bg-apricot/10 transition-colors"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {languages.length > 0 && (
-        <div className="mt-3">
-          <p className="text-xs text-muted mb-1.5">Languages needed:</p>
-          <LanguageTags languages={languages} />
+        <div className="mt-4 p-5 rounded-2xl border border-line bg-white">
+          <p className="text-xs font-medium text-muted uppercase tracking-wide mb-3">Languages needed</p>
+          <div className="flex flex-col gap-3">
+            {languages.map((entry) => {
+              const [lang, level] = entry.split(":");
+              const levelIndex = LANGUAGE_LEVELS.indexOf(level);
+              return (
+                <div key={entry} className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium">{lang}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-0.5">
+                      {LANGUAGE_LEVELS.map((_, i) => (
+                        <span
+                          key={i}
+                          className={`w-4 h-1.5 rounded-full ${i <= levelIndex ? "bg-moss" : "bg-line"}`}
+                        />
+                      ))}
+                    </div>
+                    {level && <span className="text-xs text-muted w-12 text-right">{level}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
