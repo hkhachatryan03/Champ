@@ -1,8 +1,67 @@
-# Champ — real codebase (v24)
+# Champ — real codebase (v25)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v25 — BackOffice (admin panel), round 1
+
+A whole new area of the app, at `/admin`, completely separate from the
+candidate/company product:
+
+- **Its own login.** Admins live in a new `admins` table — not the `users`
+  table — with their own session cookie (`champ_admin_session`) signed
+  with a separate `ADMIN_SESSION_SECRET`. Candidate/company sessions can
+  never grant admin access, and vice versa. Sessions expire after 12 hours
+  (vs. 30 days for regular users), since this account can moderate and
+  edit the whole platform.
+- **Visibility**: `/admin/users` (search/filter candidates & companies,
+  see verification/onboarding status, flags, last-active date),
+  `/admin/jobs` (search/filter by status, see which company posted what),
+  `/admin/applications` (every application with its status and message
+  count — chat activity without opening each thread).
+- **Moderation**: `/admin/moderation` — flag/unflag accounts, and a queue
+  of companies awaiting verification (one click to verify). `/admin/jobs`
+  also has a "Remove listing" action for admin takedowns, distinct from a
+  company pausing/archiving their own post.
+- **Support**: `/admin/support` — every Contact Us submission, with a
+  reply box. If `RESEND_API_KEY` is set, replying actually emails the
+  person (reusing the same Resend setup as verification emails); if not,
+  the reply still saves as an internal note.
+- **Configs**: `/admin/configs` — feature flags (on/off toggles you can
+  read anywhere in the app via `isFeatureEnabled(key)`), an editor for
+  static content (Contact Us intro, Terms of Service, Privacy Policy —
+  stored in a new `static_content` table), and a place to prune the
+  "shared vocabulary" (skills/positions/schools users typed that weren't
+  in the built-in lists).
+- **Analytics**: `/admin/analytics` — signups per day (candidates vs.
+  companies), applications sent per day, response rate (% of applications
+  that got at least one company message), and a status breakdown.
+- **Audit log**: every write made through the BackOffice is recorded in a
+  new `admin_actions` table (who did what, when) — not shown in the UI
+  yet, but there so nothing is silently unaccountable once there's more
+  than one admin.
+
+**Not built this round, by design:** the built-in filter categories
+(Tech/Non-tech, employment types, the profession/skill/language lists in
+`lib/constants.ts`) are still hardcoded rather than admin-editable — they're
+also relied on by CHECK constraints in the database, so making them fully
+dynamic is a bigger, separate migration. The "shared vocabulary" pruning
+above covers the crowd-sourced additions on top of those lists, which was
+the lower-risk, immediately useful piece.
+
+### Setting up your admin login
+
+This only needs to be done once (and again any time you want to add a
+teammate or reset a password):
+
+```bash
+DATABASE_URL="your-neon-connection-string" node scripts/create-admin.mjs you@example.com "a-strong-password" "Your Name"
+```
+
+Then log in at `/admin/login`. Also run the usual `scripts/init-db.mjs`
+first (or again — it's safe to re-run) since this round added several new
+tables and columns.
 
 ## What's new in v24
 

@@ -63,6 +63,30 @@ export async function sendProfileReminderEmail(to: string, role: "candidate" | "
   return { ok: true };
 }
 
+export async function sendContactReplyEmail(to: string, originalBody: string, reply: string) {
+  const resend = getResendClient();
+  if (!resend) {
+    console.error("RESEND_API_KEY not set — cannot send Contact Us reply email.");
+    return { ok: false };
+  }
+  const { error } = await resend.emails.send({
+    from: "Champ <onboarding@resend.dev>",
+    to,
+    subject: "Re: your message to Champ",
+    html: `
+      <p>${reply.replace(/\n/g, "<br/>")}</p>
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
+      <p style="color: #888; font-size: 13px;">Your original message:</p>
+      <p style="color: #888; font-size: 13px;">${originalBody.replace(/\n/g, "<br/>")}</p>
+    `,
+  });
+  if (error) {
+    console.error("Failed to send Contact Us reply email:", error);
+    return { ok: false };
+  }
+  return { ok: true };
+}
+
 export async function sendPasswordResetOtp(to: string, otp: string) {
   const resend = getResendClient();
   if (!resend) {

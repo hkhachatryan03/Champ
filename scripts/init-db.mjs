@@ -294,6 +294,77 @@ async function main() {
   console.log("Applying thirteenth round of migrations (work experience description)...");
   await sql`ALTER TABLE candidate_experiences ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ''`;
   console.log("Done. Thirteenth round of migrations applied.");
+
+  console.log("Applying fourteenth round of migrations (BackOffice foundation)...");
+
+  // Admin logins — deliberately a separate table from `users`, so admin
+  // access can never be reached via a candidate/company password or session.
+  await sql`
+    CREATE TABLE IF NOT EXISTS admins (
+      id SERIAL PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+
+  // Suspicious-account moderation queue.
+  await sql`
+    CREATE TABLE IF NOT EXISTS account_flags (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reason TEXT NOT NULL,
+      flagged_by TEXT NOT NULL DEFAULT '',
+      resolved INTEGER NOT NULL DEFAULT 0,
+      resolved_by TEXT,
+      resolved_at TEXT,
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+
+  // Feature flags — simple on/off toggles the admin can flip without a deploy.
+  await sql`
+    CREATE TABLE IF NOT EXISTS feature_flags (
+      key TEXT PRIMARY KEY,
+      enabled INTEGER NOT NULL DEFAULT 0,
+      description TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+
+  // Editable static content (Contact Us intro text, Terms of Service, etc.)
+  await sql`
+    CREATE TABLE IF NOT EXISTS static_content (
+      key TEXT PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT '',
+      body TEXT NOT NULL DEFAULT '',
+      updated_by TEXT,
+      updated_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+
+  // Audit log — every write an admin makes through the BackOffice, so
+  // there's a record of who did what once it's more than just you.
+  await sql`
+    CREATE TABLE IF NOT EXISTS admin_actions (
+      id SERIAL PRIMARY KEY,
+      admin_email TEXT NOT NULL,
+      action TEXT NOT NULL,
+      target_type TEXT NOT NULL DEFAULT '',
+      target_id TEXT,
+      details TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+  `;
+
+  // Support inbox needs to track resolution state and the admin's reply.
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'open'`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS admin_reply TEXT`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS replied_at TEXT`;
+  await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS replied_by TEXT`;
+
+  console.log("Done. Fourteenth round of migrations applied.");
 }
 
 main().catch((err) => {
