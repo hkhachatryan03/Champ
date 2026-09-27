@@ -6,6 +6,7 @@ import {
   upsertStaticContent,
   listCustomTermsAdmin,
   deleteCustomTerm,
+  updateCustomTerm,
 } from "@/lib/adminQueries";
 import { getAdminSession } from "@/lib/adminAuth";
 
@@ -50,13 +51,30 @@ async function deleteTermAction(formData: FormData) {
   redirect("/admin/configs");
 }
 
+async function updateTermAction(formData: FormData) {
+  "use server";
+  const session = await getAdminSession();
+  if (!session) redirect("/admin/login");
+  const id = Number(formData.get("id"));
+  const newValue = String(formData.get("newValue") || "");
+  await updateCustomTerm(id, newValue, session!.email);
+  redirect("/admin/configs");
+}
+
 const STATIC_CONTENT_PAGES = [
   { key: "contact_intro", label: "Contact Us — intro text" },
   { key: "terms_of_service", label: "Terms of Service" },
   { key: "privacy_policy", label: "Privacy Policy" },
 ];
 
-export default async function AdminConfigsPage() {
+export default async function AdminConfigsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ editTerm?: string }>;
+}) {
+  const { editTerm } = await searchParams;
+  const editingId = editTerm ? Number(editTerm) : null;
+
   const [flags, staticEntries, skillTerms, positionTerms, institutionTerms] = await Promise.all([
     listFeatureFlags(),
     listStaticContent(),
@@ -75,6 +93,11 @@ export default async function AdminConfigsPage() {
 
       <div className="mt-8">
         <h2 className="font-medium text-sm text-muted uppercase tracking-wide">Feature flags</h2>
+        <p className="text-xs text-muted mt-1.5 max-w-xl">
+          These aren&apos;t connected to anything yet — they&apos;re a kill switch for future features. When you
+          ship something you might want to turn off quickly without redeploying (say, a &quot;LinkedIn import&quot;
+          button), it checks a flag here first. Empty is expected until then; nothing to do on this section today.
+        </p>
         <div className="flex flex-col gap-2 mt-3">
           {flags.map((f: any) => (
             <div key={f.key} className="p-4 rounded-xl border border-line bg-white flex items-center justify-between">
@@ -118,6 +141,10 @@ export default async function AdminConfigsPage() {
 
       <div className="mt-10">
         <h2 className="font-medium text-sm text-muted uppercase tracking-wide">Static content</h2>
+        <p className="text-xs text-muted mt-1.5 max-w-xl">
+          Edit the wording shown on Contact Us, Terms of Service, and Privacy Policy without touching code. Click a
+          page below to expand it, edit the text, and hit Save.
+        </p>
         <div className="flex flex-col gap-4 mt-3">
           {STATIC_CONTENT_PAGES.map((page) => {
             const entry = staticByKey[page.key];
@@ -158,9 +185,10 @@ export default async function AdminConfigsPage() {
         <h2 className="font-medium text-sm text-muted uppercase tracking-wide">
           Shared vocabulary — added by users
         </h2>
-        <p className="text-xs text-muted mt-1">
-          When someone types a skill, position, or school that isn&apos;t in the built-in list, it gets added here
-          and suggested to everyone. Remove anything that&apos;s a duplicate, a typo, or not appropriate.
+        <p className="text-xs text-muted mt-1.5 max-w-xl">
+          When someone types a skill, position, or school that isn&apos;t in the built-in list, it&apos;s saved here
+          and suggested to everyone else from then on. Click a term to fix a typo or wording, or remove it with ×
+          if it&apos;s a duplicate or not appropriate.
         </p>
         {[
           { label: "Skills", terms: skillTerms },
@@ -170,15 +198,41 @@ export default async function AdminConfigsPage() {
           <div key={label} className="mt-4">
             <p className="text-xs font-medium text-muted">{label} ({terms.length})</p>
             <div className="flex flex-wrap gap-2 mt-2">
-              {terms.map((t: any) => (
-                <form key={t.id} action={deleteTermAction} className="flex items-center gap-1.5 bg-white border border-line rounded-full pl-3 pr-1.5 py-1">
-                  <span className="text-xs">{t.value}</span>
-                  <input type="hidden" name="id" value={t.id} />
-                  <button type="submit" className="text-xs text-muted hover:text-apricot-deep" title="Remove">
-                    ×
-                  </button>
-                </form>
-              ))}
+              {terms.map((t: any) =>
+                editingId === t.id ? (
+                  <form
+                    key={t.id}
+                    action={updateTermAction}
+                    className="flex items-center gap-1.5 bg-white border border-apricot rounded-full pl-3 pr-1.5 py-1"
+                  >
+                    <input type="hidden" name="id" value={t.id} />
+                    <input
+                      name="newValue"
+                      defaultValue={t.value}
+                      autoFocus
+                      className="text-xs outline-none w-32"
+                    />
+                    <button type="submit" className="text-xs font-medium text-moss px-1">
+                      Save
+                    </button>
+                    <a href="/admin/configs" className="text-xs text-muted px-1">
+                      Cancel
+                    </a>
+                  </form>
+                ) : (
+                  <div key={t.id} className="flex items-center gap-1.5 bg-white border border-line rounded-full pl-3 pr-1.5 py-1">
+                    <a href={`/admin/configs?editTerm=${t.id}`} className="text-xs hover:underline">
+                      {t.value}
+                    </a>
+                    <form action={deleteTermAction}>
+                      <input type="hidden" name="id" value={t.id} />
+                      <button type="submit" className="text-xs text-muted hover:text-apricot-deep px-0.5" title="Remove">
+                        ×
+                      </button>
+                    </form>
+                  </div>
+                )
+              )}
               {terms.length === 0 && <p className="text-xs text-muted">None added yet.</p>}
             </div>
           </div>

@@ -9,6 +9,7 @@ import UnsavedChangesGuard from "@/components/UnsavedChangesGuard";
 import RichEditor from "@/components/RichEditor";
 import { sanitizeRichText } from "@/lib/sanitize";
 import FormattedMessage from "@/components/FormattedMessage";
+import AdminNoticeBanner from "@/components/AdminNoticeBanner";
 
 async function saveAction(formData: FormData) {
   "use server";
@@ -94,6 +95,8 @@ export default async function CompanyProfilePage({
           Preview as candidates see us →
         </a>
       </div>
+
+      <AdminNoticeBanner userId={session.userId} />
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white mb-8">
         {avatarError === "1" && (

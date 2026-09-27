@@ -96,6 +96,20 @@ export async function getCandidateProfile(userId: number): Promise<CandidateProf
   return rows[0] as CandidateProfile;
 }
 
+// Read-only — surfaces admin warnings on the account's own profile page.
+// The account_flags table itself is otherwise only written to from the
+// admin BackOffice (lib/adminQueries.ts); this is the one read path the
+// public-facing app needs, so it lives here rather than pulling in the
+// admin query module.
+export type VisibleAccountFlag = { id: number; user_message: string; created_at: string };
+export async function getVisibleFlagsForUser(userId: number): Promise<VisibleAccountFlag[]> {
+  return (await sql`
+    SELECT id, user_message, created_at FROM account_flags
+    WHERE user_id = ${userId} AND resolved = 0 AND visible_to_user = 1 AND user_message IS NOT NULL
+    ORDER BY created_at DESC
+  `) as VisibleAccountFlag[];
+}
+
 export async function updateCandidateProfile(
   userId: number,
   fields: Partial<Omit<CandidateProfile, "user_id">>

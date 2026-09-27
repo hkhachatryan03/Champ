@@ -365,6 +365,14 @@ async function main() {
   await sql`ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS replied_by TEXT`;
 
   console.log("Done. Fourteenth round of migrations applied.");
+
+  console.log("Applying fifteenth round of migrations (flag visibility to user)...");
+  // Lets an admin optionally send a message to the flagged account itself —
+  // separate from `reason`, which stays private/internal. Both can exist
+  // independently: you can flag privately, or flag AND warn the person.
+  await sql`ALTER TABLE account_flags ADD COLUMN IF NOT EXISTS user_message TEXT`;
+  await sql`ALTER TABLE account_flags ADD COLUMN IF NOT EXISTS visible_to_user INTEGER NOT NULL DEFAULT 0`;
+  console.log("Done. Fifteenth round of migrations applied.");
 }
 
 main().catch((err) => {

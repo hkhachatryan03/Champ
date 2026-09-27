@@ -1,5 +1,6 @@
 import sql from "./db";
 import { verifyPassword } from "./auth";
+import { parseSkills } from "./queries";
 
 // ============================================================
 // Admin login
@@ -147,7 +148,28 @@ export async function getUserDetail(userId: number) {
       ? (await sql`SELECT COUNT(*) as n FROM applications WHERE candidate_user_id = ${userId}`)[0]
       : (await sql`SELECT COUNT(*) as n FROM jobs WHERE company_user_id = ${userId}`)[0];
 
-  return { user, profile, flags, statCount: Number((stats as any)?.n || 0) };
+  const experiences =
+    user.role === "candidate"
+      ? await sql`SELECT * FROM candidate_experiences WHERE user_id = ${userId} ORDER BY start_year DESC`
+      : [];
+  const education =
+    user.role === "candidate"
+      ? await sql`SELECT * FROM candidate_education WHERE user_id = ${userId} ORDER BY start_year DESC`
+      : [];
+
+  const responseRate = user.role === "company" ? await getCompanyResponseRate(userId) : null;
+
+  return { user, profile, flags, statCount: Number((stats as any)?.n || 0), experiences, education, responseRate };
+}
+
+// Admin-only account deletion. Relies on the ON DELETE CASCADE already set
+// on every table that references users(id) — profile, jobs, applications,
+// messages, flags, saved jobs, etc. all clean up automatically.
+export async function deleteUserAsAdmin(userId: number, adminEmail: string, reason: string) {
+  const [user] = (await sql`SELECT email, role FROM users WHERE id = ${userId}`) as any[];
+  if (!user) return;
+  await sql`DELETE FROM users WHERE id = ${userId}`;
+  await logAdminAction(adminEmail, "deleted_user", "user", userId, `${user.role} ${user.email} — ${reason}`);
 }
 
 // ============================================================
@@ -243,8 +265,17 @@ export async function countApplicationsAdmin(opts: { status?: string }) {
 // ============================================================
 // Moderation — account flags & company verification
 // ============================================================
-export async function flagAccount(userId: number, reason: string, adminEmail: string) {
-  await sql`INSERT INTO account_flags (user_id, reason, flagged_by) VALUES (${userId}, ${reason}, ${adminEmail})`;
+export async function flagAccount(
+  userId: number,
+  reason: string,
+  adminEmail: string,
+  opts: { userMessage?: string; visibleToUser?: boolean } = {}
+) {
+  const { userMessage = "", visibleToUser = false } = opts;
+  await sql`
+    INSERT INTO account_flags (user_id, reason, flagged_by, user_message, visible_to_user)
+    VALUES (${userId}, ${reason}, ${adminEmail}, ${userMessage || null}, ${visibleToUser ? 1 : 0})
+  `;
   await logAdminAction(adminEmail, "flagged_account", "user", userId, reason);
 }
 
@@ -369,6 +400,27 @@ export async function deleteCustomTerm(id: number, adminEmail: string) {
   await logAdminAction(adminEmail, "deleted_custom_term", "custom_term", id);
 }
 
+export async function updateCustomTerm(id: number, newValue: string, adminEmail: string) {
+  const cleaned = newValue.trim();
+  if (!cleaned) return;
+  try {
+    await sql`
+      UPDATE custom_terms SET value = ${cleaned}, value_lower = ${cleaned.toLowerCase()} WHERE id = ${id}
+    `;
+    await logAdminAction(adminEmail, "edited_custom_term", "custom_term", id, `-> "${cleaned}"`);
+  } catch (err: any) {
+    // UNIQUE(category, value_lower) — the corrected spelling already exists
+    // as its own entry. Treat this as a merge: drop the old (misspelled)
+    // row rather than erroring, since the correct term is already there.
+    if (err?.code === "23505") {
+      await sql`DELETE FROM custom_terms WHERE id = ${id}`;
+      await logAdminAction(adminEmail, "merged_custom_term", "custom_term", id, `merged into existing "${cleaned}"`);
+    } else {
+      throw err;
+    }
+  }
+}
+
 // ============================================================
 // Analytics
 // ============================================================
@@ -407,6 +459,24 @@ export async function getResponseRate() {
       COUNT(DISTINCT CASE WHEN m.id IS NOT NULL THEN a.id END) as responded
     FROM applications a
     LEFT JOIN messages m ON m.application_id = a.id AND m.sender_role = 'company'
+  `) as { total: number; responded: number }[];
+  const total = Number(row.total);
+  const responded = Number(row.responded);
+  return { total, responded, rate: total > 0 ? Math.round((responded / total) * 100) : 0 };
+}
+
+// Same idea as getResponseRate() above, but scoped to one company's own
+// jobs — shown on their admin profile page so you don't have to eyeball
+// it across the whole Applications list.
+export async function getCompanyResponseRate(companyUserId: number) {
+  const [row] = (await sql`
+    SELECT
+      COUNT(DISTINCT a.id) as total,
+      COUNT(DISTINCT CASE WHEN m.id IS NOT NULL THEN a.id END) as responded
+    FROM applications a
+    JOIN jobs j ON j.id = a.job_id
+    LEFT JOIN messages m ON m.application_id = a.id AND m.sender_role = 'company'
+    WHERE j.company_user_id = ${companyUserId}
   `) as { total: number; responded: number }[];
   const total = Number(row.total);
   const responded = Number(row.responded);

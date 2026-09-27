@@ -20,6 +20,7 @@ import SingleAutocomplete from "@/components/SingleAutocomplete";
 import ExperienceItem from "@/components/ExperienceItem";
 import EducationItem from "@/components/EducationItem";
 import CertificationItem from "@/components/CertificationItem";
+import AdminNoticeBanner from "@/components/AdminNoticeBanner";
 
 async function toggleActiveAction(formData: FormData) {
   "use server";
@@ -293,6 +294,8 @@ export default async function CandidateProfilePage({
           Preview as recruiters see me →
         </a>
       </div>
+
+      <AdminNoticeBanner userId={session.userId} />
 
       <div className="mt-5 p-4 rounded-xl border border-line bg-white flex items-center justify-between">
         <div>

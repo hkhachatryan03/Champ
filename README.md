@@ -1,8 +1,54 @@
-# Champ — real codebase (v25)
+# Champ — real codebase (v27)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v27 — flagging can now notify the account
+
+`account_flags` still works exactly as before by default (a private,
+internal-only note) — but flagging now optionally also warns the person:
+
+- On `/admin/users/[id]`, the flag form has a checkbox: "Also send a
+  message to this account." Leave it unchecked and nothing changes from
+  before. Check it and write a message, and it shows as a banner at the
+  top of *their own* profile page (`/candidate/profile` or
+  `/company/profile`) until the flag is resolved.
+- The internal reason (why you flagged them) and the user-facing message
+  are two separate fields, on purpose — you can flag privately without
+  ever warning someone, or flag AND warn them, but you're never forced to
+  show your internal shorthand to the person it's about.
+- New columns on `account_flags`: `user_message` and `visible_to_user`.
+  A new read-only helper, `getVisibleFlagsForUser()` in `lib/queries.ts`,
+  is the one path the public-facing app needs into that table — it's kept
+  separate from the admin-only write functions in `lib/adminQueries.ts`.
+
+## What's new in v26 — BackOffice, round 2
+
+Four things added based on real usage of the BackOffice:
+
+- **Delete accounts.** `/admin/users/[id]` now has a "Danger zone" with a
+  delete action — requires typing the account's email back to confirm
+  (the one irreversible action in the whole panel, so it has a deliberate
+  speed bump). Deleting relies on the `ON DELETE CASCADE` already set on
+  every table referencing `users(id)`, so their profile, jobs,
+  applications, messages, and flags all clean up automatically — no
+  orphaned rows left behind.
+- **Edit shared vocabulary**, not just delete. On `/admin/configs`,
+  clicking a skill/position/institution chip now turns it into an inline
+  text field — fix a typo and save, instead of only being able to remove
+  it. If the corrected spelling already exists as its own entry, the old
+  one is merged away rather than erroring.
+- **Per-company response rate.** `/admin/users/[id]` for a company now
+  shows their own response rate (the same "at least one company reply"
+  measure as the platform-wide Analytics number, just scoped to their
+  jobs) — no more cross-referencing the Applications list by hand.
+- **Full profile on the user detail page.** `/admin/users/[id]` now shows
+  the actual profile — for candidates: title, location, experience,
+  expected salary, skills, preferred positions, languages, LinkedIn, CV
+  on file, about, work experience, and education; for companies:
+  industry, size, website, address, phone, recruiter contact, about —
+  instead of just name/email/role.
 
 ## What's new in v25 — BackOffice (admin panel), round 1
 
