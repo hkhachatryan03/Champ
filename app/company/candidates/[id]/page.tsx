@@ -141,7 +141,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                         {e.start_year} – {e.end_year || "Present"}
                       </div>
                       {e.description && (
-                        <p className="text-sm text-muted mt-1.5 whitespace-pre-line">{e.description}</p>
+                        <div className="text-sm text-muted mt-1.5"><FormattedMessage body={e.description} /></div>
                       )}
                     </div>
                   ))}
@@ -179,15 +179,18 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                   {certifications.map((c) => (
                     <div key={c.id} className="relative">
                       <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-stone border-2 border-white shadow-sm" />
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{c.name}</span>
+                      <div className="text-sm font-medium">{c.name}</div>
+                      <div className="text-sm text-muted flex items-center gap-1.5 flex-wrap">
+                        {c.provider}
                         {(c.link_url || c.file_url) && (
-                          <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
-                            View →
-                          </a>
+                          <>
+                            {c.provider && <span>·</span>}
+                            <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
+                              View certificate →
+                            </a>
+                          </>
                         )}
                       </div>
-                      <div className="text-sm text-muted">{c.provider}</div>
                       {c.issue_date && (
                         <div className="text-xs text-muted font-mono-num">
                           {new Date(c.issue_date + "-02").toLocaleDateString(undefined, { year: "numeric", month: "long" })}

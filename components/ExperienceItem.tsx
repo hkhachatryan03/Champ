@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { Experience } from "@/lib/queries";
+import RichEditor from "@/components/RichEditor";
+import FormattedMessage from "@/components/FormattedMessage";
 
 export default function ExperienceItem({
   experience,
@@ -24,7 +26,7 @@ export default function ExperienceItem({
             <div className="text-sm font-medium">{experience.title} · {experience.company}</div>
             <div className="text-xs text-muted font-mono-num">{experience.start_year} – {experience.end_year || "Present"}</div>
             {experience.description && (
-              <p className="text-sm text-muted mt-1.5 whitespace-pre-line">{experience.description}</p>
+              <div className="text-sm text-muted mt-1.5"><FormattedMessage body={experience.description} /></div>
             )}
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
@@ -63,13 +65,7 @@ export default function ExperienceItem({
         <span className="text-sm text-muted">to</span>
         <input name="endYear" type="number" defaultValue={experience.end_year ?? undefined} placeholder="End (blank = present)" className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
       </div>
-      <textarea
-        name="description"
-        defaultValue={experience.description}
-        rows={3}
-        placeholder="What did you do in this role? (optional)"
-        className="w-full px-3 py-2 rounded-lg border border-line text-sm outline-none resize-none"
-      />
+      <RichEditor name="description" defaultValue={experience.description} placeholder="What did you do in this role? (optional)" minHeight={70} />
       <div className="flex gap-2">
         <button type="submit" disabled={pending} className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper w-fit">
           Save

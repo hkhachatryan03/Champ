@@ -1,8 +1,26 @@
-# Champ — real codebase (v27)
+# Champ — real codebase (v28)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v28
+
+- **Job cards unified everywhere** — the company profile page's posted
+  roles and the guest-facing job detail page now use the exact same
+  modern design as the logged-in candidate views (same `JobCard`
+  component, so they can't drift apart from each other again).
+- **Logo spacing fixed** — the icon's actual visible shape only filled
+  about half of its own bounding box, which is why the gap before "hamp"
+  looked large even with a small margin adjustment. Cropped the icon's
+  viewBox tightly to its real shape instead of guessing at margins.
+- **Rich text (bold/italic/bullets/numbering) added to the Work
+  Experience description field** — same editor used everywhere else in
+  the app, both when adding a new role and editing an existing one.
+- **Certificate links redesigned**: now appear right after the issuing
+  organization's name (not below the date), and read "View certificate →"
+  instead of just "View" — on both the candidate's own profile and the
+  company-facing view.
 
 ## What's new in v27 — flagging can now notify the account
 

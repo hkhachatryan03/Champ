@@ -21,16 +21,28 @@ export default function CertificationItem({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-sm font-medium">{certification.name}</div>
-            {certification.provider && <div className="text-xs text-muted">{certification.provider}</div>}
+            {certification.provider && (
+              <div className="text-xs text-muted flex items-center gap-1.5 flex-wrap">
+                {certification.provider}
+                {(certification.link_url || certification.file_url) && (
+                  <>
+                    <span>·</span>
+                    <a href={certification.link_url || certification.file_url || "#"} target="_blank" rel="noopener noreferrer" className="underline text-apricot-deep">
+                      View certificate →
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
+            {!certification.provider && (certification.link_url || certification.file_url) && (
+              <a href={certification.link_url || certification.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
+                View certificate →
+              </a>
+            )}
             {certification.issue_date && (
               <div className="text-xs text-muted font-mono-num">
                 {new Date(certification.issue_date + "-02").toLocaleDateString(undefined, { year: "numeric", month: "long" })}
               </div>
-            )}
-            {(certification.link_url || certification.file_url) && (
-              <a href={certification.link_url || certification.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
-                View
-              </a>
             )}
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">

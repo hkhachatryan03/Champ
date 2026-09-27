@@ -1,7 +1,7 @@
 export function Logo() {
   return (
     <div className="flex items-center">
-      <svg width="26" height="26" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg" className="-mr-0.5 flex-shrink-0">
+      <svg width="21" height="26" viewBox="50 30 145 180" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
         <path
           fill="#E8A24F"
           d="M130 55 a75 75 0 1 0 0 150 a75 75 0 0 0 59 -30 l-26 -19 a44 44 0 1 1 0 -72 l26 -19 a75 75 0 0 0 -59 -30 z"

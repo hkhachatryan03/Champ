@@ -1,9 +1,8 @@
 import { getSession } from "@/lib/auth";
-import { getCompanyProfile, listActiveJobsForCompanyPublic, parseSkills, listSocialLinks } from "@/lib/queries";
+import { getCompanyProfile, listActiveJobsForCompanyPublic, listSocialLinks } from "@/lib/queries";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Ledger, Tag } from "@/components/ui";
 import FormattedMessage from "@/components/FormattedMessage";
+import JobCard from "@/components/JobCard";
 
 export default async function PublicCompanyPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -78,22 +77,12 @@ export default async function PublicCompanyPage({ params }: { params: Promise<{ 
       </h2>
       <div className="flex flex-col gap-3">
         {jobs.map((job) => (
-          <Link
+          <JobCard
             key={job.id}
-            href={`/candidate/jobs/${job.id}`}
-            className="block p-5 rounded-xl border border-line bg-white hover:shadow-sm transition"
-          >
-            <h3 className="font-display font-semibold text-lg">{job.title}</h3>
-            <p className="text-sm text-muted mt-0.5">{job.location}</p>
-            <div className="mt-3"><Ledger min={job.salary_min} max={job.salary_max} /></div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <Tag tone="moss">{job.category}</Tag>
-              <Tag>{job.employment_type}</Tag>
-              {job.experience_level && <Tag>{job.experience_level}</Tag>}
-              {!!job.remote && <Tag tone="moss">Remote</Tag>}
-              {parseSkills(job.skills).map((t) => <Tag key={t}>{t}</Tag>)}
-            </div>
-          </Link>
+            job={{ ...job, company_name: profile.name, company_avatar_url: profile.avatar_url }}
+            applied={false}
+            href={session.role === "candidate" ? `/candidate/jobs/${job.id}` : `/jobs/${job.id}`}
+          />
         ))}
         {jobs.length === 0 && (
           <p className="text-sm text-muted">No open roles from this company right now.</p>

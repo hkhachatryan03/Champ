@@ -40,7 +40,7 @@ async function addExperienceAction(formData: FormData) {
   const startYear = Number(formData.get("startYear") || 0);
   const endYearRaw = String(formData.get("endYear") || "").trim();
   const endYear = endYearRaw ? Number(endYearRaw) : null;
-  const description = String(formData.get("description") || "").trim();
+  const description = sanitizeRichText(String(formData.get("description") || ""));
   if (company && title && startYear) {
     const result = await addExperience(session.userId, company, title, startYear, endYear, description);
     if (!result.ok) {
@@ -59,7 +59,7 @@ async function updateExperienceAction(id: number, formData: FormData): Promise<{
   const startYear = Number(formData.get("startYear") || 0);
   const endYearRaw = String(formData.get("endYear") || "").trim();
   const endYear = endYearRaw ? Number(endYearRaw) : null;
-  const description = String(formData.get("description") || "").trim();
+  const description = sanitizeRichText(String(formData.get("description") || ""));
   if (!company || !title || !startYear) return { ok: false, error: "Fill in role, company, and start year." };
   const result = await updateExperience(id, session.userId, company, title, startYear, endYear, description);
   revalidatePath("/candidate/profile");
@@ -383,12 +383,7 @@ export default async function CandidateProfilePage({
           <span className="text-sm text-muted">to</span>
           <input name="endYear" type="number" placeholder="End year (blank = present)" className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
         </div>
-        <textarea
-          name="description"
-          rows={3}
-          placeholder="What did you do in this role? (optional)"
-          className="w-full px-3 py-2 rounded-lg border border-line text-sm outline-none resize-none bg-white"
-        />
+        <RichEditor name="description" placeholder="What did you do in this role? (optional)" minHeight={70} />
         <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper w-fit">
           + Add
         </button>
