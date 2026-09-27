@@ -1,4 +1,4 @@
-import { getJobWithCompany, parseSkills, createApplication, sendMessage, getCandidateProfile, findApplication } from "@/lib/queries";
+import { getJobWithCompany, parseSkills, createApplication, sendMessage, getCandidateProfile, getCandidateCompletionStatus, findApplication } from "@/lib/queries";
 import { formatPostedAge } from "@/lib/dates";
 import { getSession } from "@/lib/auth";
 import { requireOnboardedCandidate } from "@/lib/guards";
@@ -24,6 +24,11 @@ async function applyAction(formData: FormData) {
   const existing = await findApplication(jobId, session.userId);
   if (existing) {
     redirect(`/thread/${existing.id}`);
+  }
+
+  const completion = await getCandidateCompletionStatus(session.userId);
+  if (!completion.complete) {
+    redirect(`/candidate/jobs/${jobId}?error=incomplete_profile`);
   }
 
   const job = await getJobWithCompany(jobId);
@@ -61,12 +66,19 @@ async function applyAction(formData: FormData) {
   redirect(`/thread/${applicationId}`);
 }
 
-export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function JobDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
   await requireOnboardedCandidate(session.userId);
 
   const { id } = await params;
+  const { error } = await searchParams;
   const job = await getJobWithCompany(Number(id));
   if (!job) {
     return <div className="px-6 py-10 max-w-2xl mx-auto text-sm text-muted">This role no longer exists.</div>;
@@ -78,6 +90,13 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
       <Link href="/candidate/jobs" className="text-sm text-muted">← Back to roles</Link>
+
+      {error === "incomplete_profile" && (
+        <div className="mt-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+          Finish your profile (name, location, a skill, and at least one work experience or education entry) before applying.{" "}
+          <Link href="/candidate/profile" className="underline">Go to my profile →</Link>
+        </div>
+      )}
 
       <div className="flex items-start gap-4 mt-4">
         <div className="w-14 h-14 rounded-2xl bg-paper-dim flex items-center justify-center flex-shrink-0 overflow-hidden">

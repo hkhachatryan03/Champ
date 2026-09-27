@@ -39,7 +39,7 @@ export async function requireOnboardedCandidate(userId: number) {
   return profile;
 }
 
-export async function requireOnboardedCompany(userId: number) {
+export async function requireOnboardedCompany(userId: number, opts?: { allowPending?: boolean }) {
   const profile = await getCompanyProfile(userId);
   if (!profile) {
     redirect("/login?error=session");
@@ -47,6 +47,13 @@ export async function requireOnboardedCompany(userId: number) {
   if (!profile.onboarded) {
     await requireVerifiedBeforeOnboarding(userId);
     redirect("/company/onboarding");
+  }
+  // Pending/rejected companies can still see their own dashboard and edit
+  // their profile (allowPending callers) — but posting jobs, messaging
+  // candidates, and browsing the candidate pool are blocked until Champ
+  // (or, for a teammate, their own company Admin) approves the account.
+  if (!opts?.allowPending && profile.review_status !== "approved") {
+    redirect("/company/pending");
   }
   return profile;
 }

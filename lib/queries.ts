@@ -35,6 +35,16 @@ export type CompanyProfile = {
   avatar_url: string | null;
   verified: number;
   onboarded: number;
+  review_status: "pending" | "pending_team" | "approved" | "rejected";
+  rejection_reason: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  domain: string;
+  recruiter_type: "company" | "agency";
+  self_attested: number;
+  proof_notes: string;
+  team_owner_user_id: number | null;
+  member_role: "owner" | "admin" | "member";
 };
 
 export type Job = {
@@ -54,6 +64,7 @@ export type Job = {
   created_at: string;
   experience_level: string | null;
   languages: string;
+  client_name: string;
 };
 
 export type Application = {
@@ -147,12 +158,31 @@ export async function updateCompanyProfile(
       name = ${m.name}, recruiter_name = ${m.recruiter_name}, industry = ${m.industry}, size = ${m.size},
       website = ${m.website}, address = ${m.address}, phone = ${m.phone},
       about = ${m.about}, avatar_url = ${m.avatar_url},
-      verified = ${m.verified}, onboarded = ${m.onboarded}
+      verified = ${m.verified}, onboarded = ${m.onboarded}, proof_notes = ${m.proof_notes}
     WHERE user_id = ${userId}
   `;
 }
 
-// ---------- Jobs ----------
+export type ProfileCompletionResult = { complete: boolean; missing: string[] };
+
+// Gate for the Active/Not Active toggle and for applying to jobs — a
+// profile can be saved in any state, but it can't be surfaced to
+// companies (or used to apply) until this baseline is met.
+export async function getCandidateCompletionStatus(userId: number): Promise<ProfileCompletionResult> {
+  const profile = await getCandidateProfile(userId);
+  const missing: string[] = [];
+  if (!profile?.name?.trim()) missing.push("your name");
+  if (!profile?.location?.trim()) missing.push("your location");
+  if (parseSkills(profile?.skills || "[]").length === 0) missing.push("at least one skill");
+
+  const hasExperience = profile?.years_experience > 0 || (await listExperiences(userId)).length > 0;
+  const hasEducation = (await listEducation(userId)).length > 0;
+  if (!hasExperience && !hasEducation) {
+    missing.push("at least one work experience or education entry");
+  }
+
+  return { complete: missing.length === 0, missing };
+}
 export type JobFilters = {
   position?: string;
   company?: string;
@@ -249,10 +279,10 @@ export async function createJob(
 ) {
   const rows = await sql`
     INSERT INTO jobs
-      (company_user_id, title, category, employment_type, location, remote, salary_min, salary_max, skills, description, experience_level, languages)
+      (company_user_id, title, category, employment_type, location, remote, salary_min, salary_max, skills, description, experience_level, languages, client_name)
     VALUES (${companyUserId}, ${data.title}, ${data.category}, ${data.employment_type}, ${data.location},
             ${data.remote}, ${data.salary_min}, ${data.salary_max}, ${data.skills}, ${data.description},
-            ${data.experience_level}, ${data.languages})
+            ${data.experience_level}, ${data.languages}, ${data.client_name || ""})
     RETURNING id
   `;
   return Number(rows[0].id);
@@ -273,7 +303,7 @@ export async function updateJob(
     UPDATE jobs SET title=${m.title}, category=${m.category}, employment_type=${m.employment_type},
       location=${m.location}, remote=${m.remote}, salary_min=${m.salary_min}, salary_max=${m.salary_max},
       skills=${m.skills}, description=${m.description}, active=${m.active},
-      experience_level=${m.experience_level}, languages=${m.languages}
+      experience_level=${m.experience_level}, languages=${m.languages}, client_name=${m.client_name || ""}
     WHERE id=${jobId} AND company_user_id=${companyUserId}
   `;
 }

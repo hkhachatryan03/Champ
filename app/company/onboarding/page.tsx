@@ -13,6 +13,7 @@ async function saveCompanyAction(formData: FormData) {
   const recruiterName = String(formData.get("recruiterName") || "").trim();
   const website = String(formData.get("website") || "").trim();
   const about = sanitizeRichText(String(formData.get("about") || ""));
+  const proofNotes = String(formData.get("proofNotes") || "").trim();
 
   if (!name || !recruiterName || !website || !about.replace(/<[^>]*>/g, "").trim()) {
     redirect("/company/onboarding?error=1");
@@ -25,6 +26,7 @@ async function saveCompanyAction(formData: FormData) {
     size: String(formData.get("size") || ""),
     website,
     about,
+    proof_notes: proofNotes,
     onboarded: 1,
   });
 
@@ -52,6 +54,11 @@ export default async function CompanyOnboarding({
         need at least that much to know who they&apos;d be talking to. Doesn&apos;t
         need to be long.
       </p>
+      {!!existingProfile.self_attested && (
+        <p className="text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2 mb-4">
+          You signed up with a personal email address rather than a company domain, so we&apos;ll take an extra look before approving your account.
+        </p>
+      )}
       {error && (
         <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
           Please fill in your name, company name, website/LinkedIn, and a short about-us.
@@ -79,6 +86,17 @@ export default async function CompanyOnboarding({
           <label className="text-xs font-medium text-muted">Website or LinkedIn (required)</label>
           <input name="website" required placeholder="lusarlabs.am" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
         </div>
+        {!!existingProfile.self_attested && (
+          <div>
+            <label className="text-xs font-medium text-muted">Help us verify your business (optional)</label>
+            <textarea
+              name="proofNotes"
+              rows={3}
+              placeholder="You signed up with a personal email address, so this helps our review team confirm you're a real business — a registration number, a link to your team, anything that helps."
+              className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none"
+            />
+          </div>
+        )}
         <div>
           <label className="text-xs font-medium text-muted">Short &quot;about us&quot; (required)</label>
           <RichEditor name="about" required minHeight={80} placeholder="One or two sentences on what you do." />

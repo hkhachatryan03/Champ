@@ -43,6 +43,7 @@ async function createJobAction(prevState: JobFormState, formData: FormData): Pro
     description,
     experience_level: experienceLevel,
     languages: JSON.stringify(languages),
+    client_name: String(formData.get("clientName") || "").trim(),
   });
 
   redirect("/company/dashboard");
@@ -51,13 +52,18 @@ async function createJobAction(prevState: JobFormState, formData: FormData): Pro
 export default async function NewJobPage() {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
-  await requireOnboardedCompany(session.userId);
+  const profile = await requireOnboardedCompany(session.userId);
   const skillOptions = [...COMMON_SKILLS, ...(await listCustomTerms("skill"))];
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto">
       <h1 className="font-display font-semibold text-2xl mb-6">Post a role</h1>
-      <JobForm action={createJobAction} cancelHref="/company/dashboard" skillOptions={skillOptions} />
+      <JobForm
+        action={createJobAction}
+        cancelHref="/company/dashboard"
+        skillOptions={skillOptions}
+        showClientNameField={profile.recruiter_type === "agency"}
+      />
     </div>
   );
 }

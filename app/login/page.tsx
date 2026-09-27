@@ -2,12 +2,18 @@ import sql from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import AuthShell from "@/components/auth/AuthShell";
+import PasswordField from "@/components/auth/PasswordField";
+import GoogleButton from "@/components/auth/GoogleButton";
+import LinkedInButton from "@/components/auth/LinkedInButton";
+import { isGoogleConfigured, isLinkedInConfigured } from "@/lib/oauth";
 
 type UserRow = {
   id: number;
   email: string;
-  password_hash: string;
+  password_hash: string | null;
   role: "candidate" | "company";
+  auth_provider: string;
 };
 
 async function loginAction(formData: FormData) {
@@ -16,11 +22,19 @@ async function loginAction(formData: FormData) {
   const password = String(formData.get("password") || "");
 
   const rows = (await sql`
-    SELECT id, email, password_hash, role FROM users WHERE email = ${email}
+    SELECT id, email, password_hash, role, auth_provider FROM users WHERE email = ${email}
   `) as UserRow[];
   const user = rows[0];
 
-  if (!user || !(await verifyPassword(password, user.password_hash))) {
+  if (!user) {
+    redirect("/login?error=1");
+  }
+  // OAuth-only accounts have no password to check against — send them to
+  // the right button instead of a dead-end "wrong password" message.
+  if (!user.password_hash) {
+    redirect(`/login?error=oauth_only&provider=${user.auth_provider}`);
+  }
+  if (!(await verifyPassword(password, user.password_hash))) {
     redirect("/login?error=1");
   }
 
@@ -28,71 +42,92 @@ async function loginAction(formData: FormData) {
   redirect(user.role === "candidate" ? "/candidate/jobs" : "/company/dashboard");
 }
 
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; reset?: string }>;
+  searchParams: Promise<{ error?: string; reset?: string; provider?: string }>;
 }) {
-  const { error, reset } = await searchParams;
+  const { error, reset, provider } = await searchParams;
+  const showOAuth = isGoogleConfigured() || isLinkedInConfigured();
 
   return (
-    <div className="px-6 py-12 max-w-md mx-auto">
-      <h1 className="font-display font-semibold text-2xl">Log in</h1>
-
+    <AuthShell
+      eyebrow="Welcome back"
+      title="Log in to Champ"
+      subtitle="Pick up right where you left off."
+    >
       {reset === "1" && (
-        <div className="mt-4 mb-2 text-sm text-moss bg-moss/10 rounded-lg px-3 py-2">
+        <div className="mb-4 text-sm text-moss bg-moss/10 rounded-lg px-3 py-2">
           Password reset — log in with your new password.
         </div>
       )}
       {error === "session" && (
-        <div className="mt-4 mb-2 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
           Your session pointed to an account that no longer exists (likely the database was reset) — please log in again.
         </div>
       )}
       {error === "1" && (
-        <div className="mt-4 mb-2 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
           Wrong email or password.
         </div>
       )}
+      {error === "oauth_only" && (
+        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+          This account signs in with {provider === "google" ? "Google" : "LinkedIn"} — use the button below instead of a password.
+        </div>
+      )}
+      {error === "oauth" && (
+        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+          Something went wrong signing in — please try again.
+        </div>
+      )}
+      {error === "oauth_unavailable" && (
+        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+          That sign-in method isn&apos;t set up on this deployment yet.
+        </div>
+      )}
 
-      <form action={loginAction} className="flex flex-col gap-4 mt-6">
+      <form action={loginAction} className="flex flex-col gap-4">
         <div>
           <label className="text-xs font-medium text-muted">Email</label>
           <input
             name="email"
             type="email"
             required
-            className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none"
+            className="w-full mt-1 px-3 py-2.5 rounded-lg border border-line bg-white text-sm outline-none transition-shadow focus:ring-2 focus:ring-apricot/40 focus:border-apricot"
           />
         </div>
-        <div>
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-muted">Password</label>
-            <Link href="/forgot-password" className="text-xs underline text-muted">
-              Forgot password?
-            </Link>
-          </div>
-          <input
-            name="password"
-            type="password"
-            required
-            className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none"
-          />
-        </div>
+        <PasswordField forgotHref="/forgot-password" />
         <button
           type="submit"
-          className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink"
+          className="mt-2 px-5 py-3 rounded-full font-medium text-sm bg-apricot text-ink hover:bg-apricot-deep hover:text-paper transition-colors"
         >
           Log in
         </button>
       </form>
 
-      <p className="text-sm text-muted mt-6">
+      {showOAuth && (
+        <>
+          <div className="flex items-center gap-3 my-6">
+            <div className="h-px flex-1 bg-line" />
+            <span className="text-xs text-muted">or continue with</span>
+            <div className="h-px flex-1 bg-line" />
+          </div>
+          <div className="flex flex-col gap-3">
+            {isGoogleConfigured() && <GoogleButton clientId={GOOGLE_CLIENT_ID} mode="login" />}
+            {isLinkedInConfigured() && <LinkedInButton mode="login" />}
+          </div>
+        </>
+      )}
+
+      <p className="text-sm text-muted mt-8 text-center">
         No account yet?{" "}
-        <Link href="/signup?role=candidate" className="underline">
+        <Link href="/signup?role=candidate" className="underline text-ink font-medium">
           Sign up
         </Link>
       </p>
-    </div>
+    </AuthShell>
   );
 }

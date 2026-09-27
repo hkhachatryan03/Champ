@@ -16,6 +16,7 @@ export default function JobForm({
   isEdit,
   cancelHref,
   skillOptions,
+  showClientNameField,
 }: {
   action: (prevState: JobFormState, formData: FormData) => Promise<JobFormState>;
   defaults?: {
@@ -31,10 +32,12 @@ export default function JobForm({
     active?: number;
     experience_level?: string | null;
     languages?: string;
+    client_name?: string;
   };
   isEdit?: boolean;
   cancelHref: string;
   skillOptions?: string[];
+  showClientNameField?: boolean;
 }) {
   const d = defaults || {};
   const [state, formAction, isPending] = useActionState<JobFormState, FormData>(action, null);
@@ -51,6 +54,20 @@ export default function JobForm({
         <label className="text-xs font-medium text-muted">Role title</label>
         <input name="title" defaultValue={d.title} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
       </div>
+      {showClientNameField && (
+        <div>
+          <label className="text-xs font-medium text-muted">Hiring on behalf of (optional)</label>
+          <input
+            name="clientName"
+            defaultValue={d.client_name}
+            placeholder="e.g. Lusar Labs"
+            className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none"
+          />
+          <p className="text-xs text-muted mt-1">
+            Shown to candidates as who they&apos;d actually be working for. Leave blank if you&apos;re not recruiting for a named client.
+          </p>
+        </div>
+      )}
       <div className="flex gap-3">
         <div className="flex-1">
           <label className="text-xs font-medium text-muted">Category</label>

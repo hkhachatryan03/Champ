@@ -373,6 +373,65 @@ async function main() {
   await sql`ALTER TABLE account_flags ADD COLUMN IF NOT EXISTS user_message TEXT`;
   await sql`ALTER TABLE account_flags ADD COLUMN IF NOT EXISTS visible_to_user INTEGER NOT NULL DEFAULT 0`;
   console.log("Done. Fifteenth round of migrations applied.");
+
+  console.log("Applying sixteenth round of migrations (Google/LinkedIn sign-in)...");
+  // OAuth-only accounts never get a password, so this can no longer be
+  // NOT NULL. Existing password accounts are unaffected — this only
+  // widens what's allowed going forward.
+  await sql`ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider TEXT NOT NULL DEFAULT 'password'`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS linkedin_sub TEXT`;
+  // Partial unique indexes rather than a UNIQUE column constraint — lets
+  // every password-only account keep both columns NULL without colliding.
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS users_google_sub_idx ON users(google_sub) WHERE google_sub IS NOT NULL`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS users_linkedin_sub_idx ON users(linkedin_sub) WHERE linkedin_sub IS NOT NULL`;
+  console.log("Done. Sixteenth round of migrations applied.");
+
+  console.log("Applying seventeenth round of migrations (recruiter type, company review, team seats)...");
+  // `verified` (0/1) already existed and is read all over the app (job
+  // cards, admin analytics, etc.) — it stays exactly as-is and keeps
+  // meaning "candidates can see this company as verified". `review_status`
+  // is the richer state machine on top of it; approve/reject/reconsider
+  // helpers keep the two in sync so nothing else has to change.
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS review_status TEXT NOT NULL DEFAULT 'pending'`;
+  await sql`ALTER TABLE company_profiles DROP CONSTRAINT IF EXISTS company_profiles_review_status_check`;
+  await sql`
+    ALTER TABLE company_profiles ADD CONSTRAINT company_profiles_review_status_check
+    CHECK (review_status IN ('pending','pending_team','approved','rejected'))
+  `;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS rejection_reason TEXT`;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS reviewed_at TEXT`;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS reviewed_by TEXT`;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS domain TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS recruiter_type TEXT NOT NULL DEFAULT 'company'`;
+  await sql`ALTER TABLE company_profiles DROP CONSTRAINT IF EXISTS company_profiles_recruiter_type_check`;
+  await sql`
+    ALTER TABLE company_profiles ADD CONSTRAINT company_profiles_recruiter_type_check
+    CHECK (recruiter_type IN ('company','agency'))
+  `;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS self_attested INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS proof_notes TEXT NOT NULL DEFAULT ''`;
+  // Team seats: a teammate's row points at the owner's user id. The owner
+  // (or the founding recruiter of a not-yet-team company) has this NULL.
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS team_owner_user_id INTEGER REFERENCES users(id)`;
+  await sql`ALTER TABLE company_profiles ADD COLUMN IF NOT EXISTS member_role TEXT NOT NULL DEFAULT 'owner'`;
+  await sql`ALTER TABLE company_profiles DROP CONSTRAINT IF EXISTS company_profiles_member_role_check`;
+  await sql`
+    ALTER TABLE company_profiles ADD CONSTRAINT company_profiles_member_role_check
+    CHECK (member_role IN ('owner','admin','member'))
+  `;
+  // Backfill: every company_profiles row that existed before this migration
+  // was created before any review concept existed — treat those as
+  // already-trusted rather than retroactively locking out real users.
+  await sql`
+    UPDATE company_profiles SET review_status = 'approved', reviewed_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS'), reviewed_by = 'system (pre-existing account)'
+    WHERE onboarded = 1 AND verified = 1 AND review_status = 'pending'
+  `;
+  // Agency "hiring on behalf of" — free text, optional, never a link to a
+  // real company record (the end client doesn't need a Champ profile).
+  await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS client_name TEXT NOT NULL DEFAULT ''`;
+  console.log("Done. Seventeenth round of migrations applied.");
 }
 
 main().catch((err) => {

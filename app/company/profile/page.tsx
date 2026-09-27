@@ -10,6 +10,11 @@ import RichEditor from "@/components/RichEditor";
 import { sanitizeRichText } from "@/lib/sanitize";
 import FormattedMessage from "@/components/FormattedMessage";
 import AdminNoticeBanner from "@/components/AdminNoticeBanner";
+import {
+  listPendingTeamMembers,
+  approveTeamMember,
+  declineTeamMember,
+} from "@/lib/companyMembership";
 
 async function saveAction(formData: FormData) {
   "use server";
@@ -75,6 +80,22 @@ async function deleteSocialLinkAction(formData: FormData) {
   revalidatePath("/company/profile");
 }
 
+async function approveTeamMemberAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "company") redirect("/login");
+  await approveTeamMember(Number(formData.get("teammateId")), session.userId, session.email);
+  revalidatePath("/company/profile");
+}
+
+async function declineTeamMemberAction(formData: FormData) {
+  "use server";
+  const session = await getSession();
+  if (!session || session.role !== "company") redirect("/login");
+  await declineTeamMember(Number(formData.get("teammateId")), session.userId, session.email);
+  revalidatePath("/company/profile");
+}
+
 export default async function CompanyProfilePage({
   searchParams,
 }: {
@@ -82,9 +103,10 @@ export default async function CompanyProfilePage({
 }) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
-  await requireOnboardedCompany(session.userId);
+  await requireOnboardedCompany(session.userId, { allowPending: true });
   const profile = await getCompanyProfile(session.userId);
   const socialLinks = await listSocialLinks(session.userId);
+  const pendingTeammates = profile.member_role === "owner" ? await listPendingTeamMembers(session.userId) : [];
   const { error, avatarError } = await searchParams;
 
   return (
@@ -97,6 +119,52 @@ export default async function CompanyProfilePage({
       </div>
 
       <AdminNoticeBanner userId={session.userId} />
+
+      {profile.review_status === "pending" && (
+        <div className="mt-4 text-sm text-muted bg-paper-dim rounded-lg px-3 py-2">
+          Your company is under review by Champ — you can keep editing your profile, but job posting and messaging are locked until it&apos;s approved.
+        </div>
+      )}
+      {profile.review_status === "pending_team" && (
+        <div className="mt-4 text-sm text-muted bg-paper-dim rounded-lg px-3 py-2">
+          Waiting for your team to approve you before you can post jobs or message candidates.
+        </div>
+      )}
+      {profile.review_status === "rejected" && (
+        <div className="mt-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+          This company wasn&apos;t approved{profile.rejection_reason ? `: ${profile.rejection_reason}` : "."}
+        </div>
+      )}
+
+      {profile.member_role === "owner" && pendingTeammates.length > 0 && (
+        <div className="mt-4 p-4 rounded-xl border border-line bg-white">
+          <h2 className="text-sm font-medium">Teammates waiting on your approval</h2>
+          <div className="flex flex-col gap-2 mt-3">
+            {pendingTeammates.map((m) => (
+              <div key={m.user_id} className="flex items-center justify-between gap-3 text-sm">
+                <div>
+                  <div className="font-medium">{m.recruiter_name || m.email}</div>
+                  <div className="text-xs text-muted">{m.email}</div>
+                </div>
+                <div className="flex gap-2">
+                  <form action={approveTeamMemberAction}>
+                    <input type="hidden" name="teammateId" value={m.user_id} />
+                    <button type="submit" className="text-xs px-3 py-1.5 rounded-lg bg-moss text-white whitespace-nowrap">
+                      Approve
+                    </button>
+                  </form>
+                  <form action={declineTeamMemberAction}>
+                    <input type="hidden" name="teammateId" value={m.user_id} />
+                    <button type="submit" className="text-xs px-3 py-1.5 rounded-lg bg-ink/8 text-muted whitespace-nowrap">
+                      Decline
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-5 p-5 rounded-xl border border-line bg-white mb-8">
         {avatarError === "1" && (

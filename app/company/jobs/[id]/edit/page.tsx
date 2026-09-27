@@ -50,6 +50,7 @@ async function saveJobAction(
     active: formData.get("active") ? 1 : 0,
     experience_level: experienceLevel,
     languages: JSON.stringify(languages),
+    client_name: String(formData.get("clientName") || "").trim(),
   });
 
   redirect(`/company/jobs/${jobId}`);
@@ -58,7 +59,7 @@ async function saveJobAction(
 export default async function EditJobPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
-  await requireOnboardedCompany(session.userId);
+  const profile = await requireOnboardedCompany(session.userId);
 
   const { id } = await params;
   const rows = (await sql`
@@ -94,7 +95,9 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
           active: job.active,
           experience_level: job.experience_level,
           languages: JSON.parse(job.languages || "[]").join(", "),
+          client_name: job.client_name,
         }}
+        showClientNameField={profile.recruiter_type === "agency"}
       />
     </div>
   );

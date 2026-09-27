@@ -109,3 +109,75 @@ export async function sendPasswordResetOtp(to: string, otp: string) {
   }
   return { ok: true };
 }
+
+// Sent to the *new* recruiter the moment they join an already-approved
+// company — their own team Admin/Owner still needs to let them in before
+// they can post jobs or message candidates.
+export async function sendTeamJoinRequestEmail(to: string) {
+  const resend = getResendClient();
+  if (!resend) {
+    console.error("RESEND_API_KEY not set — cannot send team join request email.");
+    return { ok: false };
+  }
+  const { error } = await resend.emails.send({
+    from: "Champ <onboarding@resend.dev>",
+    to,
+    subject: "You're waiting on your team to approve you",
+    html: `
+      <p>You signed up for Champ with a work email that already belongs to a company on Champ.</p>
+      <p>Someone at your company needs to approve you from their Champ profile page before you can post jobs or message candidates. We'll let you know once that happens.</p>
+    `,
+  });
+  if (error) {
+    console.error("Failed to send team join request email:", error);
+    return { ok: false };
+  }
+  return { ok: true };
+}
+
+export async function sendCompanyApprovedEmail(to: string) {
+  const resend = getResendClient();
+  if (!resend) {
+    console.error("RESEND_API_KEY not set — cannot send company approved email.");
+    return { ok: false };
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const { error } = await resend.emails.send({
+    from: "Champ <onboarding@resend.dev>",
+    to,
+    subject: "Your company is approved on Champ",
+    html: `
+      <p>Good news — your company has been reviewed and approved. You can now post jobs and message candidates.</p>
+      <p><a href="${baseUrl}/company/dashboard">Go to your dashboard</a></p>
+    `,
+  });
+  if (error) {
+    console.error("Failed to send company approved email:", error);
+    return { ok: false };
+  }
+  return { ok: true };
+}
+
+export async function sendCompanyRejectedEmail(to: string, reason: string) {
+  const resend = getResendClient();
+  if (!resend) {
+    console.error("RESEND_API_KEY not set — cannot send company rejected email.");
+    return { ok: false };
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const { error } = await resend.emails.send({
+    from: "Champ <onboarding@resend.dev>",
+    to,
+    subject: "Update on your Champ company application",
+    html: `
+      <p>We weren't able to approve your company on Champ.</p>
+      ${reason ? `<p>Reason: ${reason}</p>` : ""}
+      <p>If you think this is a mistake, reach out from our <a href="${baseUrl}/contact">Contact Us</a> page and we'll take another look.</p>
+    `,
+  });
+  if (error) {
+    console.error("Failed to send company rejected email:", error);
+    return { ok: false };
+  }
+  return { ok: true };
+}

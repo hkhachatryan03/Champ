@@ -8,7 +8,7 @@ import { Ledger, Tag } from "@/components/ui";
 export default async function CompanyDashboard() {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
-  await requireOnboardedCompany(session.userId);
+  await requireOnboardedCompany(session.userId, { allowPending: true });
 
   const allJobs = await listJobsForCompany(session.userId);
   const jobs = allJobs.filter((j) => !j.archived_at);

@@ -3,10 +3,13 @@ import Link from "next/link";
 import {
   getUserDetail,
   flagAccount,
-  setCompanyVerified,
+  approveCompany,
+  rejectCompany,
+  reconsiderCompany,
   resolveAccountFlag,
   deleteUserAsAdmin,
 } from "@/lib/adminQueries";
+import { sendCompanyApprovedEmail, sendCompanyRejectedEmail } from "@/lib/email";
 import { getAdminSession } from "@/lib/adminAuth";
 import { parseSkills } from "@/lib/queries";
 
@@ -36,13 +39,35 @@ async function resolveFlagAction(formData: FormData) {
   redirect(`/admin/users/${userId}`);
 }
 
-async function toggleVerifiedAction(formData: FormData) {
+async function approveCompanyAction(formData: FormData) {
   "use server";
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
   const userId = Number(formData.get("userId"));
-  const nextVerified = formData.get("nextVerified") === "1";
-  await setCompanyVerified(userId, nextVerified, session!.email);
+  const email = String(formData.get("email") || "");
+  await approveCompany(userId, session!.email);
+  if (email) await sendCompanyApprovedEmail(email);
+  redirect(`/admin/users/${userId}`);
+}
+
+async function rejectCompanyAction(formData: FormData) {
+  "use server";
+  const session = await getAdminSession();
+  if (!session) redirect("/admin/login");
+  const userId = Number(formData.get("userId"));
+  const email = String(formData.get("email") || "");
+  const reason = String(formData.get("reason") || "").trim() || "No reason given";
+  await rejectCompany(userId, reason, session!.email);
+  if (email) await sendCompanyRejectedEmail(email, reason);
+  redirect(`/admin/users/${userId}`);
+}
+
+async function reconsiderCompanyAction(formData: FormData) {
+  "use server";
+  const session = await getAdminSession();
+  if (!session) redirect("/admin/login");
+  const userId = Number(formData.get("userId"));
+  await reconsiderCompany(userId, session!.email);
   redirect(`/admin/users/${userId}`);
 }
 
@@ -98,20 +123,64 @@ export default async function AdminUserDetailPage({
           <p className="text-sm text-muted mt-1">
             {user.email} · <span className="capitalize">{user.role}</span> · joined {user.created_at?.slice(0, 10)}
           </p>
+          {!isCandidate && (
+            <p className="text-xs text-muted mt-1">
+              <span className="capitalize">{profile?.recruiter_type}</span> · domain: {profile?.domain || "n/a"}
+              {!!profile?.self_attested && (
+                <span className="ml-2 text-apricot-deep bg-apricot/10 px-2 py-0.5 rounded-full">
+                  Self-attested
+                </span>
+              )}
+              {profile?.team_owner_user_id && (
+                <span className="ml-2">
+                  · team member of{" "}
+                  <Link href={`/admin/users/${profile.team_owner_user_id}`} className="underline">
+                    user #{profile.team_owner_user_id}
+                  </Link>
+                </span>
+              )}
+            </p>
+          )}
+          {profile?.review_status === "rejected" && profile?.rejection_reason && (
+            <p className="text-xs text-apricot-deep mt-1">
+              Rejected {profile.reviewed_at?.slice(0, 10)} by {profile.reviewed_by} — {profile.rejection_reason}
+            </p>
+          )}
         </div>
-        {user.role === "company" && (
-          <form action={toggleVerifiedAction}>
+        {!isCandidate && profile?.review_status === "pending" && (
+          <div className="flex flex-col gap-2 items-end">
+            <form action={approveCompanyAction}>
+              <input type="hidden" name="userId" value={user.id} />
+              <input type="hidden" name="email" value={user.email} />
+              <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-moss text-white">
+                Approve
+              </button>
+            </form>
+            <form action={rejectCompanyAction} className="flex items-center gap-2">
+              <input type="hidden" name="userId" value={user.id} />
+              <input type="hidden" name="email" value={user.email} />
+              <input name="reason" placeholder="Reason" className="px-2 py-1.5 rounded-lg border border-line text-xs outline-none w-36" />
+              <button type="submit" className="px-3 py-1.5 rounded-lg text-xs font-medium bg-apricot/15 text-apricot-deep whitespace-nowrap">
+                Reject
+              </button>
+            </form>
+          </div>
+        )}
+        {!isCandidate && profile?.review_status === "rejected" && (
+          <form action={reconsiderCompanyAction}>
             <input type="hidden" name="userId" value={user.id} />
-            <input type="hidden" name="nextVerified" value={profile?.verified ? "0" : "1"} />
-            <button
-              type="submit"
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                profile?.verified ? "bg-ink/8 text-muted" : "bg-moss text-white"
-              }`}
-            >
-              {profile?.verified ? "Remove verification" : "Mark as verified"}
+            <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink/8 text-muted">
+              Reconsider
             </button>
           </form>
+        )}
+        {!isCandidate && profile?.review_status === "approved" && (
+          <span className="text-xs px-3 py-1.5 rounded-full bg-moss/15 text-moss whitespace-nowrap">Approved</span>
+        )}
+        {!isCandidate && profile?.review_status === "pending_team" && (
+          <span className="text-xs px-3 py-1.5 rounded-full bg-ink/8 text-muted whitespace-nowrap">
+            Waiting on their own team
+          </span>
         )}
       </div>
 

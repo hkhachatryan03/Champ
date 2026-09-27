@@ -300,19 +300,61 @@ export async function resolveAccountFlag(flagId: number, adminEmail: string) {
   await logAdminAction(adminEmail, "resolved_flag", "account_flag", flagId);
 }
 
-export async function listUnverifiedCompanies() {
+// Champ's own review queue — new companies only. Teammates joining an
+// already-approved company (review_status = 'pending_team') go through
+// their own company's Admin instead, on the company/profile page, so they
+// deliberately don't show up here.
+export async function listCompaniesForReview() {
   return (await sql`
     SELECT comp.*, u.email, u.created_at as user_created_at
     FROM company_profiles comp
     JOIN users u ON u.id = comp.user_id
-    WHERE comp.verified = 0 AND comp.onboarded = 1
+    WHERE comp.review_status = 'pending' AND comp.onboarded = 1
     ORDER BY u.created_at ASC
   `) as any[];
 }
 
-export async function setCompanyVerified(userId: number, verified: boolean, adminEmail: string) {
-  await sql`UPDATE company_profiles SET verified = ${verified ? 1 : 0} WHERE user_id = ${userId}`;
-  await logAdminAction(adminEmail, verified ? "verified_company" : "unverified_company", "company", userId);
+export async function listRejectedCompanies() {
+  return (await sql`
+    SELECT comp.*, u.email, u.created_at as user_created_at
+    FROM company_profiles comp
+    JOIN users u ON u.id = comp.user_id
+    WHERE comp.review_status = 'rejected'
+    ORDER BY comp.reviewed_at DESC
+  `) as any[];
+}
+
+export async function approveCompany(userId: number, adminEmail: string) {
+  await sql`
+    UPDATE company_profiles
+    SET review_status = 'approved', verified = 1,
+        reviewed_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS'), reviewed_by = ${adminEmail}
+    WHERE user_id = ${userId}
+  `;
+  await logAdminAction(adminEmail, "approved_company", "company", userId);
+}
+
+export async function rejectCompany(userId: number, reason: string, adminEmail: string) {
+  await sql`
+    UPDATE company_profiles
+    SET review_status = 'rejected', verified = 0, rejection_reason = ${reason},
+        reviewed_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS'), reviewed_by = ${adminEmail}
+    WHERE user_id = ${userId}
+  `;
+  await logAdminAction(adminEmail, "rejected_company", "company", userId, reason);
+}
+
+// Sends a previously-rejected company back to the review queue rather
+// than approving it outright — the point of a full re-review is that
+// someone actually looks at it again, not that support gets a shortcut.
+export async function reconsiderCompany(userId: number, adminEmail: string) {
+  await sql`
+    UPDATE company_profiles
+    SET review_status = 'pending',
+        reviewed_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS'), reviewed_by = ${adminEmail}
+    WHERE user_id = ${userId}
+  `;
+  await logAdminAction(adminEmail, "reconsidered_company", "company", userId);
 }
 
 // ============================================================

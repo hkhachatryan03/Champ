@@ -17,6 +17,7 @@ type JobCardData = {
   salary_max: number;
   skills: string;
   created_at: string;
+  client_name?: string;
 };
 
 export default function JobCard({
@@ -64,6 +65,9 @@ export default function JobCard({
             {job.company_name} · {job.location}
             {!!job.remote && " · Remote"} · {job.employment_type}
           </p>
+          {job.client_name && (
+            <p className="text-xs text-muted mt-0.5">Hiring on behalf of {job.client_name}</p>
+          )}
           {job.experience_level && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               <Tag>{job.experience_level}</Tag>

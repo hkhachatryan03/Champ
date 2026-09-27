@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getCandidateProfile, updateCandidateProfile, parseSkills, listExperiences, addExperience, updateExperience, deleteExperience, listCertifications, addCertification, updateCertification, deleteCertification, listEducation, addEducation, updateEducation, deleteEducation, DEGREE_OPTIONS, normalizeAndRegisterTerm, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
+import { getCandidateProfile, updateCandidateProfile, getCandidateCompletionStatus, parseSkills, listExperiences, addExperience, updateExperience, deleteExperience, listCertifications, addCertification, updateCertification, deleteCertification, listEducation, addEducation, updateEducation, deleteEducation, DEGREE_OPTIONS, normalizeAndRegisterTerm, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
 import { formatTermCasing } from "@/lib/termCasing";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
@@ -27,6 +27,12 @@ async function toggleActiveAction(formData: FormData) {
   const session = await getSession();
   if (!session || session.role !== "candidate") redirect("/login");
   const next = String(formData.get("next"));
+  if (next === "1") {
+    const completion = await getCandidateCompletionStatus(session.userId);
+    if (!completion.complete) {
+      redirect("/candidate/profile?error=incomplete");
+    }
+  }
   await updateCandidateProfile(session.userId, { actively_looking: next === "1" ? 1 : 0 });
   revalidatePath("/candidate/profile");
 }
@@ -282,6 +288,7 @@ export default async function CandidateProfilePage({
   const certifications = await listCertifications(session.userId);
   const education = await listEducation(session.userId);
   const { expError, error, avatarError } = await searchParams;
+  const completion = await getCandidateCompletionStatus(session.userId);
   const skillOptions = [...COMMON_SKILLS, ...(await listCustomTerms("skill"))];
   const positionOptions = [...PROFESSION_OPTIONS, ...(await listCustomTerms("position"))];
   const institutionOptions = [...ARMENIAN_UNIVERSITIES, ...(await listCustomTerms("institution"))];
@@ -297,13 +304,21 @@ export default async function CandidateProfilePage({
 
       <AdminNoticeBanner userId={session.userId} />
 
+      {error === "incomplete" && (
+        <div className="mt-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+          Add {completion.missing.join(", ")} before switching to Active.
+        </div>
+      )}
+
       <div className="mt-5 p-4 rounded-xl border border-line bg-white flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">Actively looking for a job</p>
           <p className="text-xs text-muted mt-0.5">
             {profile.actively_looking
               ? "Companies can find you when they search the candidate pool."
-              : "You're hidden from search, but can still apply to roles directly."}
+              : completion.complete
+              ? "You're hidden from search, but can still apply to roles directly."
+              : `Complete your profile to switch this on — missing ${completion.missing.join(", ")}.`}
           </p>
         </div>
         <form action={toggleActiveAction}>
