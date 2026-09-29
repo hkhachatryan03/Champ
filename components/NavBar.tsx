@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSession, destroySession } from "@/lib/auth";
 import { Logo } from "./ui";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { countUnreadConversationsForCandidate, countUnreadConversationsForCompany, touchLastSeen } from "@/lib/queries";
 import NavTabs from "./NavTabs";
 
@@ -41,6 +42,29 @@ export default async function NavBar() {
     ["/company/profile", "My profile", 0],
   ];
   const tabs = session?.role === "candidate" ? candTabs : session?.role === "company" ? compTabs : [];
+
+  // The floating glass-pill nav is used ONLY on the logged-out public
+  // homepage. Every other page — every auth state, every route — renders
+  // the exact same bar it always has, below.
+  const hdrs = await headers();
+  const isHome = hdrs.get("x-is-home") === "1";
+  if (isHome && !session) {
+    return (
+      <div className="aur-nav">
+        <Link href="/" className="aur-nav-logo">
+          <Logo />
+        </Link>
+        <div className="aur-nav-links">
+          <Link href="/about">What is Champ?</Link>
+          <Link href="/jobs">Browse open roles</Link>
+          <Link href="/contact">Contact us</Link>
+        </div>
+        <Link href="/login" className="aur-btn aur-btn-primary" style={{ padding: "9px 18px" }}>
+          Log in
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-ink">

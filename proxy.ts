@@ -42,6 +42,16 @@ export async function proxy(req: NextRequest) {
   const isAdminArea = pathname.startsWith("/admin");
 
   if (isAdminArea) return guardAdminArea(req);
+
+  // Tag the public homepage specifically so the shared NavBar can render
+  // its floating-pill treatment ONLY there — every other route (including
+  // every other public page) keeps the exact nav it already has.
+  if (pathname === "/") {
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-is-home", "1");
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   if (!isCandidateArea && !isCompanyArea) return NextResponse.next();
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
@@ -74,5 +84,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/candidate/:path*", "/company/:path*", "/admin/:path*"],
+  matcher: ["/", "/candidate/:path*", "/company/:path*", "/admin/:path*"],
 };
