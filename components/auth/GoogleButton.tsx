@@ -58,7 +58,7 @@ export default function GoogleButton({
     });
 
     window.google.accounts.id.renderButton(buttonRef.current, {
-      theme: "outline",
+      theme: "filled_black",
       size: "large",
       width: 320,
       text: mode === "signup" ? "signup_with" : "signin_with",
@@ -74,7 +74,7 @@ export default function GoogleButton({
         onReady={() => setScriptReady(true)}
       />
       <div ref={buttonRef} className="flex justify-center [&>div]:!w-full" />
-      {error && <p className="text-xs text-apricot-deep mt-2 text-center">{error}</p>}
+      {error && <p className="text-xs text-apricot mt-2 text-center">{error}</p>}
     </div>
   );
 }

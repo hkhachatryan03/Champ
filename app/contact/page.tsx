@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import TopicSelect from "@/components/TopicSelect";
 import ClearableFileInput from "@/components/ClearableFileInput";
 import { put } from "@vercel/blob";
+import GuestPage from "@/components/GuestPage";
+import { ArrowRight, Check } from "lucide-react";
 
 const CANDIDATE_TOPICS = [
   "Question about my profile",
@@ -59,58 +61,75 @@ export default async function ContactPage({
   const topics = session?.role === "candidate" ? CANDIDATE_TOPICS : session?.role === "company" ? COMPANY_TOPICS : GENERAL_TOPICS;
 
   return (
-    <div>
-      <div className="bg-ink">
-        <div className="px-6 pt-14 pb-16 max-w-lg mx-auto">
-          <p className="text-xs font-medium text-apricot uppercase tracking-wide">We&apos;re here to help</p>
-          <h1 className="font-display font-semibold text-3xl md:text-4xl text-paper mt-3">
-            Get in touch
-          </h1>
-          <p className="mt-4 text-base text-paper/70 leading-relaxed">
-            Got a question or ran into a problem? Send us a note — we usually reply within one business day.
-          </p>
+    <GuestPage>
+      <div className="px-6 pb-24 max-w-5xl mx-auto grid md:grid-cols-[1fr_1.05fr] gap-8 md:gap-14 items-start pt-[calc(var(--nav-h)+2.75rem)]">
+        <div className="relative">
+          <svg
+            className="hidden md:block absolute -left-[110px] -bottom-[400px] w-[420px] h-[420px] pointer-events-none opacity-75"
+            viewBox="0 0 420 420" fill="none" stroke="#EA9A2E" strokeWidth="1" aria-hidden="true"
+          >
+            <circle cx="210" cy="210" r="60" strokeOpacity=".32" />
+            <circle cx="210" cy="210" r="110" strokeOpacity=".2" strokeDasharray="3 7" />
+            <circle cx="210" cy="210" r="160" strokeOpacity=".12" />
+            <circle cx="210" cy="210" r="205" strokeOpacity=".07" />
+            <circle cx="318" cy="132" r="5" fill="#EA9A2E" stroke="none" />
+            <circle cx="104" cy="290" r="3.5" fill="#EA9A2E" fillOpacity=".6" stroke="none" />
+          </svg>
+          <div className="relative">
+            <div className="aur-eyebrow aur-hero-in">We&apos;re here to help</div>
+            <h1 className="aur-hero-in font-display font-semibold text-[clamp(40px,6vw,58px)] leading-[1.05] text-paper mt-5" style={{ animationDelay: ".12s" }}>
+              Get in touch
+            </h1>
+            <p className="aur-hero-in mt-5 text-[17px] text-paper/70 leading-[1.75] max-w-[420px]" style={{ animationDelay: ".24s" }}>
+              Got a question or ran into a problem? Send us a note — we usually reply within one business day.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="px-6 -mt-8 pb-16 max-w-lg mx-auto">
-        <div className="p-6 rounded-2xl border border-line bg-white shadow-sm">
-          {!process.env.RESEND_API_KEY && (
-            <p className="text-xs text-muted mb-5 p-3 rounded-lg bg-paper-dim">
-              Forgot your password? Mention the email you signed up with and we&apos;ll reset it manually for now —
-              real self-service reset needs an email-sending service, which isn&apos;t connected on this deployment yet.
-            </p>
-          )}
-          {sent && (
-            <p className="text-sm mb-5 px-3 py-2 rounded-lg bg-moss/10 text-moss">
-              Thanks — your message has been sent.
-            </p>
-          )}
-          <form action={contactAction} encType="multipart/form-data" className="flex flex-col gap-4">
-            {session ? (
-              <p className="text-xs text-muted -mt-1">
-                We&apos;ll reply to <strong>{session.email}</strong> — the email on your account.
-              </p>
-            ) : (
-              <div>
-                <label className="text-xs font-medium text-muted">Your email (optional, so we can reply)</label>
-                <input name="email" type="email" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-              </div>
-            )}
-            <TopicSelect topics={topics} />
-            <div>
-              <label className="text-xs font-medium text-muted">Message</label>
-              <textarea name="body" rows={4} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+        <div className="aur-hero-in" style={{ animationDelay: ".3s" }}>
+          <div className="aur-bezel">
+            <div className="aur-bezel-inner p-6 md:p-[30px] flex flex-col gap-[18px]">
+              {!process.env.RESEND_API_KEY && (
+                <p className="aur-note">
+                  Forgot your password? Mention the email you signed up with and we&apos;ll reset it manually for now —
+                  real self-service reset needs an email-sending service, which isn&apos;t connected on this deployment yet.
+                </p>
+              )}
+              {sent && (
+                <p className="flex items-center gap-2.5 text-sm px-3.5 py-3 rounded-xl bg-apricot/10 border border-apricot/30 text-paper">
+                  <Check size={16} strokeWidth={1.5} className="text-apricot flex-shrink-0" />
+                  Thanks — your message has been sent.
+                </p>
+              )}
+              <form action={contactAction} encType="multipart/form-data" className="flex flex-col gap-[18px]">
+                {session ? (
+                  <p className="text-xs text-paper/55 -mt-1">
+                    We&apos;ll reply to <strong className="text-paper font-medium">{session.email}</strong> — the email on your account.
+                  </p>
+                ) : (
+                  <div>
+                    <label className="aur-label">Your email (optional, so we can reply)</label>
+                    <input name="email" type="email" placeholder="you@example.com" className="aur-field" />
+                  </div>
+                )}
+                <TopicSelect glass topics={topics} />
+                <div>
+                  <label className="aur-label">Message</label>
+                  <textarea name="body" rows={4} required className="aur-field" />
+                </div>
+                <div>
+                  <label className="aur-label">Attach a screenshot or file (optional)</label>
+                  <ClearableFileInput glass name="attachment" accept="image/*,application/pdf" />
+                </div>
+                <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine self-start mt-1">
+                  Send message
+                  <span className="aur-btn-icon"><ArrowRight size={14} /></span>
+                </button>
+              </form>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted">Attach a screenshot or file (optional)</label>
-              <div className="mt-1"><ClearableFileInput name="attachment" accept="image/*,application/pdf" /></div>
-            </div>
-            <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
-              Send message
-            </button>
-          </form>
+          </div>
         </div>
       </div>
-    </div>
+    </GuestPage>
   );
 }

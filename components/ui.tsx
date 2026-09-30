@@ -1,13 +1,13 @@
 export function Logo() {
   return (
     <div className="flex items-center">
-      <svg width="21" height="26" viewBox="50 30 145 180" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+      <svg width="21" height="24" viewBox="55 52 138 156" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 mr-0.5 relative top-px">
         <path
           fill="#E8A24F"
           d="M130 55 a75 75 0 1 0 0 150 a75 75 0 0 0 59 -30 l-26 -19 a44 44 0 1 1 0 -72 l26 -19 a75 75 0 0 0 -59 -30 z"
         />
       </svg>
-      <span className="font-display font-semibold text-xl text-paper">hamp</span>
+      <span className="font-display font-semibold text-[22px] tracking-[-0.01em] text-paper">hamp</span>
     </div>
   );
 }

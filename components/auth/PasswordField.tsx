@@ -20,32 +20,33 @@ export default function PasswordField({
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-muted">{label}</label>
+      <div className="flex items-baseline justify-between mb-1.5">
+        <label className="aur-label !mb-0">{label}</label>
         {forgotHref && (
-          <a href={forgotHref} className="text-xs text-muted hover:text-ink underline underline-offset-2 transition-colors">
+          <a href={forgotHref} className="text-xs text-paper/55 hover:text-paper underline underline-offset-[3px] transition-colors duration-300">
             Forgot password?
           </a>
         )}
       </div>
-      <div className="relative mt-1">
+      <div className="relative">
         <input
           name={name}
           type={visible ? "text" : "password"}
           required
           minLength={minLength}
-          className="w-full px-3 py-2.5 pr-10 rounded-lg border border-line bg-white text-sm outline-none transition-shadow focus:ring-2 focus:ring-apricot/40 focus:border-apricot"
+          placeholder="••••••••"
+          className="aur-field !pr-11"
         />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? "Hide password" : "Show password"}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 flex text-paper/50 hover:text-paper transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-apricot rounded"
         >
-          {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+          {visible ? <EyeOff size={16} strokeWidth={1.25} /> : <Eye size={16} strokeWidth={1.25} />}
         </button>
       </div>
-      {helperText && <p className="text-xs text-muted mt-1">{helperText}</p>}
+      {helperText && <p className="text-xs text-paper/45 mt-1.5">{helperText}</p>}
     </div>
   );
 }

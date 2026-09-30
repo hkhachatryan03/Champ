@@ -2,11 +2,12 @@ import sql from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import AuthShell from "@/components/auth/AuthShell";
+import GlassAuthShell from "@/components/auth/GlassAuthShell";
 import PasswordField from "@/components/auth/PasswordField";
 import GoogleButton from "@/components/auth/GoogleButton";
 import LinkedInButton from "@/components/auth/LinkedInButton";
 import { isGoogleConfigured, isLinkedInConfigured } from "@/lib/oauth";
+import { ArrowRight } from "lucide-react";
 
 type UserRow = {
   id: number;
@@ -53,81 +54,74 @@ export default async function LoginPage({
   const showOAuth = isGoogleConfigured() || isLinkedInConfigured();
 
   return (
-    <AuthShell
+    <GlassAuthShell
       eyebrow="Welcome back"
       title="Log in to Champ"
       subtitle="Pick up right where you left off."
     >
       {reset === "1" && (
-        <div className="mb-4 text-sm text-moss bg-moss/10 rounded-lg px-3 py-2">
+        <div className="mb-4 aur-alert">
           Password reset — log in with your new password.
         </div>
       )}
       {error === "session" && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="mb-4 aur-alert">
           Your session pointed to an account that no longer exists (likely the database was reset) — please log in again.
         </div>
       )}
       {error === "1" && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="mb-4 aur-alert">
           Wrong email or password.
         </div>
       )}
       {error === "oauth_only" && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="mb-4 aur-alert">
           This account signs in with {provider === "google" ? "Google" : "LinkedIn"} — use the button below instead of a password.
         </div>
       )}
       {error === "oauth" && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="mb-4 aur-alert">
           Something went wrong signing in — please try again.
         </div>
       )}
       {error === "oauth_unavailable" && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="mb-4 aur-alert">
           That sign-in method isn&apos;t set up on this deployment yet.
         </div>
       )}
 
-      <form action={loginAction} className="flex flex-col gap-4">
+      <form action={loginAction} className="flex flex-col gap-3.5">
         <div>
-          <label className="text-xs font-medium text-muted">Email</label>
-          <input
-            name="email"
-            type="email"
-            required
-            className="w-full mt-1 px-3 py-2.5 rounded-lg border border-line bg-white text-sm outline-none transition-shadow focus:ring-2 focus:ring-apricot/40 focus:border-apricot"
-          />
+          <label className="aur-label">Email</label>
+          <input name="email" type="email" required placeholder="you@example.com" className="aur-field" />
         </div>
         <PasswordField forgotHref="/forgot-password" />
-        <button
-          type="submit"
-          className="mt-2 px-5 py-3 rounded-full font-medium text-sm bg-apricot text-ink hover:bg-apricot-deep hover:text-paper transition-colors"
-        >
+        <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine justify-center w-full !py-3.5 !pl-6 !pr-2 mt-1">
           Log in
+          <span className="aur-btn-icon"><ArrowRight size={14} /></span>
         </button>
       </form>
 
       {showOAuth && (
         <>
-          <div className="flex items-center gap-3 my-6">
-            <div className="h-px flex-1 bg-line" />
-            <span className="text-xs text-muted">or continue with</span>
-            <div className="h-px flex-1 bg-line" />
+          <div className="flex items-center gap-3.5 mt-[22px] mb-4 text-xs text-paper/45">
+            <div className="h-px flex-1 bg-paper/15" />
+            <span>or continue with</span>
+            <div className="h-px flex-1 bg-paper/15" />
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5">
             {isGoogleConfigured() && <GoogleButton clientId={GOOGLE_CLIENT_ID} mode="login" />}
             {isLinkedInConfigured() && <LinkedInButton mode="login" />}
           </div>
         </>
       )}
 
-      <p className="text-sm text-muted mt-8 text-center">
+      <p className="text-[13.5px] text-paper/55 mt-6 text-center">
         No account yet?{" "}
-        <Link href="/signup?role=candidate" className="underline text-ink font-medium">
+        <Link href="/signup?role=candidate" className="underline underline-offset-[3px] text-paper font-medium hover:text-apricot transition-colors">
           Sign up
         </Link>
       </p>
-    </AuthShell>
+    </GlassAuthShell>
   );
 }

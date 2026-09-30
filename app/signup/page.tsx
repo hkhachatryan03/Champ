@@ -5,13 +5,14 @@ import { sendVerificationEmail, sendTeamJoinRequestEmail } from "@/lib/email";
 import { provisionCompanyProfile } from "@/lib/companyMembership";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import AuthShell from "@/components/auth/AuthShell";
+import GlassAuthShell from "@/components/auth/GlassAuthShell";
 import PasswordField from "@/components/auth/PasswordField";
 import RoleToggle from "@/components/auth/RoleToggle";
 import RecruiterTypeToggle from "@/components/auth/RecruiterTypeToggle";
 import GoogleButton from "@/components/auth/GoogleButton";
 import LinkedInButton from "@/components/auth/LinkedInButton";
 import { isGoogleConfigured, isLinkedInConfigured } from "@/lib/oauth";
+import { ArrowRight } from "lucide-react";
 
 async function signupAction(formData: FormData) {
   "use server";
@@ -84,7 +85,7 @@ export default async function SignupPage({
   const showOAuth = isGoogleConfigured() || isLinkedInConfigured();
 
   return (
-    <AuthShell
+    <GlassAuthShell
       eyebrow="Get started"
       title={role === "candidate" ? "Find your next role" : "Start hiring on Champ"}
       subtitle={
@@ -93,17 +94,15 @@ export default async function SignupPage({
           : "Post a job and reach Armenia's tech talent."
       }
     >
-      <div className="mb-6">
-        <RoleToggle role={role} />
-      </div>
+      <RoleToggle role={role} />
 
       {error && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="mt-4 aur-alert">
           {error}
         </div>
       )}
 
-      <form action={signupAction} className="flex flex-col gap-4">
+      <form action={signupAction} className="flex flex-col gap-3.5 mt-5">
         <input type="hidden" name="role" value={role} />
         {role === "company" && (
           <>
@@ -112,33 +111,26 @@ export default async function SignupPage({
           </>
         )}
         <div>
-          <label className="text-xs font-medium text-muted">
+          <label className="aur-label">
             {role === "company" ? "Work email" : "Email"}
           </label>
-          <input
-            name="email"
-            type="email"
-            required
-            className="w-full mt-1 px-3 py-2.5 rounded-lg border border-line bg-white text-sm outline-none transition-shadow focus:ring-2 focus:ring-apricot/40 focus:border-apricot"
-          />
+          <input name="email" type="email" required placeholder="you@example.com" className="aur-field" />
         </div>
         <PasswordField minLength={8} helperText="At least 8 characters." />
-        <button
-          type="submit"
-          className="mt-2 px-5 py-3 rounded-full font-medium text-sm bg-apricot text-ink hover:bg-apricot-deep hover:text-paper transition-colors"
-        >
+        <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine justify-center w-full !py-3.5 !pl-6 !pr-2 mt-1">
           Create account
+          <span className="aur-btn-icon"><ArrowRight size={14} /></span>
         </button>
       </form>
 
       {showOAuth && (
         <>
-          <div className="flex items-center gap-3 my-6">
-            <div className="h-px flex-1 bg-line" />
-            <span className="text-xs text-muted">or continue with</span>
-            <div className="h-px flex-1 bg-line" />
+          <div className="flex items-center gap-3.5 mt-[22px] mb-4 text-xs text-paper/45">
+            <div className="h-px flex-1 bg-paper/15" />
+            <span>or continue with</span>
+            <div className="h-px flex-1 bg-paper/15" />
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5">
             {isGoogleConfigured() && (
               <GoogleButton
                 clientId={GOOGLE_CLIENT_ID}
@@ -158,12 +150,12 @@ export default async function SignupPage({
         </>
       )}
 
-      <p className="text-sm text-muted mt-8 text-center">
+      <p className="text-[13.5px] text-paper/55 mt-6 text-center">
         Already have an account?{" "}
-        <Link href="/login" className="underline text-ink font-medium">
+        <Link href="/login" className="underline underline-offset-[3px] text-paper font-medium hover:text-apricot transition-colors">
           Log in
         </Link>
       </p>
-    </AuthShell>
+    </GlassAuthShell>
   );
 }

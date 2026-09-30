@@ -10,15 +10,18 @@ export default function ActiveFilterChips({
   chips,
   basePath,
   currentParams,
+  glass = false,
 }: {
   chips: FilterChip[];
   basePath: string;
   currentParams: Record<string, string | undefined>;
+  /** Dark "Ethereal Glass" look for the public guest pages. */
+  glass?: boolean;
 }) {
   if (chips.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 mb-4">
+    <div className={glass ? "flex flex-wrap gap-2 mt-5 mb-1.5" : "flex flex-wrap gap-2 mb-4"}>
       {chips.map((chip, i) => {
         const keysToRemove = Array.isArray(chip.key) ? chip.key : [chip.key];
         const params = new URLSearchParams();
@@ -41,10 +44,14 @@ export default function ActiveFilterChips({
           <Link
             key={`${keysToRemove.join(",")}-${chip.removeValue || i}`}
             href={href}
-            className="text-xs px-2.5 py-1 rounded-full bg-ink text-paper flex items-center gap-1.5 hover:opacity-80"
+            className={
+              glass
+                ? "aur-chip"
+                : "text-xs px-2.5 py-1 rounded-full bg-ink text-paper flex items-center gap-1.5 hover:opacity-80"
+            }
           >
             {chip.label}
-            <span className="text-paper/70">✕</span>
+            {glass ? <i aria-hidden>✕</i> : <span className="text-paper/70">✕</span>}
           </Link>
         );
       })}

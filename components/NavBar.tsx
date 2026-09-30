@@ -43,21 +43,23 @@ export default async function NavBar() {
   ];
   const tabs = session?.role === "candidate" ? candTabs : session?.role === "company" ? compTabs : [];
 
-  // The floating glass-pill nav is used ONLY on the logged-out public
-  // homepage. Every other page — every auth state, every route — renders
-  // the exact same bar it always has, below.
+  // The floating glass-pill nav is used ONLY for logged-out visitors on the
+  // public guest pages (home, about, jobs, contact, login, signup). Every
+  // other page — every auth state, every route — renders the exact same bar
+  // it always has, below.
   const hdrs = await headers();
-  const isHome = hdrs.get("x-is-home") === "1";
-  if (isHome && !session) {
+  const guestPath = hdrs.get("x-guest-path");
+  if (guestPath && !session) {
+    const active = (href: string) => (guestPath === href || guestPath.startsWith(href + "/") ? "is-active" : undefined);
     return (
       <div className="aur-nav">
         <Link href="/" className="aur-nav-logo">
           <Logo />
         </Link>
         <div className="aur-nav-links">
-          <Link href="/about">What is Champ?</Link>
-          <Link href="/jobs">Browse open roles</Link>
-          <Link href="/contact">Contact us</Link>
+          <Link href="/about" className={active("/about")}>What is Champ?</Link>
+          <Link href="/jobs" className={active("/jobs")}>Browse open roles</Link>
+          <Link href="/contact" className={active("/contact")}>Contact us</Link>
         </div>
         <Link href="/login" className="aur-btn aur-btn-primary" style={{ padding: "9px 18px" }}>
           Log in
@@ -67,7 +69,7 @@ export default async function NavBar() {
   }
 
   return (
-    <div className="bg-ink">
+    <div className="bg-ink relative z-30">
       <div className="w-full flex items-center justify-between px-6 py-4">
         <Link href={session ? (session.role === "candidate" ? "/candidate/jobs/for-you" : "/company/dashboard") : "/"}>
           <Logo />
