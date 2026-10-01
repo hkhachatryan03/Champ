@@ -1,4 +1,5 @@
 import ThreadView from "@/components/ThreadView";
+import GuestPage from "@/components/GuestPage";
 
 export default async function ThreadPage({
   params,
@@ -10,5 +11,9 @@ export default async function ThreadPage({
   const { id } = await params;
   const { show } = await searchParams;
 
-  return <ThreadView applicationId={Number(id)} showLimit={show ? Number(show) : undefined} />;
+  return (
+    <GuestPage>
+      <ThreadView glass applicationId={Number(id)} showLimit={show ? Number(show) : undefined} />
+    </GuestPage>
+  );
 }

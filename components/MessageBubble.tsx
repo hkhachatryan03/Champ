@@ -6,6 +6,7 @@ import StarterKit from "@tiptap/starter-kit";
 import FormattedMessage from "./FormattedMessage";
 import type { Message } from "@/lib/queries";
 import { formatChatTimestamp } from "@/lib/dates";
+import { Paperclip } from "lucide-react";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👏"];
 
@@ -59,6 +60,7 @@ export default function MessageBubble({
   onDelete,
   onReact,
   locked = false,
+  glass = false,
 }: {
   message: Message;
   mine: boolean;
@@ -68,6 +70,8 @@ export default function MessageBubble({
   onDelete: (applicationId: number, messageId: number) => Promise<void>;
   onReact: (applicationId: number, messageId: number, emoji: string) => Promise<void>;
   locked?: boolean;
+  /** Dark "Ethereal Glass" look. Default = original light bubbles (company inbox). */
+  glass?: boolean;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -109,7 +113,19 @@ export default function MessageBubble({
         }}
         onMouseLeave={scheduleHide}
       >
-        <div className={`px-3 py-2 rounded-xl text-sm ${isDeleted ? "bg-paper-dim/60 text-muted italic" : mine ? "bg-apricot" : "bg-paper-dim"}`}>
+        <div
+          className={
+            glass
+              ? `px-3.5 py-2.5 text-sm leading-[1.55] break-words rounded-[18px] ${
+                  isDeleted
+                    ? "border border-dashed border-paper/20 text-paper/40 italic"
+                    : mine
+                    ? "bg-apricot text-[#1a1409] rounded-br-md"
+                    : "bg-paper/[.07] border border-paper/10 text-paper/90 rounded-bl-md"
+                }`
+              : `px-3 py-2 rounded-xl text-sm ${isDeleted ? "bg-paper-dim/60 text-muted italic" : mine ? "bg-apricot" : "bg-paper-dim"}`
+          }
+        >
           {isDeleted ? (
             "Message deleted"
           ) : editing ? (
@@ -129,9 +145,11 @@ export default function MessageBubble({
                   href={message.attachment_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex items-center gap-1.5 text-xs underline ${message.body ? "mt-1.5" : ""} ${mine ? "text-ink" : "text-apricot-deep"}`}
+                  className={`flex items-center gap-1.5 text-xs underline ${message.body ? "mt-1.5" : ""} ${
+                    glass ? (mine ? "text-[#1a1409]" : "text-apricot") : mine ? "text-ink" : "text-apricot-deep"
+                  }`}
                 >
-                  📎 {message.attachment_name || "Attachment"}
+                  {glass ? <Paperclip size={13} strokeWidth={1.5} /> : "📎"} {message.attachment_name || "Attachment"}
                 </a>
               )}
             </>
@@ -140,7 +158,9 @@ export default function MessageBubble({
 
         {!isDeleted && !editing && (showMenu || showReactionPicker) && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-white border border-line rounded-full shadow-sm px-1 py-0.5 z-10"
+            className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 rounded-full shadow-sm px-1 py-0.5 z-10 ${
+              glass ? "bg-[#15181d]/95 border border-paper/15 shadow-[0_10px_24px_-10px_rgba(0,0,0,.8)]" : "bg-white border border-line"
+            }`}
             style={mine ? { right: "100%", marginRight: 6 } : { left: "100%", marginLeft: 6 }}
             onMouseEnter={cancelHide}
             onMouseLeave={scheduleHide}
@@ -148,7 +168,7 @@ export default function MessageBubble({
             <button
               type="button"
               onClick={() => setShowReactionPicker((v) => !v)}
-              className="w-6 h-6 rounded-full flex items-center justify-center text-xs hover:bg-paper-dim"
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${glass ? "hover:bg-paper/10" : "hover:bg-paper-dim"}`}
               title="React"
             >
               🙂
@@ -158,7 +178,7 @@ export default function MessageBubble({
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs hover:bg-paper-dim"
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${glass ? "hover:bg-paper/10" : "hover:bg-paper-dim"}`}
                   title="Edit"
                 >
                   ✏️
@@ -166,7 +186,7 @@ export default function MessageBubble({
                 <button
                   type="button"
                   onClick={() => onDelete(applicationId, message.id)}
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs hover:bg-paper-dim"
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${glass ? "hover:bg-paper/10" : "hover:bg-paper-dim"}`}
                   title="Delete"
                 >
                   🗑️
@@ -175,7 +195,7 @@ export default function MessageBubble({
             )}
             {showReactionPicker && (
               <div
-                className="absolute bottom-full mb-1 flex items-center gap-0.5 bg-white border border-line rounded-full shadow-sm px-1.5 py-1 whitespace-nowrap"
+                className={`absolute bottom-full mb-1 flex items-center gap-0.5 rounded-full shadow-sm px-1.5 py-1 whitespace-nowrap ${glass ? "bg-[#15181d]/95 border border-paper/15" : "bg-white border border-line"}`}
                 style={{ [mine ? "right" : "left"]: 0 }}
                 onMouseEnter={cancelHide}
                 onMouseLeave={scheduleHide}
@@ -188,7 +208,7 @@ export default function MessageBubble({
                       onReact(applicationId, message.id, emoji);
                       setShowReactionPicker(false);
                     }}
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-sm hover:bg-paper-dim flex-shrink-0"
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${glass ? "hover:bg-paper/10" : "hover:bg-paper-dim"}`}
                   >
                     {emoji}
                   </button>
@@ -202,7 +222,7 @@ export default function MessageBubble({
       {reactions.length > 0 && !isDeleted && (
         <div className="flex gap-1 mt-0.5">
           {reactions.map((r) => (
-            <span key={r.sender_role} className="text-xs bg-paper-dim rounded-full px-1.5 py-0.5">
+            <span key={r.sender_role} className={`text-xs rounded-full px-1.5 py-0.5 ${glass ? "bg-paper/10 border border-paper/10" : "bg-paper-dim"}`}>
               {r.emoji}
             </span>
           ))}
@@ -210,7 +230,7 @@ export default function MessageBubble({
       )}
 
       {!isDeleted && (
-        <span className="text-[10px] mt-0.5 text-muted">
+        <span className={`text-[10px] mt-0.5 ${glass ? "text-paper/40" : "text-muted"}`}>
           {mine && (message.read_at ? "Read" : "Sent") + " · "}
           {message.edited_at ? "edited · " : ""}
           {formatChatTimestamp(message.created_at)}

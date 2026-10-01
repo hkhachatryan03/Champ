@@ -20,6 +20,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { StatusPill } from "@/components/ui";
+import { ArrowLeft, DollarSign, FileText, Link2 } from "lucide-react";
 import { put } from "@vercel/blob";
 import MessageComposer from "@/components/MessageComposer";
 import MessageBubble from "@/components/MessageBubble";
@@ -169,10 +170,13 @@ export default async function ThreadView({
   applicationId,
   showLimit,
   embedded = false,
+  glass = false,
 }: {
   applicationId: number;
   showLimit?: number;
   embedded?: boolean;
+  /** Dark "Ethereal Glass" look. Default = original light layout (company inbox). */
+  glass?: boolean;
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -180,13 +184,13 @@ export default async function ThreadView({
   const app = await getApplicationContext(applicationId);
 
   if (!app) {
-    return <div className="px-6 py-10 text-sm text-muted">Conversation not found.</div>;
+    return <div className={`px-6 py-10 text-sm ${glass ? "text-paper/60" : "text-muted"}`}>Conversation not found.</div>;
   }
 
   const isCandidate = session.role === "candidate" && session.userId === app.candidate_user_id;
   const isCompany = session.role === "company" && session.userId === app.company_user_id;
   if (!isCandidate && !isCompany) {
-    return <div className="px-6 py-10 text-sm text-muted">You don&apos;t have access to this conversation.</div>;
+    return <div className={`px-6 py-10 text-sm ${glass ? "text-paper/60" : "text-muted"}`}>You don&apos;t have access to this conversation.</div>;
   }
 
   const lockReason = getThreadLockReason({ active: app.job_active, archived_at: app.job_archived_at }, app.status);
@@ -201,7 +205,228 @@ export default async function ThreadView({
   const allReactions = await listReactionsForApplication(applicationId);
 
   const backHref = isCandidate ? "/candidate/applications" : "/company/inbox";
-  const loadMoreHref = embedded ? `/company/inbox?open=${applicationId}&show=${limit + 30}` : `/thread/${applicationId}?show=${limit + 30}`;
+  // The embedded chat lives on the candidate's "My applications" page or on the company
+  // inbox — "load earlier" must stay on whichever one it is actually shown in.
+  const loadMoreHref = embedded
+    ? isCandidate
+      ? `/candidate/applications?open=${applicationId}&show=${limit + 30}`
+      : `/company/inbox?open=${applicationId}&show=${limit + 30}`
+    : `/thread/${applicationId}?show=${limit + 30}`;
+
+
+  if (glass) {
+    const counterpartAvatar = isCandidate ? app.company_avatar_url : app.candidate_avatar_url;
+    const counterpartName = (isCandidate ? app.company_name : app.candidate_name) || "?";
+    const lastActive = formatLastActive(isCandidate ? app.company_last_seen_at : app.candidate_last_seen_at);
+    // Prefer the candidate's live CV — if they added one after applying
+    // with just a LinkedIn link, this makes sure it actually shows up
+    // instead of staying frozen at whatever they had at apply time.
+    const effectiveCv = app.candidate_cv_filename || app.cv_filename;
+    const showStrip = !!(effectiveCv || app.expected_salary || app.candidate_linkedin_url);
+
+    const content = (
+      <div className="flex flex-col flex-1 min-h-0 min-w-0 h-full">
+        <div className="flex items-center justify-between gap-3.5 px-5 pt-3.5 pb-3 border-b border-paper/10 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-[42px] h-[42px] rounded-full bg-ink/70 border border-paper/15 flex items-center justify-center flex-shrink-0 overflow-hidden font-display font-semibold text-base text-apricot">
+              {counterpartAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={counterpartAvatar} alt="" className="w-full h-full object-cover" />
+              ) : (
+                counterpartName.charAt(0).toUpperCase()
+              )}
+            </div>
+            <div className="min-w-0">
+              {isCandidate ? (
+                <Link href={`/companies/${app.company_user_id}`} className="font-display font-semibold text-[19px] leading-tight text-paper hover:text-apricot transition-colors block truncate">
+                  {app.company_name}
+                </Link>
+              ) : (
+                <h1 className="font-display font-semibold text-[19px] leading-tight text-paper truncate">{app.candidate_name}</h1>
+              )}
+              <p className="text-[12.5px] text-paper/55 mt-0.5">
+                {isCandidate && app.recruiter_name ? `${app.recruiter_name} · ` : ""}
+                <Link href={isCompany ? `/company/jobs/${app.job_id}` : `/candidate/jobs/${app.job_id}`} className="hover:text-paper hover:underline">
+                  {app.job_title}
+                </Link>
+              </p>
+              {isCompany && (
+                <Link href={`/company/candidates/${app.candidate_user_id}`} className="text-xs underline underline-offset-[3px] text-apricot">
+                  View full profile →
+                </Link>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+            {isCompany && (
+              <form action={statusAction} className="flex items-center gap-2">
+                <input type="hidden" name="applicationId" value={applicationId} />
+                <select key={app.status} name="status" defaultValue={app.status} className="aur-field aur-field-sm !w-auto !py-1.5 !text-xs">
+                  <option>New</option>
+                  <option>Interviewing</option>
+                  <option>Offer</option>
+                  <option>Hired</option>
+                  <option>Not moving forward</option>
+                </select>
+                <button type="submit" className="text-xs px-3 py-1.5 rounded-full bg-paper/10 border border-paper/15 text-paper hover:border-apricot hover:text-apricot transition-colors">
+                  Update
+                </button>
+              </form>
+            )}
+            {isCandidate && <StatusPill glass status={app.status} />}
+            <p className={`text-[11.5px] flex items-center gap-1.5 ${lastActive === "Online now" ? "text-[#8FC79B]" : "text-paper/45"}`}>
+              {lastActive === "Online now" && <span className="w-1.5 h-1.5 rounded-full bg-[#8FC79B] shadow-[0_0_0_3px_rgba(143,199,155,.2)]" />}
+              {lastActive}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex-shrink-0">
+          {showStrip && (
+            <div className="mx-5 mt-2.5 px-3.5 py-2 rounded-xl bg-paper/[.045] border border-paper/10 flex flex-wrap items-center gap-x-[18px] gap-y-1.5 text-[12.5px]">
+              {effectiveCv && (
+                <a href={effectiveCv} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 underline underline-offset-[3px] text-apricot">
+                  <FileText size={14} strokeWidth={1.4} /> View CV
+                </a>
+              )}
+              {app.candidate_linkedin_url && isCompany && (
+                <a
+                  href={app.candidate_linkedin_url.startsWith("http") ? app.candidate_linkedin_url : `https://${app.candidate_linkedin_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 underline underline-offset-[3px] text-apricot"
+                >
+                  <Link2 size={14} strokeWidth={1.4} /> LinkedIn
+                </a>
+              )}
+              {app.expected_salary && (
+                <span className="inline-flex items-center gap-1.5 font-mono-num text-apricot">
+                  <DollarSign size={14} strokeWidth={1.4} /> ${app.expected_salary}/mo asked
+                </span>
+              )}
+            </div>
+          )}
+
+          {isCandidate && app.invite_status === "pending" && (
+            <div className="mx-5 mt-2.5 p-4 rounded-2xl border border-paper/15 bg-paper/[.045]">
+              <p className="text-sm font-medium text-paper mb-0.5">{app.company_name} invited you to this role</p>
+              <p className="text-[12.5px] leading-[1.5] text-paper/55 mb-3">
+                Take a look at the role details above, then let them know if you&apos;re interested —
+                either way, you can keep chatting regardless.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <form action={respondToInviteAction}>
+                  <input type="hidden" name="applicationId" value={applicationId} />
+                  <input type="hidden" name="response" value="accepted" />
+                  <button type="submit" className="aur-btn aur-btn-primary !py-2 !px-4 !text-[13px]">
+                    I&apos;m interested
+                  </button>
+                </form>
+                <form action={respondToInviteAction}>
+                  <input type="hidden" name="applicationId" value={applicationId} />
+                  <input type="hidden" name="response" value="declined" />
+                  <button type="submit" className="aur-btn !py-2 !px-4 !text-[13px] border-paper/15 text-paper hover:border-paper/40">
+                    Not right now
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+          {isCompany && app.invite_status && (
+            <p className="mx-5 text-xs text-paper/55 mt-2">
+              Invite status: <span className="font-medium text-paper">{app.invite_status}</span>
+            </p>
+          )}
+          {isCompany && !app.invite_status && app.status === "New" && (
+            <div className="mx-5 mt-2.5 p-4 rounded-2xl border border-paper/15 bg-paper/[.045]">
+              <p className="text-sm font-medium text-paper mb-0.5">New application</p>
+              <p className="text-[12.5px] leading-[1.5] text-paper/55 mb-3">
+                Move them to Interviewing if you want to talk further, or decline now to save time —
+                either way they&apos;ll be notified.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <form action={respondToApplicationAction}>
+                  <input type="hidden" name="applicationId" value={applicationId} />
+                  <input type="hidden" name="response" value="approve" />
+                  <button type="submit" className="aur-btn aur-btn-primary !py-2 !px-4 !text-[13px]">
+                    Move to Interviewing
+                  </button>
+                </form>
+                <form action={respondToApplicationAction}>
+                  <input type="hidden" name="applicationId" value={applicationId} />
+                  <input type="hidden" name="response" value="decline" />
+                  <button type="submit" className="aur-btn !py-2 !px-4 !text-[13px] border-paper/15 text-paper hover:border-paper/40">
+                    Decline
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+          {lockReason && (
+            <div className="mx-5 mt-2.5 p-3.5 rounded-2xl bg-apricot/10 border border-apricot/30">
+              <p className="text-[13.5px] font-semibold text-apricot">{LOCK_BANNER_TEXT[lockReason].title}</p>
+              <p className="text-xs leading-[1.5] text-paper/60 mt-1">{LOCK_BANNER_TEXT[lockReason].body}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="aur-scroll flex-1 min-h-0 overflow-y-auto px-5 pt-4 pb-2 flex flex-col gap-3.5" data-chat-messages>
+          <AutoScrollMessages watchKey={`${applicationId}-${messages.length}`}>
+            {hasMoreOlder && (
+              <Link
+                href={loadMoreHref}
+                prefetch={false}
+                className="self-center text-xs underline underline-offset-[3px] text-apricot py-0.5 flex-shrink-0"
+              >
+                Load earlier messages
+              </Link>
+            )}
+            {messages.map((m) => (
+              <MessageBubble
+                glass
+                key={m.id}
+                message={m}
+                mine={m.sender_role === session.role}
+                applicationId={applicationId}
+                reactions={allReactions.filter((r) => r.message_id === m.id)}
+                onEdit={editMessageAction}
+                onDelete={deleteMessageAction}
+                onReact={reactAction}
+                locked={!!lockReason}
+              />
+            ))}
+            {messages.length === 0 && <p className="text-sm text-paper/55">No messages yet — say hello.</p>}
+          </AutoScrollMessages>
+        </div>
+
+        <div className="px-4 pb-4 flex-shrink-0">
+          {lockReason ? (
+            <p className="text-[12.5px] text-center text-paper/50 py-3">
+              This conversation is closed — nothing was deleted, but new messages can&apos;t be sent here.
+            </p>
+          ) : (
+            <MessageComposer glass applicationId={applicationId} action={sendAction} />
+          )}
+        </div>
+      </div>
+    );
+
+    if (embedded) return content;
+    return (
+      <div className="px-6 pt-[calc(var(--nav-h)+1.5rem)] pb-4 max-w-[820px] mx-auto h-dvh min-h-[560px] flex flex-col" data-chat-open>
+        <Link
+          href={backHref}
+          prefetch={false}
+          className="inline-flex items-center gap-2 self-start text-[13.5px] text-paper/60 hover:text-paper hover:-translate-x-[3px] transition-[color,transform] duration-300 mb-3 flex-shrink-0"
+        >
+          <ArrowLeft size={16} strokeWidth={1.25} /> Back
+        </Link>
+        <div className="aur-bezel flex-1 min-h-0 flex">
+          <div className="aur-bezel-inner flex-1 min-h-0 flex overflow-hidden">{content}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col ${embedded ? "h-full" : "px-6 py-8 max-w-xl mx-auto"}`} style={embedded ? undefined : { minHeight: "70vh" }}>

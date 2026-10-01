@@ -8,9 +8,12 @@ import { Bold, Italic, List, ListOrdered, Paperclip, Send, X } from "lucide-reac
 export default function MessageComposer({
   applicationId,
   action,
+  glass = false,
 }: {
   applicationId: number;
   action: (prevState: number, formData: FormData) => Promise<number>;
+  /** Dark "Ethereal Glass" look. Default = original light composer (company inbox). */
+  glass?: boolean;
 }) {
   const [sentCount, formAction, isPending] = useActionState(action, 0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +41,7 @@ export default function MessageComposer({
     ],
     content: "",
     editorProps: {
-      attributes: { class: "prose-sm max-w-none outline-none text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5" },
+      attributes: { class: `prose-sm max-w-none outline-none text-sm ${glass ? "text-paper " : ""}[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5` },
     },
     onUpdate: ({ editor }) => {
       if (hiddenBodyRef.current) hiddenBodyRef.current.value = editor.isEmpty ? "" : editor.getHTML();
@@ -62,38 +65,48 @@ export default function MessageComposer({
   }, [sentCount, editor]);
 
   const toolBtn = (active: boolean) =>
-    `w-7 h-7 rounded-md flex items-center justify-center transition-all ${
-      active ? "bg-ink text-paper" : "text-muted hover:bg-white hover:text-ink hover:shadow-sm"
-    }`;
+    glass
+      ? `w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+          active ? "bg-apricot/20 text-apricot" : "text-paper/60 hover:bg-paper/10 hover:text-paper"
+        }`
+      : `w-7 h-7 rounded-md flex items-center justify-center transition-all ${
+          active ? "bg-ink text-paper" : "text-muted hover:bg-white hover:text-ink hover:shadow-sm"
+        }`;
 
   return (
     <form
       ref={formRef}
       action={formAction}
       encType="multipart/form-data"
-      className="mt-4"
+      className={glass ? "mt-1.5" : "mt-4"}
       onSubmit={() => {
         if (hiddenBodyRef.current) hiddenBodyRef.current.value = editor?.isEmpty ? "" : editor?.getHTML() || "";
       }}
     >
       <input type="hidden" name="applicationId" value={applicationId} />
       <input type="hidden" name="body" ref={hiddenBodyRef} defaultValue="" />
-      <div className="rounded-xl border border-line bg-white overflow-hidden focus-within:border-apricot/50 transition-colors">
-        <div className="flex items-center gap-0.5 px-2 py-1.5 bg-paper-dim/60 border-b border-line">
+      <div
+        className={
+          glass
+            ? "rounded-[18px] border border-paper/15 bg-ink/55 overflow-hidden focus-within:border-apricot/55 focus-within:shadow-[0_0_0_3px_rgba(234,154,46,.12)] transition-[border-color,box-shadow]"
+            : "rounded-xl border border-line bg-white overflow-hidden focus-within:border-apricot/50 transition-colors"
+        }
+      >
+        <div className={`flex items-center gap-0.5 px-2 py-1.5 ${glass ? "border-b border-paper/10" : "bg-paper-dim/60 border-b border-line"}`}>
           <button type="button" onClick={() => editor?.chain().focus().toggleBold().run()} className={toolBtn(activeMarks.bold)} title="Bold">
             <Bold size={14} />
           </button>
           <button type="button" onClick={() => editor?.chain().focus().toggleItalic().run()} className={toolBtn(activeMarks.italic)} title="Italic">
             <Italic size={14} />
           </button>
-          <span className="w-px h-4 bg-line mx-1" />
+          <span className={`w-px h-4 mx-1 ${glass ? "bg-paper/15" : "bg-line"}`} />
           <button type="button" onClick={() => editor?.chain().focus().toggleBulletList().run()} className={toolBtn(activeMarks.bulletList)} title="Bullet list">
             <List size={14} />
           </button>
           <button type="button" onClick={() => editor?.chain().focus().toggleOrderedList().run()} className={toolBtn(activeMarks.orderedList)} title="Numbered list">
             <ListOrdered size={14} />
           </button>
-          <span className="w-px h-4 bg-line mx-1" />
+          <span className={`w-px h-4 mx-1 ${glass ? "bg-paper/15" : "bg-line"}`} />
           <label className={`${toolBtn(false)} cursor-pointer`} title="Attach a file">
             <Paperclip size={14} />
             <input
@@ -105,7 +118,7 @@ export default function MessageComposer({
             />
           </label>
           {fileName && (
-            <span className="text-xs text-muted flex items-center gap-1 bg-white border border-line px-2 py-1 rounded-full ml-1">
+            <span className={`text-xs flex items-center gap-1 px-2 py-1 rounded-full ml-1 ${glass ? "text-paper/70 bg-paper/10 border border-paper/10" : "text-muted bg-white border border-line"}`}>
               {fileName}
               <button
                 type="button"
@@ -113,7 +126,7 @@ export default function MessageComposer({
                   if (fileInputRef.current) fileInputRef.current.value = "";
                   setFileName(null);
                 }}
-                className="hover:text-apricot-deep"
+                className={glass ? "hover:text-apricot" : "hover:text-apricot-deep"}
               >
                 <X size={11} />
               </button>
@@ -123,7 +136,7 @@ export default function MessageComposer({
         <div className="flex items-end gap-2 px-3 py-2">
           <div className="flex-1 relative" style={{ minHeight: 40 }}>
             {isEmpty && (
-              <p className="absolute top-0 left-0 text-sm text-muted pointer-events-none">Write a message…</p>
+              <p className={`absolute top-0 left-0 text-sm pointer-events-none ${glass ? "text-paper/35" : "text-muted"}`}>Write a message…</p>
             )}
             <EditorContent editor={editor} />
           </div>

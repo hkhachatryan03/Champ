@@ -3,7 +3,9 @@ import { getSession, hashPassword, destroySession } from "@/lib/auth";
 import { createPasswordResetOtp, verifyPasswordResetOtp } from "@/lib/queries";
 import { sendPasswordResetOtp } from "@/lib/email";
 import { redirect } from "next/navigation";
-import { Mail, Lock, Trash2 } from "lucide-react";
+import { Mail, Lock, Trash2, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import GuestPage from "@/components/GuestPage";
 
 const emailConfigured = !!process.env.RESEND_API_KEY;
 
@@ -96,126 +98,141 @@ export default async function SettingsPage({
   const { error, saved, codeSent } = await searchParams;
 
   return (
-    <div className="px-6 py-10 max-w-lg mx-auto">
-      <h1 className="font-display font-semibold text-3xl">Settings</h1>
-      <p className="text-sm text-muted mt-1 mb-8">Manage your account and security.</p>
+    <GuestPage>
+      <div className="px-6 pt-[calc(var(--nav-h)+2.25rem)] pb-24 max-w-[700px] mx-auto">
+        <h1 className="aur-hero-in font-display font-semibold text-[clamp(34px,5vw,44px)] leading-[1.1] text-paper">Settings</h1>
+        <p className="aur-hero-in text-[15px] text-paper/60 mt-2.5 mb-7" style={{ animationDelay: ".1s" }}>Manage your account and security.</p>
 
-      {/* Email */}
-      <div className="p-5 rounded-2xl border border-line bg-white mb-5">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-paper-dim flex items-center justify-center flex-shrink-0">
-            <Mail size={15} className="text-muted" />
-          </div>
-          <h2 className="font-display font-semibold text-base">Email</h2>
-        </div>
-        <p className="text-sm">{session.email}</p>
-        <p className="text-xs text-muted mt-2">
-          Need to change your email? Use Contact Us for now — this isn&apos;t self-service yet.
-        </p>
-      </div>
-
-      {/* Password */}
-      <div className="p-5 rounded-2xl border border-line bg-white mb-5">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-paper-dim flex items-center justify-center flex-shrink-0">
-            <Lock size={15} className="text-muted" />
-          </div>
-          <h2 className="font-display font-semibold text-base">Password</h2>
-        </div>
-
-        {saved === "1" && (
-          <div className="mb-4 text-sm text-moss bg-moss/10 rounded-lg px-3 py-2">
-            Password updated.
-          </div>
-        )}
-        {error && (
-          <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-            {ERRORS[error] || "Something went wrong."}
-          </div>
-        )}
-
-        {emailConfigured ? (
-          codeSent === "1" ? (
-            <>
-              <p className="text-sm text-muted mb-4">
-                Check <strong>{session.email}</strong> for a 6-digit code — it expires in 15 minutes.
-              </p>
-              <form action={changePasswordWithOtpAction} className="flex flex-col gap-4">
-                <div>
-                  <label className="text-xs font-medium text-muted">6-digit code</label>
-                  <input name="otp" required maxLength={6} placeholder="123456" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num tracking-widest" />
+        <div className="flex flex-col gap-[18px]">
+          {/* Email */}
+          <div className="aur-hero-in" style={{ animationDelay: ".15s" }}>
+            <div className="aur-bezel">
+              <div className="aur-bezel-inner px-6 py-6 md:px-7">
+                <div className="flex items-center gap-[13px] mb-[18px]">
+                  <div className="aur-icon-chip !w-[38px] !h-[38px]"><Mail size={17} strokeWidth={1.25} /></div>
+                  <h2 className="font-display font-semibold text-[19px] text-paper">Email</h2>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-muted">New password</label>
-                  <input name="newPassword" type="password" required minLength={8} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-                </div>
-                <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
-                  Update password
-                </button>
-              </form>
-              <form action={sendCodeAction} className="mt-3">
-                <button type="submit" className="text-xs text-muted underline">Resend code</button>
-              </form>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-muted mb-4">
-                For security, we&apos;ll email you a code to confirm this change before updating your password.
-              </p>
-              <form action={sendCodeAction}>
-                <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
-                  Send code to my email
-                </button>
-              </form>
-            </>
-          )
-        ) : (
-          <form action={changePasswordSimpleAction} className="flex flex-col gap-4">
-            <div>
-              <label className="text-xs font-medium text-muted">Current password</label>
-              <input name="currentPassword" type="password" required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+                <div className="px-4 py-3.5 rounded-[14px] bg-ink/50 border border-paper/10 text-[14.5px] font-medium text-paper break-all">{session.email}</div>
+                <p className="text-[13px] leading-[1.6] text-paper/55 mt-3">
+                  Need to change your email? Use{" "}
+                  <Link href="/contact" className="aur-inl">Contact Us →</Link>{" "}
+                  for now — this isn&apos;t self-service yet.
+                </p>
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted">New password</label>
-              <input name="newPassword" type="password" required minLength={8} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-            </div>
-            <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper w-fit">
-              Update password
-            </button>
-          </form>
-        )}
-      </div>
+          </div>
 
-      {/* Delete account */}
-      <div className="p-5 rounded-2xl border border-apricot-deep/25 bg-apricot/5">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-apricot/15 flex items-center justify-center flex-shrink-0">
-            <Trash2 size={15} className="text-apricot-deep" />
+          {/* Password */}
+          <div className="aur-hero-in" style={{ animationDelay: ".22s" }}>
+            <div className="aur-bezel">
+              <div className="aur-bezel-inner px-6 py-6 md:px-7">
+                <div className="flex items-center gap-[13px] mb-[18px]">
+                  <div className="aur-icon-chip !w-[38px] !h-[38px]"><Lock size={17} strokeWidth={1.25} /></div>
+                  <h2 className="font-display font-semibold text-[19px] text-paper">Password</h2>
+                </div>
+
+                {saved === "1" && (
+                  <div className="mb-4 px-3.5 py-[11px] rounded-[13px] text-[13.5px] leading-[1.5] bg-[rgba(127,176,138,.12)] border border-[rgba(127,176,138,.35)] text-[#A9D8B2]">
+                    Password updated.
+                  </div>
+                )}
+                {error && error !== "deleteconfirm" && (
+                  <div className="aur-alert mb-4 !text-[13.5px] !leading-[1.5] !px-3.5 !py-[11px] !rounded-[13px]">
+                    {ERRORS[error] || "Something went wrong."}
+                  </div>
+                )}
+
+                {emailConfigured ? (
+                  codeSent === "1" ? (
+                    <>
+                      <p className="text-sm leading-[1.65] text-paper/62 mb-4">
+                        Check <strong className="text-paper font-medium">{session.email}</strong> for a 6-digit code — it expires in 15 minutes.
+                      </p>
+                      <form action={changePasswordWithOtpAction} className="flex flex-col gap-3.5">
+                        <div>
+                          <label className="aur-label">6-digit code</label>
+                          <input name="otp" required maxLength={6} placeholder="123456" className="aur-field font-mono-num text-xl text-center tracking-[.5em]" />
+                        </div>
+                        <div>
+                          <label className="aur-label">New password</label>
+                          <input name="newPassword" type="password" required minLength={8} placeholder="At least 8 characters" className="aur-field" />
+                        </div>
+                        <button type="submit" className="aur-btn aur-btn-primary self-start !pl-[22px] !pr-2">
+                          Update password
+                          <span className="aur-btn-icon"><ArrowRight size={14} /></span>
+                        </button>
+                      </form>
+                      <form action={sendCodeAction} className="mt-3.5">
+                        <button type="submit" className="text-[12.5px] text-paper/55 underline underline-offset-[3px] hover:text-paper transition-colors">Resend code</button>
+                      </form>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm leading-[1.65] text-paper/62 mb-4">
+                        For security, we&apos;ll email you a code to confirm this change before updating your password.
+                      </p>
+                      <form action={sendCodeAction}>
+                        <button type="submit" className="aur-btn aur-btn-primary !pl-[22px] !pr-2">
+                          Send code to my email
+                          <span className="aur-btn-icon"><ArrowRight size={14} /></span>
+                        </button>
+                      </form>
+                    </>
+                  )
+                ) : (
+                  <form action={changePasswordSimpleAction} className="flex flex-col gap-3.5">
+                    <div>
+                      <label className="aur-label">Current password</label>
+                      <input name="currentPassword" type="password" required className="aur-field" />
+                    </div>
+                    <div>
+                      <label className="aur-label">New password</label>
+                      <input name="newPassword" type="password" required minLength={8} placeholder="At least 8 characters" className="aur-field" />
+                    </div>
+                    <button type="submit" className="aur-btn aur-btn-primary self-start !pl-[22px] !pr-2">
+                      Update password
+                      <span className="aur-btn-icon"><ArrowRight size={14} /></span>
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
           </div>
-          <h2 className="font-display font-semibold text-base">Delete account</h2>
+
+          {/* Delete account */}
+          <div className="aur-hero-in" style={{ animationDelay: ".29s" }}>
+            <div className="aur-danger">
+              <div className="aur-danger-inner px-6 py-6 md:px-7">
+                <div className="flex items-center gap-[13px] mb-[18px]">
+                  <div className="aur-icon-chip !w-[38px] !h-[38px] !bg-apricot/[.16]"><Trash2 size={17} strokeWidth={1.25} /></div>
+                  <h2 className="font-display font-semibold text-[19px] text-paper">Delete account</h2>
+                </div>
+                <p className="text-sm leading-[1.65] text-paper/75 mb-4">
+                  This permanently deletes your account, profile, job postings or applications,
+                  and every message — there&apos;s no undo. Type your email below to confirm.
+                </p>
+                {error === "deleteconfirm" && (
+                  <div className="aur-alert mb-3.5 !text-[13.5px] !leading-[1.5] !px-3.5 !py-[11px] !rounded-[13px]">
+                    {ERRORS.deleteconfirm}
+                  </div>
+                )}
+                <form action={deleteAccountAction} className="flex flex-col gap-3.5">
+                  <input
+                    name="confirmEmail"
+                    type="email"
+                    placeholder={session.email}
+                    required
+                    className="aur-field"
+                  />
+                  <button type="submit" className="aur-btn self-start px-5 py-3 border border-apricot text-apricot bg-apricot/[.08] hover:bg-apricot hover:text-ink !text-[13.5px]">
+                    Permanently delete my account
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
-        <p className="text-sm mb-3">
-          This permanently deletes your account, profile, job postings or applications,
-          and every message — there&apos;s no undo. Type your email below to confirm.
-        </p>
-        {error === "deleteconfirm" && (
-          <div className="mb-3 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-            {ERRORS.deleteconfirm}
-          </div>
-        )}
-        <form action={deleteAccountAction} className="flex flex-col gap-3">
-          <input
-            name="confirmEmail"
-            type="email"
-            placeholder={session.email}
-            required
-            className="w-full px-3 py-2 rounded-lg border border-line text-sm outline-none bg-white"
-          />
-          <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot-deep text-paper w-fit">
-            Permanently delete my account
-          </button>
-        </form>
       </div>
-    </div>
+    </GuestPage>
   );
 }

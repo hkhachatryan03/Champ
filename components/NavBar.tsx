@@ -1,10 +1,7 @@
-import Link from "next/link";
 import { getSession, destroySession } from "@/lib/auth";
-import { Logo } from "./ui";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { countUnreadConversationsForCandidate, countUnreadConversationsForCompany, touchLastSeen } from "@/lib/queries";
-import NavTabs from "./NavTabs";
+import SiteNav from "./SiteNav";
 
 async function logoutAction() {
   "use server";
@@ -43,86 +40,14 @@ export default async function NavBar() {
   ];
   const tabs = session?.role === "candidate" ? candTabs : session?.role === "company" ? compTabs : [];
 
-  // The floating glass-pill nav is used ONLY for logged-out visitors on the
-  // public guest pages (home, about, jobs, contact, login, signup). Every
-  // other page — every auth state, every route — renders the exact same bar
-  // it always has, below.
-  const hdrs = await headers();
-  const guestPath = hdrs.get("x-guest-path");
-  if (guestPath && !session) {
-    const active = (href: string) => (guestPath === href || guestPath.startsWith(href + "/") ? "is-active" : undefined);
-    return (
-      <div className="aur-nav">
-        <Link href="/" className="aur-nav-logo">
-          <Logo />
-        </Link>
-        <div className="aur-nav-links">
-          <Link href="/about" className={active("/about")}>What is Champ?</Link>
-          <Link href="/jobs" className={active("/jobs")}>Browse open roles</Link>
-          <Link href="/contact" className={active("/contact")}>Contact us</Link>
-        </div>
-        <Link href="/login" className="aur-btn aur-btn-primary" style={{ padding: "9px 18px" }}>
-          Log in
-        </Link>
-      </div>
-    );
-  }
-
+  // Which style to show (guest pill / candidate pill / original bar) is decided
+  // in the browser from the current URL — see SiteNav.tsx for why.
   return (
-    <div className="bg-ink relative z-30">
-      <div className="w-full flex items-center justify-between px-6 py-4">
-        <Link href={session ? (session.role === "candidate" ? "/candidate/jobs/for-you" : "/company/dashboard") : "/"}>
-          <Logo />
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/about"
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
-          >
-            What is Champ?
-          </Link>
-          {!session && (
-            <Link
-              href="/jobs"
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
-            >
-              Browse open roles
-            </Link>
-          )}
-          {session && (
-            <Link
-              href="/settings"
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
-            >
-              Settings
-            </Link>
-          )}
-          <Link
-            href="/contact"
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
-          >
-            Contact us
-          </Link>
-          {session ? (
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
-              >
-                Log out
-              </button>
-            </form>
-          ) : (
-            <Link
-              href="/login"
-              className="text-xs px-3 py-1.5 rounded-full bg-white/10 text-paper"
-            >
-              Log in
-            </Link>
-          )}
-        </div>
-      </div>
-      {tabs.length > 0 && <NavTabs tabs={tabs} />}
-    </div>
+    <SiteNav
+      role={session ? session.role : null}
+      email={session?.email || ""}
+      tabs={tabs}
+      logoutAction={logoutAction}
+    />
   );
 }

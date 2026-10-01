@@ -35,8 +35,6 @@ async function guardAdminArea(req: NextRequest) {
   }
 }
 
-const GUEST_PATHS = ["/", "/about", "/jobs", "/contact", "/login", "/signup"];
-
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isCandidateArea = pathname.startsWith("/candidate");
@@ -44,16 +42,6 @@ export async function proxy(req: NextRequest) {
   const isAdminArea = pathname.startsWith("/admin");
 
   if (isAdminArea) return guardAdminArea(req);
-
-  // Tag the public guest pages so the shared NavBar can render its
-  // floating-pill treatment (and highlight the current page) for logged-out
-  // visitors there — every other route keeps the exact nav it already has.
-  if (GUEST_PATHS.some((p) => pathname === p || (p !== "/" && pathname.startsWith(p + "/")))) {
-    const requestHeaders = new Headers(req.headers);
-    requestHeaders.set("x-guest-path", pathname);
-    return NextResponse.next({ request: { headers: requestHeaders } });
-  }
-
   if (!isCandidateArea && !isCompanyArea) return NextResponse.next();
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
@@ -86,15 +74,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/",
-    "/about",
-    "/jobs/:path*",
-    "/contact",
-    "/login",
-    "/signup",
-    "/candidate/:path*",
-    "/company/:path*",
-    "/admin/:path*",
-  ],
+  matcher: ["/candidate/:path*", "/company/:path*", "/admin/:path*"],
 };

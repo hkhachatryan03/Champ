@@ -11,12 +11,15 @@ export default function RichEditor({
   placeholder,
   required,
   minHeight = 90,
+  glass = false,
 }: {
   name: string;
   defaultValue?: string;
   placeholder?: string;
   required?: boolean;
   minHeight?: number;
+  /** Dark "Ethereal Glass" look. Default = original light editor. */
+  glass?: boolean;
 }) {
   const hiddenRef = useRef<HTMLInputElement>(null);
   const [isEmpty, setIsEmpty] = useState(!defaultValue);
@@ -51,7 +54,7 @@ export default function RichEditor({
     content: defaultValue || "",
     editorProps: {
       attributes: {
-        class: "prose-sm max-w-none outline-none px-3 py-2 text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1",
+        class: `prose-sm max-w-none outline-none px-3 py-2 text-sm ${glass ? "text-paper " : ""}[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1`,
       },
     },
     onCreate: ({ editor }) => syncState(editor),
@@ -79,13 +82,23 @@ export default function RichEditor({
   }, [editor]);
 
   const toolBtn = (active: boolean) =>
-    `w-7 h-7 rounded-md flex items-center justify-center transition-all ${
-      active ? "bg-ink text-paper" : "text-muted hover:bg-white hover:text-ink hover:shadow-sm"
-    }`;
+    glass
+      ? `w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+          active ? "bg-apricot/20 text-apricot" : "text-paper/60 hover:bg-paper/10 hover:text-paper"
+        }`
+      : `w-7 h-7 rounded-md flex items-center justify-center transition-all ${
+          active ? "bg-ink text-paper" : "text-muted hover:bg-white hover:text-ink hover:shadow-sm"
+        }`;
 
   return (
-    <div className="rounded-xl border border-line bg-white overflow-hidden focus-within:border-apricot/50 transition-colors">
-      <div className="flex items-center gap-0.5 px-2 py-1.5 bg-paper-dim/60 border-b border-line">
+    <div
+      className={
+        glass
+          ? "rounded-xl border border-paper/15 bg-ink/55 overflow-hidden focus-within:border-apricot focus-within:shadow-[0_0_0_3px_rgba(234,154,46,.18)] transition-[border-color,box-shadow]"
+          : "rounded-xl border border-line bg-white overflow-hidden focus-within:border-apricot/50 transition-colors"
+      }
+    >
+      <div className={`flex items-center gap-0.5 px-2 py-1.5 ${glass ? "bg-paper/[.03] border-b border-paper/10" : "bg-paper-dim/60 border-b border-line"}`}>
         <button
           type="button"
           onClick={() => editor?.chain().focus().toggleBold().run()}
@@ -102,7 +115,7 @@ export default function RichEditor({
         >
           <Italic size={14} />
         </button>
-        <span className="w-px h-4 bg-line mx-1" />
+        <span className={`w-px h-4 mx-1 ${glass ? "bg-paper/15" : "bg-line"}`} />
         <button
           type="button"
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
@@ -122,7 +135,7 @@ export default function RichEditor({
       </div>
       <div className="relative" style={{ minHeight }}>
         {isEmpty && placeholder && (
-          <p className="absolute top-2 left-3 text-sm text-muted pointer-events-none">{placeholder}</p>
+          <p className={`absolute top-2 left-3 text-sm pointer-events-none ${glass ? "text-paper/30" : "text-muted"}`}>{placeholder}</p>
         )}
         <EditorContent editor={editor} />
       </div>

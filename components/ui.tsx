@@ -65,7 +65,18 @@ export function LanguageTags({ languages }: { languages: string[] }) {
   );
 }
 
-export function StatusPill({ status }: { status: string }) {
+const GLASS_STATUS: Record<string, string> = {
+  New: "aur-s-new",
+  Interviewing: "aur-s-int",
+  Offer: "aur-s-off",
+  Hired: "aur-s-hir",
+  "Not moving forward": "aur-s-nmf",
+};
+
+export function StatusPill({ status, glass = false }: { status: string; glass?: boolean }) {
+  if (glass) {
+    return <span className={`aur-spill ${GLASS_STATUS[status] || GLASS_STATUS.New}`}>{status}</span>;
+  }
   return (
     <span
       className={`text-xs font-medium px-2.5 py-1 rounded-full ${

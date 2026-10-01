@@ -1,8 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
-export default function BackButton({ fallbackHref, label = "← Back" }: { fallbackHref: string; label?: string }) {
+export default function BackButton({
+  fallbackHref,
+  label = "← Back",
+  glass = false,
+}: {
+  fallbackHref: string;
+  label?: string;
+  /** Dark "Ethereal Glass" look. Default = original plain button. */
+  glass?: boolean;
+}) {
   const router = useRouter();
 
   return (
@@ -21,9 +31,15 @@ export default function BackButton({ fallbackHref, label = "← Back" }: { fallb
           router.push(fallbackHref);
         }
       }}
-      className="text-sm text-muted"
+      className={glass ? "aur-backbtn" : "text-sm text-muted"}
     >
-      {label}
+      {glass ? (
+        <>
+          <ArrowLeft size={16} strokeWidth={1.25} /> Back
+        </>
+      ) : (
+        label
+      )}
     </button>
   );
 }

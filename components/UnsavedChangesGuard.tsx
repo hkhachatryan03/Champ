@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export default function UnsavedChangesGuard({ formId }: { formId: string }) {
+export default function UnsavedChangesGuard({ formId, glass = false }: { formId: string; glass?: boolean }) {
   const [isDirty, setIsDirty] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const initialSnapshot = useRef<string | null>(null);
@@ -26,7 +26,14 @@ export default function UnsavedChangesGuard({ formId }: { formId: string }) {
     };
 
     initialSnapshot.current = getSnapshot();
-    const checkDirty = () => setIsDirty(getSnapshot() !== initialSnapshot.current);
+    const checkDirty = () => {
+      const dirty = getSnapshot() !== initialSnapshot.current;
+      setIsDirty(dirty);
+      // Lets the glass save bar (pure CSS) switch between "All changes saved"
+      // and "You have unsaved changes". No effect on pages that don't style it.
+      if (dirty) form.setAttribute("data-dirty", "");
+      else form.removeAttribute("data-dirty");
+    };
 
     form.addEventListener("input", checkDirty);
     form.addEventListener("change", checkDirty);
@@ -75,17 +82,18 @@ export default function UnsavedChangesGuard({ formId }: { formId: string }) {
   if (!pendingHref) return null;
 
   return (
-    <div className="fixed inset-0 bg-ink/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl p-5 max-w-sm w-full">
-        <p className="text-sm font-medium mb-2">You have unsaved changes</p>
-        <p className="text-sm text-muted mb-4">
+    <div className={`fixed inset-0 flex items-center justify-center p-4 ${glass ? "z-[90] bg-ink/75 backdrop-blur-sm" : "z-50 bg-ink/60"}`}>
+      <div className={glass ? "aur-bezel w-full max-w-sm" : "bg-white rounded-xl p-5 max-w-sm w-full"}>
+       <div className={glass ? "aur-bezel-inner p-5" : undefined}>
+        <p className={`text-sm font-medium mb-2 ${glass ? "text-paper" : ""}`}>You have unsaved changes</p>
+        <p className={`text-sm mb-4 ${glass ? "text-paper/60" : "text-muted"}`}>
           Leaving this page means everything you changed will be lost — you&apos;ll need to start over if you come back.
         </p>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setPendingHref(null)}
-            className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper"
+            className={glass ? "flex-1 px-4 py-2 rounded-full text-sm font-medium bg-apricot text-ink" : "flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper"}
           >
             Stay & keep editing
           </button>
@@ -94,11 +102,12 @@ export default function UnsavedChangesGuard({ formId }: { formId: string }) {
             onClick={() => {
               window.location.href = pendingHref;
             }}
-            className="flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-line"
+            className={glass ? "flex-1 px-4 py-2 rounded-full text-sm font-medium border border-paper/20 text-paper" : "flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-line"}
           >
             Leave without saving
           </button>
         </div>
+       </div>
       </div>
     </div>
   );

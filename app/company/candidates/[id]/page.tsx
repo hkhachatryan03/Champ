@@ -13,10 +13,12 @@ import {
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Ledger, Tag, StatusPill, LanguageTags } from "@/components/ui";
+import { StatusPill } from "@/components/ui";
 import sql from "@/lib/db";
 import FormattedMessage from "@/components/FormattedMessage";
 import BackButton from "@/components/BackButton";
+import GuestPage from "@/components/GuestPage";
+import { ArrowRight, Cake, Eye, FileText, Link2, MapPin } from "lucide-react";
 
 async function inviteAction(formData: FormData) {
   "use server";
@@ -55,7 +57,15 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const profile = await getCandidateProfile(candidateUserId);
 
   if (!profile || !profile.onboarded) {
-    return <div className="px-6 py-10 max-w-lg mx-auto text-sm text-muted">Candidate not found.</div>;
+    return (
+      <GuestPage>
+        <div className="px-6 pt-[calc(var(--nav-h)+2.25rem)] pb-24 max-w-lg mx-auto">
+          <div className="aur-bezel">
+            <div className="aur-bezel-inner p-7 text-sm text-paper/60">Candidate not found.</div>
+          </div>
+        </div>
+      </GuestPage>
+    );
   }
 
   const skills = parseSkills(profile.skills);
@@ -74,206 +84,248 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
     }
   }
 
-  return (
-    <div className="px-6 py-8 max-w-4xl mx-auto">
-      <BackButton fallbackHref="/company/candidates" />
+  const languageList: string[] = JSON.parse(profile.languages || "[]");
 
-      <div className="grid md:grid-cols-3 gap-6 mt-4 items-start">
-        {/* Left column: everything about the candidate */}
-        <div className="md:col-span-2 flex flex-col gap-5">
-          <div className="p-5 rounded-xl border border-line bg-white">
-            <div className="flex items-center gap-3">
-              {profile.avatar_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover" />
-              )}
-              <div>
-                <div className="font-display font-semibold text-xl">{profile.name || "(unnamed candidate)"}</div>
-                <div className="text-sm text-muted">{profile.title} · {profile.years_experience} yrs experience</div>
+  return (
+    <GuestPage>
+      <div className="px-6 pt-[calc(var(--nav-h)+1.75rem)] pb-24 max-w-[1060px] mx-auto">
+        <div className={`aur-hero-in flex flex-wrap items-center justify-between gap-3.5 mb-[18px] ${isSelfPreview ? "max-w-[780px] mx-auto" : ""}`}>
+          <BackButton glass fallbackHref={isSelfPreview ? "/candidate/profile" : "/company/candidates"} />
+          {isSelfPreview && (
+            <div className="flex items-center gap-[11px] px-4 py-2.5 rounded-full bg-apricot/10 border border-apricot/30 text-[13.5px] text-paper">
+              <Eye size={17} strokeWidth={1.4} className="text-apricot flex-shrink-0" />
+              This is a preview of how recruiters see your profile.
+            </div>
+          )}
+        </div>
+
+        <div className={isSelfPreview ? "" : "grid grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_330px] gap-7 items-start"}>
+          {/* Left column: everything about the candidate */}
+          <div className={`flex flex-col gap-[30px] min-w-0 ${isSelfPreview ? "max-w-[780px] mx-auto" : ""}`}>
+            <div className="aur-hero-in" style={{ animationDelay: ".08s" }}>
+              <div className="aur-bezel">
+                <div className="aur-bezel-inner p-6 md:p-[30px]">
+                  <div className="flex items-center gap-5 flex-wrap">
+                    <div className="w-[88px] h-[88px] rounded-[28px] flex-shrink-0 bg-gradient-to-br from-[#2a2f38] to-[#171A1F] border border-paper/15 shadow-[inset_0_1px_1px_rgba(250,246,238,.12)] flex items-center justify-center overflow-hidden font-display font-semibold text-[34px] text-apricot">
+                      {profile.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        (profile.name || "?").charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                      <h1 className="font-display font-semibold text-[clamp(26px,4vw,32px)] leading-[1.12] text-paper">{profile.name || "(unnamed candidate)"}</h1>
+                      <p className="text-[14.5px] text-paper/62 mt-1.5">{profile.title} · {profile.years_experience} yrs experience</p>
+                    </div>
+                    <div className="aur-sal !px-4 !py-2 !text-sm max-md:w-full">
+                      <span>${profile.salary_min}</span>
+                      <span className="aur-dots" />
+                      <span>${profile.salary_max}</span>
+                      <small>/mo</small>
+                    </div>
+                  </div>
+
+                  {(profile.location || profile.birthdate) && (
+                    <div className="flex flex-wrap gap-x-[22px] gap-y-2 mt-5 text-[13.5px] text-paper/62">
+                      {profile.location && (
+                        <span className="inline-flex items-center gap-2"><MapPin size={15} strokeWidth={1.4} className="text-apricot" /> {profile.location}</span>
+                      )}
+                      {profile.birthdate && (
+                        <span className="inline-flex items-center gap-2">
+                          <Cake size={15} strokeWidth={1.4} className="text-apricot" />
+                          {new Date(profile.birthdate).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-[18px] flex flex-wrap gap-1.5">
+                    {skills.map((s) => <span key={s} className="aur-tag !px-[11px] !py-1 !text-[12.5px] !text-paper/75">{s}</span>)}
+                    {!!profile.remote_ok && <span className="aur-tag aur-tag-ok !px-[11px] !py-1 !text-[12.5px]">Remote OK</span>}
+                  </div>
+                  {languageList.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {languageList.map((entry) => {
+                        const [lang, level] = entry.split(":");
+                        return <span key={entry} className="aur-tag !px-[11px] !py-1 !text-[12.5px] bg-paper/[.045]">{lang}{level ? ` · ${level}` : ""}</span>;
+                      })}
+                    </div>
+                  )}
+
+                  {profile.about && (
+                    <div className="mt-[22px] pt-5 border-t border-paper/10 text-[15px] leading-[1.75] text-paper/75 [&_strong]:text-paper [&_b]:text-paper [&_li::marker]:text-apricot">
+                      <FormattedMessage body={profile.about} />
+                    </div>
+                  )}
+
+                  {(profile.cv_filename || profile.linkedin_url) && (
+                    <div className="flex flex-wrap gap-2.5 mt-[22px]">
+                      {profile.cv_filename && (
+                        <a href={profile.cv_filename} target="_blank" rel="noopener noreferrer" className="aur-lnk">
+                          <FileText size={15} strokeWidth={1.4} /> View CV
+                        </a>
+                      )}
+                      {profile.linkedin_url && (
+                        <a
+                          href={profile.linkedin_url.startsWith("http") ? profile.linkedin_url : `https://${profile.linkedin_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aur-lnk"
+                        >
+                          <Link2 size={15} strokeWidth={1.4} /> {profile.linkedin_url}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            {profile.location && <p className="text-sm text-muted mt-2">📍 {profile.location}</p>}
-            {profile.birthdate && (
-              <p className="text-sm text-muted mt-0.5">
-                🎂 {new Date(profile.birthdate).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
-              </p>
+
+            {experiences.length > 0 && (
+              <section>
+                <h2 className="font-display font-semibold text-2xl mb-3.5 flex items-baseline gap-3 text-paper">Work experience <small className="font-mono-num text-xs text-paper/40 font-medium">{experiences.length}</small></h2>
+                <div className="aur-bezel-sm">
+                  <div className="aur-bezel-inner px-[26px] py-6">
+                    <div className="aur-tl">
+                      {experiences.map((e) => (
+                        <div key={e.id} className="aur-ti aur-ti-exp">
+                          <b>{e.title}</b>
+                          <div className="aur-ti-co">{e.company}</div>
+                          <div className="aur-ti-yr">{e.start_year} – {e.end_year || "Present"}</div>
+                          {e.description && (
+                            <div className="aur-ti-ds"><FormattedMessage body={e.description} /></div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
             )}
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {skills.map((s) => <Tag key={s}>{s}</Tag>)}
-              {!!profile.remote_ok && <Tag tone="moss">Remote OK</Tag>}
-            </div>
-            <div className="mt-3"><Ledger min={profile.salary_min} max={profile.salary_max} /></div>
-            {JSON.parse(profile.languages || "[]").length > 0 && (
-              <div className="mt-2"><LanguageTags languages={JSON.parse(profile.languages || "[]")} /></div>
+
+            {education.length > 0 && (
+              <section>
+                <h2 className="font-display font-semibold text-2xl mb-3.5 flex items-baseline gap-3 text-paper">Education <small className="font-mono-num text-xs text-paper/40 font-medium">{education.length}</small></h2>
+                <div className="aur-bezel-sm">
+                  <div className="aur-bezel-inner px-[26px] py-6">
+                    <div className="aur-tl">
+                      {education.map((e) => (
+                        <div key={e.id} className="aur-ti aur-ti-edu">
+                          <b>{e.institution}</b>
+                          <div className="aur-ti-co">
+                            {e.degree}{e.field_of_study && ` · ${e.field_of_study}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
             )}
-            {profile.about && <div className="text-sm mt-3"><FormattedMessage body={profile.about} /></div>}
-            <div className="mt-3 flex flex-col gap-1">
-              {profile.cv_filename && (
-                <a href={profile.cv_filename} target="_blank" rel="noopener noreferrer" className="text-sm underline text-apricot-deep w-fit">
-                  📎 View CV
-                </a>
-              )}
-              {profile.linkedin_url && (
-                <a
-                  href={profile.linkedin_url.startsWith("http") ? profile.linkedin_url : `https://${profile.linkedin_url}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm underline text-apricot-deep"
-                >
-                  🔗 {profile.linkedin_url}
-                </a>
-              )}
-            </div>
+
+            {certifications.length > 0 && (
+              <section>
+                <h2 className="font-display font-semibold text-2xl mb-3.5 flex items-baseline gap-3 text-paper">Certifications <small className="font-mono-num text-xs text-paper/40 font-medium">{certifications.length}</small></h2>
+                <div className="aur-bezel-sm">
+                  <div className="aur-bezel-inner px-[26px] py-6">
+                    <div className="aur-tl">
+                      {certifications.map((c) => (
+                        <div key={c.id} className="aur-ti aur-ti-crt">
+                          <b>{c.name}</b>
+                          <div className="aur-ti-co flex items-center gap-1.5 flex-wrap">
+                            {c.provider}
+                            {(c.link_url || c.file_url) && (
+                              <>
+                                {c.provider && <span>·</span>}
+                                <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline underline-offset-[3px] text-apricot">
+                                  View certificate →
+                                </a>
+                              </>
+                            )}
+                          </div>
+                          {c.issue_date && (
+                            <div className="aur-ti-yr">
+                              {new Date(c.issue_date + "-02").toLocaleDateString(undefined, { year: "numeric", month: "long" })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {!isSelfPreview && (
+              <section>
+                <h2 className="font-display font-semibold text-2xl mb-3.5 text-paper">Invite to a role</h2>
+                {myJobs.length === 0 ? (
+                  <p className="text-sm leading-[1.65] text-paper/60">
+                    {activeJobs.length === 0 ? (
+                      <>You don&apos;t have any active roles to invite them to yet — <Link href="/company/jobs/new" className="underline underline-offset-[3px] text-apricot">post one first</Link>.</>
+                    ) : (
+                      "This candidate is already connected on all of your active roles."
+                    )}
+                  </p>
+                ) : (
+                  <div className="aur-bezel">
+                    <form action={inviteAction} className="aur-bezel-inner p-[22px] flex flex-col gap-3.5">
+                      <input type="hidden" name="candidateUserId" value={candidateUserId} />
+                      <div>
+                        <label className="aur-label">Which role?</label>
+                        <select name="jobId" required className="aur-field">
+                          {myJobs.map((j) => (
+                            <option key={j.id} value={j.id}>{j.title}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="aur-label">Message (optional)</label>
+                        <textarea name="message" rows={3} placeholder="Hi — your profile looks like a great fit, would you be open to a chat?" className="aur-field" />
+                      </div>
+                      <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine self-start !pl-[22px] !pr-2">
+                        Send invite
+                        <span className="aur-btn-icon"><ArrowRight size={14} /></span>
+                      </button>
+                    </form>
+                  </div>
+                )}
+              </section>
+            )}
           </div>
 
-          {experiences.length > 0 && (
-            <div>
-              <h2 className="font-display font-semibold text-lg mb-3">Work experience</h2>
-              <div className="relative pl-5">
-                <div className="absolute left-[5px] top-1.5 bottom-1.5 w-px bg-line" />
-                <div className="flex flex-col gap-4">
-                  {experiences.map((e) => (
-                    <div key={e.id} className="relative">
-                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-apricot border-2 border-white shadow-sm" />
-                      <div className="text-sm font-medium">{e.title}</div>
-                      <div className="text-sm text-muted">{e.company}</div>
-                      <div className="text-xs text-muted mt-0.5 font-mono-num">
-                        {e.start_year} – {e.end_year || "Present"}
-                      </div>
-                      {e.description && (
-                        <div className="text-sm text-muted mt-1.5"><FormattedMessage body={e.description} /></div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {education.length > 0 && (
-            <div>
-              <h2 className="font-display font-semibold text-lg mb-3">Education</h2>
-              <div className="relative pl-5">
-                <div className="absolute left-[5px] top-1.5 bottom-1.5 w-px bg-line" />
-                <div className="flex flex-col gap-4">
-                  {education.map((e) => (
-                    <div key={e.id} className="relative">
-                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-moss border-2 border-white shadow-sm" />
-                      <div className="text-sm font-medium">{e.institution}</div>
-                      <div className="text-sm text-muted">
-                        {e.degree}{e.field_of_study && ` · ${e.field_of_study}`}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {certifications.length > 0 && (
-            <div>
-              <h2 className="font-display font-semibold text-lg mb-3">Certifications</h2>
-              <div className="relative pl-5">
-                <div className="absolute left-[5px] top-1.5 bottom-1.5 w-px bg-line" />
-                <div className="flex flex-col gap-4">
-                  {certifications.map((c) => (
-                    <div key={c.id} className="relative">
-                      <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-stone border-2 border-white shadow-sm" />
-                      <div className="text-sm font-medium">{c.name}</div>
-                      <div className="text-sm text-muted flex items-center gap-1.5 flex-wrap">
-                        {c.provider}
-                        {(c.link_url || c.file_url) && (
-                          <>
-                            {c.provider && <span>·</span>}
-                            <a href={c.link_url || c.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-xs underline text-apricot-deep">
-                              View certificate →
-                            </a>
-                          </>
-                        )}
-                      </div>
-                      {c.issue_date && (
-                        <div className="text-xs text-muted font-mono-num">
-                          {new Date(c.issue_date + "-02").toLocaleDateString(undefined, { year: "numeric", month: "long" })}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
+          {/* Right column: their status on your roles */}
           {!isSelfPreview && (
-            <div>
-              <h2 className="font-display font-semibold text-lg mb-2">Invite to a role</h2>
-              {myJobs.length === 0 ? (
-                <p className="text-sm text-muted">
-                  {activeJobs.length === 0 ? (
-                    <>You don&apos;t have any active roles to invite them to yet — <Link href="/company/jobs/new" className="underline">post one first</Link>.</>
-                  ) : (
-                    "This candidate is already connected on all of your active roles."
-                  )}
-                </p>
+            <aside className="md:sticky md:top-[96px]">
+              <h2 className="font-display font-semibold text-xl mb-3 text-paper">Their status on your roles</h2>
+              {existingConnections.length === 0 ? (
+                <p className="text-sm text-paper/55">No connections yet.</p>
               ) : (
-                <form action={inviteAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3">
-                  <input type="hidden" name="candidateUserId" value={candidateUserId} />
-                  <div>
-                    <label className="text-xs font-medium text-muted">Which role?</label>
-                    <select name="jobId" required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none">
-                      {myJobs.map((j) => (
-                        <option key={j.id} value={j.id}>{j.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted">Message (optional)</label>
-                    <textarea name="message" rows={3} placeholder="Hi — your profile looks like a great fit, would you be open to a chat?" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-                  </div>
-                  <button type="submit" className="px-5 py-2.5 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
-                    Send invite
-                  </button>
-                </form>
+                <div className="flex flex-col gap-2.5">
+                  {existingConnections.map(({ job, applicationId, status, expectedSalary }) => (
+                    <Link
+                      key={job.id}
+                      href={`/thread/${applicationId}`}
+                      prefetch={false}
+                      className="block px-4 py-3.5 rounded-[18px] bg-paper/[.045] border border-paper/10 transition-[border-color,transform,background] duration-300 hover:border-apricot/45 hover:bg-apricot/[.06] hover:-translate-y-0.5"
+                    >
+                      <div className="text-[14.5px] font-medium text-paper">{job.title}</div>
+                      {expectedSalary && (
+                        <div className="text-xs font-mono-num text-apricot mt-0.5">${expectedSalary}/mo asked</div>
+                      )}
+                      <div className="flex items-center justify-between mt-3">
+                        <StatusPill glass status={status} />
+                        <span className="text-[12.5px] underline underline-offset-[3px] text-apricot">Chat →</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               )}
-            </div>
+            </aside>
           )}
         </div>
-
-        {/* Right column: their status on your roles */}
-        {!isSelfPreview && (
-          <div className="md:sticky md:top-4">
-            <h2 className="font-display font-semibold text-lg mb-2">Their status on your roles</h2>
-            {existingConnections.length === 0 ? (
-              <p className="text-sm text-muted">No connections yet.</p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {existingConnections.map(({ job, applicationId, status, expectedSalary }) => (
-                  <Link
-                    key={job.id}
-                    href={`/thread/${applicationId}`}
-                    prefetch={false}
-                    className="p-3 rounded-lg border border-line bg-white block"
-                  >
-                    <div className="text-sm font-medium">{job.title}</div>
-                    {expectedSalary && (
-                      <div className="text-xs font-mono-num text-apricot-deep mt-0.5">${expectedSalary}/mo asked</div>
-                    )}
-                    <div className="flex items-center justify-between mt-2">
-                      <StatusPill status={status} />
-                      <span className="text-xs underline text-apricot-deep">Chat →</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-        </div>
-        )}
       </div>
-
-      {isSelfPreview && (
-        <div className="mt-6 p-3 rounded-lg bg-paper-dim text-xs text-muted text-center">
-          This is a preview of how recruiters see your profile.
-        </div>
-      )}
-    </div>
+    </GuestPage>
   );
 }

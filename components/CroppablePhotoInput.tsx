@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Cropper, { type Area, type Point } from "react-easy-crop";
-import { Pencil, Plus } from "lucide-react";
+import { Camera, Pencil, Plus } from "lucide-react";
 
 function createImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -34,10 +34,16 @@ export default function CroppablePhotoInput({
   name,
   existingPhotoUrl,
   formIdToSubmit,
+  glass = false,
+  fallbackInitial,
 }: {
   name: string;
   existingPhotoUrl?: string | null;
   formIdToSubmit?: string;
+  /** Dark "Ethereal Glass" look (larger rounded tile). Default = original small circle. */
+  glass?: boolean;
+  /** Letter shown on the empty tile in glass mode. */
+  fallbackInitial?: string;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLInputElement>(null);
@@ -113,8 +119,45 @@ export default function CroppablePhotoInput({
       {/* This is just the picker the person actually clicks. */}
       <input ref={pickerRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
 
-      <div ref={containerRef} className="relative w-16 h-16">
-        {previewUrl ? (
+      <div ref={containerRef} className={glass ? "relative w-[84px] h-[84px]" : "relative w-16 h-16"}>
+        {previewUrl && glass ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={previewUrl} alt="" className="w-[84px] h-[84px] rounded-[26px] object-cover border border-paper/15" />
+            <button
+              type="button"
+              onClick={() => setShowMenu((v) => !v)}
+              className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-full bg-apricot text-ink flex items-center justify-center border-2 border-[#1d2026] hover:scale-110 hover:-rotate-6 transition-transform duration-300"
+              title="Edit photo"
+              aria-label="Change photo"
+            >
+              <Camera size={15} strokeWidth={1.6} />
+            </button>
+            {showMenu && (
+              <div className="absolute top-full mt-2 left-0 z-20 bg-[#15181d]/95 backdrop-blur-xl border border-paper/15 rounded-2xl p-1.5 shadow-[0_24px_50px_-20px_rgba(0,0,0,.9)] whitespace-nowrap">
+                <button type="button" onClick={openReposition} className="block w-full text-left px-3 py-2 text-[13px] text-paper/85 rounded-xl hover:bg-paper/[.07]">
+                  Reposition this photo
+                </button>
+                <button type="button" onClick={openReplace} className="block w-full text-left px-3 py-2 text-[13px] text-paper/85 rounded-xl hover:bg-paper/[.07]">
+                  Upload a different photo
+                </button>
+              </div>
+            )}
+          </>
+        ) : glass ? (
+          <button
+            type="button"
+            onClick={() => pickerRef.current?.click()}
+            className="relative w-[84px] h-[84px] rounded-[26px] border border-paper/15 bg-gradient-to-br from-[#2a2f38] to-[#171A1F] flex items-center justify-center font-display font-semibold text-[32px] text-apricot hover:border-apricot transition-colors"
+            title="Add a photo"
+            aria-label="Add a photo"
+          >
+            {fallbackInitial || <Plus size={22} />}
+            <span className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-full bg-apricot text-ink flex items-center justify-center border-2 border-[#1d2026]">
+              <Camera size={15} strokeWidth={1.6} />
+            </span>
+          </button>
+        ) : previewUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={previewUrl} alt="" className="w-16 h-16 rounded-full object-cover" />
@@ -150,16 +193,16 @@ export default function CroppablePhotoInput({
       </div>
 
       {imageSrc && (
-        <div className="fixed inset-0 bg-ink/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-4 max-w-sm w-full">
+        <div className={`fixed inset-0 flex items-center justify-center p-4 ${glass ? "z-[90] bg-ink/80 backdrop-blur-sm" : "bg-ink/80 z-50"}`}>
+          <div className={glass ? "bg-[#1b1f26] border border-paper/15 rounded-[22px] p-4 max-w-sm w-full text-paper shadow-[0_30px_70px_-20px_rgba(0,0,0,.9)]" : "bg-white rounded-xl p-4 max-w-sm w-full"}>
             <p className="text-sm font-medium mb-3">Adjust your photo</p>
             {cropError ? (
               <div>
-                <p className="text-sm text-apricot-deep mb-3">
+                <p className={`text-sm mb-3 ${glass ? "text-apricot" : "text-apricot-deep"}`}>
                   Couldn&apos;t reposition that photo — try uploading it again instead.
                 </p>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setImageSrc(null)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-line">
+                  <button type="button" onClick={() => setImageSrc(null)} className={glass ? "flex-1 px-4 py-2 rounded-full text-sm font-medium border border-paper/20 text-paper" : "flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-line"}>
                     Close
                   </button>
                   <button
@@ -168,7 +211,7 @@ export default function CroppablePhotoInput({
                       setImageSrc(null);
                       pickerRef.current?.click();
                     }}
-                    className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-apricot text-ink"
+                    className={glass ? "flex-1 px-4 py-2 rounded-full text-sm font-medium bg-apricot text-ink" : "flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-apricot text-ink"}
                   >
                     Upload instead
                   </button>
@@ -202,14 +245,14 @@ export default function CroppablePhotoInput({
                   <button
                     type="button"
                     onClick={() => setImageSrc(null)}
-                    className="flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-line"
+                    className={glass ? "flex-1 px-4 py-2 rounded-full text-sm font-medium border border-paper/20 text-paper" : "flex-1 px-4 py-2 rounded-lg text-sm font-medium border border-line"}
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={confirmCrop}
-                    className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-apricot text-ink"
+                    className={glass ? "flex-1 px-4 py-2 rounded-full text-sm font-medium bg-apricot text-ink" : "flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-apricot text-ink"}
                   >
                     Use this photo
                   </button>
