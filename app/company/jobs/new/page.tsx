@@ -3,6 +3,9 @@ import { createJob, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/que
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import JobForm, { JobFormState } from "@/components/JobForm";
+import GuestPage from "@/components/GuestPage";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { COMMON_SKILLS } from "@/lib/constants";
 
@@ -56,14 +59,21 @@ export default async function NewJobPage() {
   const skillOptions = [...COMMON_SKILLS, ...(await listCustomTerms("skill"))];
 
   return (
-    <div className="px-6 py-8 max-w-lg mx-auto">
-      <h1 className="font-display font-semibold text-2xl mb-6">Post a role</h1>
+    <GuestPage>
+     <div className="px-6 pt-[calc(var(--nav-h)+2rem)] pb-14 max-w-[760px] mx-auto">
+      <Link href="/company/dashboard" className="aur-hero-in inline-flex items-center gap-2 text-[13.5px] text-paper/60 hover:text-paper hover:-translate-x-[3px] transition-[color,transform] duration-300 mb-4">
+        <ArrowLeft size={16} strokeWidth={1.25} /> Back to your roles
+      </Link>
+      <h1 className="aur-hero-in font-display font-semibold text-[clamp(34px,5vw,44px)] leading-[1.1] text-paper">Post a role</h1>
+      <p className="aur-hero-in text-[14.5px] text-paper/60 mt-2.5 mb-6" style={{ animationDelay: ".08s" }}>A visible salary range is required to post — it&apos;s the whole point of Champ.</p>
       <JobForm
+        glass
         action={createJobAction}
         cancelHref="/company/dashboard"
         skillOptions={skillOptions}
         showClientNameField={profile.recruiter_type === "agency"}
       />
-    </div>
+     </div>
+    </GuestPage>
   );
 }

@@ -2,6 +2,9 @@ import { getSession } from "@/lib/auth";
 import { updateJob, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
+import GuestPage from "@/components/GuestPage";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import JobForm, { JobFormState } from "@/components/JobForm";
 import sql from "@/lib/db";
 import { Job } from "@/lib/queries";
@@ -68,16 +71,30 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
   const job = rows[0];
 
   if (!job) {
-    return <div className="px-6 py-10 max-w-lg mx-auto text-sm text-muted">Role not found.</div>;
+    return (
+      <GuestPage>
+        <div className="px-6 pt-[calc(var(--nav-h)+2.25rem)] pb-24 max-w-lg mx-auto">
+          <div className="aur-bezel">
+            <div className="aur-bezel-inner p-7 text-sm text-paper/60">Role not found.</div>
+          </div>
+        </div>
+      </GuestPage>
+    );
   }
 
   const boundAction = saveJobAction.bind(null, job.id);
   const skillOptions = [...COMMON_SKILLS, ...(await listCustomTerms("skill"))];
 
   return (
-    <div className="px-6 py-8 max-w-lg mx-auto">
-      <h1 className="font-display font-semibold text-2xl mb-6">Edit role</h1>
+    <GuestPage>
+     <div className="px-6 pt-[calc(var(--nav-h)+2rem)] pb-14 max-w-[760px] mx-auto">
+      <Link href={`/company/jobs/${job.id}`} className="aur-hero-in inline-flex items-center gap-2 text-[13.5px] text-paper/60 hover:text-paper hover:-translate-x-[3px] transition-[color,transform] duration-300 mb-4">
+        <ArrowLeft size={16} strokeWidth={1.25} /> Back to the role
+      </Link>
+      <h1 className="aur-hero-in font-display font-semibold text-[clamp(34px,5vw,44px)] leading-[1.1] text-paper">Edit role</h1>
+      <p className="aur-hero-in text-[14.5px] text-paper/60 mt-2.5 mb-6" style={{ animationDelay: ".08s" }}>Changes go live as soon as you save.</p>
       <JobForm
+        glass
         action={boundAction}
         isEdit
         cancelHref={`/company/jobs/${job.id}`}
@@ -99,6 +116,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
         }}
         showClientNameField={profile.recruiter_type === "agency"}
       />
-    </div>
+     </div>
+    </GuestPage>
   );
 }

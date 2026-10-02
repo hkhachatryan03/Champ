@@ -1,23 +1,19 @@
-import { getSession } from "@/lib/auth";
-
 /**
  * Shared shell for the public guest pages: the living aurora backdrop
  * (fixed to the viewport) with page content layered above it.
  * Pure presentation — no data, no behaviour.
  *
- * --nav-h is the space the page must leave for the nav: logged-out visitors and
- * candidates get the floating pill nav (fixed, out of flow), so pages need top
- * padding; companies keep the normal in-flow bar, so they need none.
+ * --nav-h is the space the page must leave for the nav: everyone now gets the
+ * floating pill nav (fixed, out of flow), so pages need top padding.
  *
  * Note: uses overflow-x-clip (not overflow-hidden) so sticky children —
  * the jobs filter panel and the job-detail sidebar — keep working.
  */
-export default async function GuestPage({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
+export default function GuestPage({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="aur-page relative overflow-x-clip bg-ink min-h-screen text-paper"
-      style={{ "--nav-h": session?.role === "company" ? "0px" : "5.5rem" } as React.CSSProperties}
+      style={{ "--nav-h": "5.5rem" } as React.CSSProperties}
     >
       <div className="aur-mesh">
         <div className="aur-blade aur-blade1" />

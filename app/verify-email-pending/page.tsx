@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth";
 import { createEmailVerification } from "@/lib/queries";
 import { sendVerificationEmail } from "@/lib/email";
 import { redirect } from "next/navigation";
+import GlassStateCard from "@/components/auth/GlassStateCard";
+import { ArrowRight, Mail } from "lucide-react";
 
 async function resendAction() {
   "use server";
@@ -23,18 +25,18 @@ export default async function VerifyEmailPendingPage({
   const { sent } = await searchParams;
 
   return (
-    <div className="px-6 py-12 max-w-md mx-auto">
-      <h1 className="font-display font-semibold text-2xl">Check your email</h1>
-      <p className="text-sm text-muted mt-2">
+    <GlassStateCard icon={<Mail size={26} strokeWidth={1.3} />} title="Check your email">
+      <p>
         We sent a verification link to <strong>{session.email}</strong>. Click it to
         continue setting up your account.
       </p>
-      {sent && <p className="text-sm text-moss mt-3">Sent again — check your inbox.</p>}
-      <form action={resendAction} className="mt-6">
-        <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-ink text-paper">
+      {sent && <p className="!mt-3.5 text-[13.5px] text-[#8FC79B]">Sent again — check your inbox.</p>}
+      <form action={resendAction}>
+        <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine !py-[13px] !pl-6 !pr-2">
           Resend email
+          <span className="aur-btn-icon"><ArrowRight size={14} /></span>
         </button>
       </form>
-    </div>
+    </GlassStateCard>
   );
 }

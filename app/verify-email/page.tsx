@@ -1,6 +1,8 @@
 import { verifyEmailToken } from "@/lib/queries";
 import sql from "@/lib/db";
 import Link from "next/link";
+import GlassStateCard from "@/components/auth/GlassStateCard";
+import { AlertTriangle, Check, Hourglass, ArrowRight } from "lucide-react";
 
 export default async function VerifyEmailPage({
   searchParams,
@@ -10,10 +12,9 @@ export default async function VerifyEmailPage({
   const { token } = await searchParams;
   if (!token) {
     return (
-      <div className="px-6 py-12 max-w-md mx-auto text-center">
-        <h1 className="font-display font-semibold text-2xl">Missing verification link</h1>
-        <p className="text-sm text-muted mt-2">This link looks incomplete — try the one from your email again.</p>
-      </div>
+      <GlassStateCard icon={<AlertTriangle size={26} strokeWidth={1.3} />} title="Missing verification link">
+        <p>This link looks incomplete — try the one from your email again.</p>
+      </GlassStateCard>
     );
   }
 
@@ -21,15 +22,13 @@ export default async function VerifyEmailPage({
 
   if (!result.ok) {
     return (
-      <div className="px-6 py-12 max-w-md mx-auto text-center">
-        <h1 className="font-display font-semibold text-2xl">Link expired or already used</h1>
-        <p className="text-sm text-muted mt-2 mb-6">
-          Verification links expire after 24 hours. Log in and we'll offer to resend one.
-        </p>
-        <Link href="/login" className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink">
+      <GlassStateCard icon={<Hourglass size={26} strokeWidth={1.3} />} title="Link expired or already used">
+        <p>Verification links expire after 24 hours. Log in and we&apos;ll offer to resend one.</p>
+        <Link href="/login" className="aur-btn aur-btn-primary aur-btn-shine !py-[13px] !pl-6 !pr-2">
           Go to login
+          <span className="aur-btn-icon"><ArrowRight size={14} /></span>
         </Link>
-      </div>
+      </GlassStateCard>
     );
   }
 
@@ -37,15 +36,15 @@ export default async function VerifyEmailPage({
   const role = rows[0]?.role;
 
   return (
-    <div className="px-6 py-12 max-w-md mx-auto text-center">
-      <h1 className="font-display font-semibold text-2xl">Email verified ✓</h1>
-      <p className="text-sm text-muted mt-2 mb-6">You're all set — let's finish your profile.</p>
+    <GlassStateCard good icon={<Check size={26} strokeWidth={1.3} />} title="Email verified ✓">
+      <p>You&apos;re all set — let&apos;s finish your profile.</p>
       <Link
         href={role === "candidate" ? "/candidate/onboarding" : "/company/onboarding"}
-        className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink"
+        className="aur-btn aur-btn-primary aur-btn-shine !py-[13px] !pl-6 !pr-2"
       >
         Continue
+        <span className="aur-btn-icon"><ArrowRight size={14} /></span>
       </Link>
-    </div>
+    </GlassStateCard>
   );
 }

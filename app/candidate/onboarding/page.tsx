@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 import { extractTextFromPdf, guessName, guessNameFromLinkedinUrl } from "@/lib/cvParsing";
 import ClearableFileInput from "@/components/ClearableFileInput";
+import GuestPage from "@/components/GuestPage";
+import { ArrowLeft, ArrowRight, Check, Link2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import RichEditor from "@/components/RichEditor";
 import { sanitizeRichText } from "@/lib/sanitize";
 import TagPicker from "@/components/TagPicker";
@@ -145,6 +147,21 @@ async function completeProfileAction(formData: FormData) {
   redirect("/candidate/jobs");
 }
 
+const Steps = ({ n, total }: { n: number; total: number }) => (
+  <div className="aur-steps">
+    {Array.from({ length: total }).map((_, i) => (
+      <i key={i} className={i < n ? "on" : ""} />
+    ))}
+    <em>Step {n} of {total}</em>
+  </div>
+);
+
+const BackLink = () => (
+  <a href="/candidate/onboarding" className="aur-hero-in inline-flex items-center gap-2 text-[13.5px] text-paper/60 hover:text-paper hover:-translate-x-[3px] transition-[color,transform] duration-300">
+    <ArrowLeft size={16} strokeWidth={1.25} /> Change method
+  </a>
+);
+
 export default async function CandidateOnboarding({
   searchParams,
 }: {
@@ -161,84 +178,114 @@ export default async function CandidateOnboarding({
   // --- Screen 1: pick a method ---
   if (!method) {
     return (
-      <div className="px-6 py-10 max-w-lg mx-auto">
-        <h1 className="font-display font-semibold text-2xl">Build your profile</h1>
-        <p className="text-sm text-muted mt-1 mb-6">
-          This is what companies will see. Pick whichever is fastest.
-        </p>
-        <div className="flex flex-col gap-2">
-          <a href="/candidate/onboarding?method=manual" className="px-4 py-3 rounded-lg border border-line bg-white text-sm font-medium">
-            Fill it in manually
-          </a>
-          <a href="/candidate/onboarding?method=linkedin" className="px-4 py-3 rounded-lg border border-line bg-white text-sm font-medium">
-            Import from LinkedIn
-          </a>
-          <a href="/candidate/onboarding?method=cv" className="px-4 py-3 rounded-lg border border-line bg-white text-sm font-medium">
-            Upload my CV
-          </a>
+      <GuestPage>
+        <div className="px-6 pt-[calc(var(--nav-h)+2.5rem)] pb-20 max-w-[600px] mx-auto">
+          <div className="aur-hero-in"><Steps n={1} total={3} /></div>
+          <h1 className="aur-hero-in font-display font-semibold text-[clamp(32px,5vw,42px)] leading-[1.12] text-paper mt-3.5" style={{ animationDelay: ".06s" }}>Build your profile</h1>
+          <p className="aur-hero-in text-[15px] leading-[1.65] text-paper/62 mt-3 mb-[26px]" style={{ animationDelay: ".12s" }}>
+            This is what companies will see. Pick whichever is fastest.
+          </p>
+          <div className="aur-hero-in flex flex-col gap-3" style={{ animationDelay: ".18s" }}>
+            {[
+              ["manual", "Fill it in manually", <Pencil key="i" size={18} strokeWidth={1.25} />],
+              ["linkedin", "Import from LinkedIn", <Link2 key="i" size={18} strokeWidth={1.25} />],
+              ["cv", "Upload my CV", <Upload key="i" size={18} strokeWidth={1.25} />],
+            ].map(([m, label, icon]) => (
+              <a key={m as string} href={`/candidate/onboarding?method=${m}`} className="group block">
+                <div className="aur-bezel-sm transition-[transform,border-color] duration-500 group-hover:-translate-y-0.5 group-hover:border-apricot/35">
+                  <div className="aur-bezel-inner flex items-center gap-4 px-5 py-[18px]">
+                    <span className="aur-icon-chip">{icon}</span>
+                    <b className="flex-1 text-base font-medium text-paper">{label}</b>
+                    <span className="w-[34px] h-[34px] rounded-full border border-paper/15 flex items-center justify-center text-paper/60 group-hover:border-apricot group-hover:text-apricot group-hover:translate-x-[3px] transition-all duration-300">
+                      <ArrowRight size={15} />
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
-      </div>
+      </GuestPage>
     );
   }
 
   // --- Screen 2a: CV upload (before it's attached) ---
   if (method === "cv" && !profile.cv_filename && step !== "details") {
     return (
-      <div className="px-6 py-10 max-w-lg mx-auto">
-        <a href="/candidate/onboarding" className="text-sm text-muted">← Change method</a>
-        <h1 className="font-display font-semibold text-2xl mt-3">Upload your CV</h1>
-        <p className="text-sm text-muted mt-1 mb-6">
-          We&apos;ll pull your name from it automatically where we can, then
-          you&apos;ll confirm and fill in anything left over on the next screen.
-        </p>
-        {error === "nofile" && (
-          <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-            Please choose a PDF file first.
+      <GuestPage>
+        <div className="px-6 pt-[calc(var(--nav-h)+2rem)] pb-20 max-w-[600px] mx-auto">
+          <BackLink />
+          <div className="aur-hero-in mt-[18px]"><Steps n={2} total={3} /></div>
+          <h1 className="aur-hero-in font-display font-semibold text-[clamp(32px,5vw,42px)] leading-[1.12] text-paper mt-3.5" style={{ animationDelay: ".08s" }}>Upload your CV</h1>
+          <p className="aur-hero-in text-[15px] leading-[1.65] text-paper/62 mt-3 mb-[26px]" style={{ animationDelay: ".14s" }}>
+            We&apos;ll pull your name from it automatically where we can, then
+            you&apos;ll confirm and fill in anything left over on the next screen.
+          </p>
+          <div className="aur-hero-in aur-bezel" style={{ animationDelay: ".2s" }}>
+            <div className="aur-bezel-inner p-7">
+              {error === "nofile" && (
+                <div className="aur-alert mb-4 !text-[13.5px] !leading-[1.55] !px-3.5 !py-[11px] !rounded-[13px]">
+                  Please choose a PDF file first.
+                </div>
+              )}
+              {error === "uploadfailed" && (
+                <div className="aur-alert mb-4 !text-[13.5px] !leading-[1.55] !px-3.5 !py-[11px] !rounded-[13px]">
+                  Something went wrong uploading your CV — this usually means file storage isn&apos;t
+                  configured yet on this deployment. You can still finish your profile now and
+                  add your CV later from &quot;My profile.&quot;
+                </div>
+              )}
+              <form action={uploadCvAction} encType="multipart/form-data" className="flex flex-col gap-[18px]">
+                <ClearableFileInput glass name="cv" required />
+                <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine self-start !py-[13px] !pl-6 !pr-2">
+                  Upload &amp; continue
+                  <span className="aur-btn-icon"><ArrowRight size={14} /></span>
+                </button>
+              </form>
+            </div>
           </div>
-        )}
-        {error === "uploadfailed" && (
-          <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-            Something went wrong uploading your CV — this usually means file storage isn't
-            configured yet on this deployment. You can still finish your profile now and
-            add your CV later from &quot;My profile.&quot;
-          </div>
-        )}
-        <form action={uploadCvAction} encType="multipart/form-data" className="flex flex-col gap-4">
-          <ClearableFileInput name="cv" required />
-          <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
-            Upload & continue
-          </button>
-        </form>
-        <a href="/candidate/onboarding?method=cv&step=details" className="text-xs text-muted underline mt-4 inline-block">
-          Skip for now, I'll add my CV later
-        </a>
-      </div>
+          <a href="/candidate/onboarding?method=cv&step=details" className="inline-block mt-[18px] text-[12.5px] text-paper/55 hover:text-paper underline underline-offset-[3px] transition-colors">
+            Skip for now, I&apos;ll add my CV later
+          </a>
+        </div>
+      </GuestPage>
     );
   }
 
   // --- Screen 2b: LinkedIn URL (before it's attached) ---
   if (method === "linkedin" && !profile.linkedin_url) {
     return (
-      <div className="px-6 py-10 max-w-lg mx-auto">
-        <a href="/candidate/onboarding" className="text-sm text-muted">← Change method</a>
-        <h1 className="font-display font-semibold text-2xl mt-3">Import from LinkedIn</h1>
-        <p className="text-sm text-muted mt-1 mb-6">
-          We can't fetch real LinkedIn data without their official API, but
-          we'll take a best guess at your name from the profile URL itself —
-          you'll confirm everything else on the next screen.
-        </p>
-        {error === "nourl" && (
-          <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-            Please paste your LinkedIn URL first.
+      <GuestPage>
+        <div className="px-6 pt-[calc(var(--nav-h)+2rem)] pb-20 max-w-[600px] mx-auto">
+          <BackLink />
+          <div className="aur-hero-in mt-[18px]"><Steps n={2} total={3} /></div>
+          <h1 className="aur-hero-in font-display font-semibold text-[clamp(32px,5vw,42px)] leading-[1.12] text-paper mt-3.5" style={{ animationDelay: ".08s" }}>Import from LinkedIn</h1>
+          <p className="aur-hero-in text-[15px] leading-[1.65] text-paper/62 mt-3 mb-[26px]" style={{ animationDelay: ".14s" }}>
+            We can&apos;t fetch real LinkedIn data without their official API, but
+            we&apos;ll take a best guess at your name from the profile URL itself —
+            you&apos;ll confirm everything else on the next screen.
+          </p>
+          <div className="aur-hero-in aur-bezel" style={{ animationDelay: ".2s" }}>
+            <div className="aur-bezel-inner p-7">
+              {error === "nourl" && (
+                <div className="aur-alert mb-4 !text-[13.5px] !leading-[1.55] !px-3.5 !py-[11px] !rounded-[13px]">
+                  Please paste your LinkedIn URL first.
+                </div>
+              )}
+              <form action={saveLinkedinAction} className="flex flex-col gap-[18px]">
+                <div>
+                  <label className="aur-label">LinkedIn URL</label>
+                  <input name="linkedinUrl" required placeholder="linkedin.com/in/yourname" className="aur-field" />
+                </div>
+                <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine self-start !py-[13px] !pl-6 !pr-2">
+                  Continue
+                  <span className="aur-btn-icon"><ArrowRight size={14} /></span>
+                </button>
+              </form>
+            </div>
           </div>
-        )}
-        <form action={saveLinkedinAction} className="flex flex-col gap-4">
-          <input name="linkedinUrl" required placeholder="linkedin.com/in/yourname" className="w-full px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-          <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
-            Continue
-          </button>
-        </form>
-      </div>
+        </div>
+      </GuestPage>
     );
   }
 
@@ -248,134 +295,164 @@ export default async function CandidateOnboarding({
   const skillOptions = [...COMMON_SKILLS, ...(await listCustomTerms("skill"))];
   const positionOptions = [...PROFESSION_OPTIONS, ...(await listCustomTerms("position"))];
   return (
-    <div className="px-6 py-10 max-w-lg mx-auto">
-      <a href="/candidate/onboarding" className="text-sm text-muted">← Change method</a>
-      <h1 className="font-display font-semibold text-2xl mt-3">Complete your profile</h1>
-      <p className="text-sm text-muted mt-1 mb-6">
-        {cameFromImport
-          ? "We've filled in what we could — please check it and add anything missing."
-          : "Fill in your details below."}
-      </p>
-      {profile.cv_filename && (
-        <p className="text-xs text-moss mb-4">✓ CV on file</p>
-      )}
-      {profile.linkedin_url && (
-        <p className="text-xs text-moss mb-4">
-          ✓ LinkedIn on file:{" "}
-          <a
-            href={profile.linkedin_url.startsWith("http") ? profile.linkedin_url : `https://${profile.linkedin_url}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
-          >
-            {profile.linkedin_url}
-          </a>
+    <GuestPage>
+      <div className="px-6 pt-[calc(var(--nav-h)+2rem)] pb-20 max-w-[760px] mx-auto">
+        <BackLink />
+        <div className="aur-hero-in mt-[18px]"><Steps n={cameFromImport ? 3 : 2} total={cameFromImport ? 3 : 2} /></div>
+        <h1 className="aur-hero-in font-display font-semibold text-[clamp(32px,5vw,42px)] leading-[1.12] text-paper mt-3.5" style={{ animationDelay: ".08s" }}>Complete your profile</h1>
+        <p className="aur-hero-in text-[15px] leading-[1.65] text-paper/62 mt-3 mb-[26px]" style={{ animationDelay: ".14s" }}>
+          {cameFromImport
+            ? "We've filled in what we could — please check it and add anything missing."
+            : "Fill in your details below."}
         </p>
-      )}
+        {(profile.cv_filename || profile.linkedin_url) && (
+          <div className="flex flex-wrap gap-2 mb-[22px]">
+            {profile.cv_filename && (
+              <span className="inline-flex items-center gap-[7px] text-[12.5px] px-[13px] py-1.5 rounded-full bg-[rgba(127,176,138,.12)] border border-[rgba(127,176,138,.35)] text-[#A9D8B2]">
+                <Check size={13} strokeWidth={2} /> CV on file
+              </span>
+            )}
+            {profile.linkedin_url && (
+              <span className="inline-flex items-center gap-[7px] text-[12.5px] px-[13px] py-1.5 rounded-full bg-[rgba(127,176,138,.12)] border border-[rgba(127,176,138,.35)] text-[#A9D8B2] break-all">
+                <Check size={13} strokeWidth={2} /> LinkedIn on file:{" "}
+                <a
+                  href={profile.linkedin_url.startsWith("http") ? profile.linkedin_url : `https://${profile.linkedin_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-[3px]"
+                >
+                  {profile.linkedin_url}
+                </a>
+              </span>
+            )}
+          </div>
+        )}
 
-      <h2 className="font-display font-semibold text-lg mb-2">Work experience</h2>
-      <p className="text-xs text-muted mb-3">
-        Add your past roles now, or skip and add them later from &quot;My profile.&quot;
-      </p>
-      <div className="flex flex-col gap-2 mb-4">
-        {experiences.map((e) => (
-          <div key={e.id} className="p-3 rounded-lg border border-line bg-white flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">{e.title} · {e.company}</div>
-              <div className="text-xs text-muted">{e.start_year} – {e.end_year || "Present"}</div>
+        <div className="aur-bezel-sm">
+          <div className="aur-bezel-inner aur-fs">
+            <h3>Work experience</h3>
+            <p className="text-[12.5px] text-paper/50 -mt-1">
+              Add your past roles now, or skip and add them later from &quot;My profile.&quot;
+            </p>
+            <div className="flex flex-col gap-2.5">
+              {experiences.map((e) => (
+                <div key={e.id} className="aur-entry">
+                  <div className="flex items-start justify-between gap-3.5">
+                    <div className="min-w-0">
+                      <div className="text-[15px] font-medium text-paper">{e.title} · {e.company}</div>
+                      <div className="text-xs text-paper/50 font-mono-num mt-0.5">{e.start_year} – {e.end_year || "Present"}</div>
+                    </div>
+                    <form action={deleteExperienceOnboardingAction}>
+                      <input type="hidden" name="id" value={e.id} />
+                      <input type="hidden" name="method" value={method} />
+                      <button type="submit" className="aur-entry-btn"><Trash2 size={13} strokeWidth={1.5} /> Remove</button>
+                    </form>
+                  </div>
+                </div>
+              ))}
             </div>
-            <form action={deleteExperienceOnboardingAction}>
-              <input type="hidden" name="id" value={e.id} />
+            {expError && (
+              <div className="aur-alert !text-[13.5px] !px-3.5 !py-[11px] !rounded-[13px]">{expError}</div>
+            )}
+            <form action={addExperienceOnboardingAction} className="aur-addform !mt-0">
               <input type="hidden" name="method" value={method} />
-              <button type="submit" className="text-xs text-muted underline">Remove</button>
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                <input name="title" placeholder="Title (e.g. Frontend Engineer)" className="aur-field" />
+                <input name="company" placeholder="Company" className="aur-field" />
+              </div>
+              <div className="flex gap-2.5 items-center">
+                <input name="startYear" type="number" placeholder="Start year" className="aur-field !w-32 font-mono-num" />
+                <span className="text-sm text-paper/50">to</span>
+                <input name="endYear" type="number" placeholder="End year (blank = present)" className="aur-field flex-1 font-mono-num" />
+              </div>
+              <button type="submit" className="aur-btn-sm self-start"><Plus size={14} strokeWidth={1.8} /> Add role</button>
             </form>
           </div>
-        ))}
-      </div>
-      {expError && (
-        <div className="mb-3 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-          {expError}
         </div>
-      )}
-      <form action={addExperienceOnboardingAction} className="p-4 rounded-lg bg-paper-dim flex flex-col gap-3 mb-8">
-        <input type="hidden" name="method" value={method} />
-        <div className="flex gap-2">
-          <input name="title" placeholder="Title (e.g. Frontend Engineer)" className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-          <input name="company" placeholder="Company" className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-        </div>
-        <div className="flex gap-2 items-center">
-          <input name="startYear" type="number" placeholder="Start year" className="w-28 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
-          <span className="text-sm text-muted">to</span>
-          <input name="endYear" type="number" placeholder="End year (blank = present)" className="flex-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
-        </div>
-        <button type="submit" className="px-4 py-2 rounded-lg text-sm font-medium bg-ink text-paper w-fit">
-          + Add role
-        </button>
-      </form>
 
-      <h2 className="font-display font-semibold text-lg mb-3">Your details</h2>
-      {error === "salary" && (
-        <div className="mb-3 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
-          Max salary needs to be greater than or equal to min salary.
-        </div>
-      )}
-      <form action={completeProfileAction} className="flex flex-col gap-4">
-        <div>
-          <label className="text-xs font-medium text-muted">Full name</label>
-          <input name="name" defaultValue={profile.name} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted">Current title</label>
-          <input name="title" defaultValue={profile.title} placeholder="e.g. Frontend Engineer" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted">Years of experience</label>
-          <input name="years" type="number" min={0} defaultValue={profile.years_experience || undefined} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted">Skills</label>
-          <div className="mt-1"><TagPicker name="skills" options={skillOptions} initial={JSON.parse(profile.skills || "[]")} /></div>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted">Positions you&apos;re looking for</label>
-          <div className="mt-1"><TagPicker name="preferredPositions" options={positionOptions} initial={JSON.parse(profile.preferred_positions || "[]")} /></div>
-          <p className="text-xs text-muted mt-1">
-            This is what &quot;For You&quot; uses to match you with roles — companies never see this list.
-          </p>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted">Languages (optional)</label>
-          <div className="mt-1"><LanguagePicker name="languages" initial={JSON.parse(profile.languages || "[]")} /></div>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted">Location</label>
-          <div className="mt-1"><LocationSelect name="location" defaultValue={profile.location} required /></div>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted">Date of birth (optional)</label>
-          <input name="birthdate" type="date" defaultValue={profile.birthdate || ""} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-        </div>
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <label className="text-xs font-medium text-muted">Salary min ($/mo)</label>
-            <input name="salaryMin" type="number" defaultValue={profile.salary_min || undefined} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
+        <form action={completeProfileAction} className="flex flex-col gap-4 mt-4">
+          {error === "salary" && (
+            <div className="aur-alert !text-[13.5px] !px-3.5 !py-[11px] !rounded-[13px]">
+              Max salary needs to be greater than or equal to min salary.
+            </div>
+          )}
+          <div className="aur-bezel-sm">
+            <div className="aur-bezel-inner aur-fs">
+              <h3>Your details</h3>
+              <div>
+                <label className="aur-label">Full name</label>
+                <input name="name" defaultValue={profile.name} required className="aur-field" />
+              </div>
+              <div>
+                <label className="aur-label">Current title</label>
+                <input name="title" defaultValue={profile.title} placeholder="e.g. Frontend Engineer" className="aur-field" />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="aur-label">Years of experience</label>
+                  <input name="years" type="number" min={0} defaultValue={profile.years_experience || undefined} className="aur-field font-mono-num" />
+                </div>
+                <div>
+                  <label className="aur-label">Date of birth (optional)</label>
+                  <input name="birthdate" type="date" defaultValue={profile.birthdate || ""} className="aur-field" />
+                </div>
+              </div>
+              <div>
+                <label className="aur-label">Location</label>
+                <LocationSelect glass name="location" defaultValue={profile.location} required />
+              </div>
+            </div>
           </div>
-          <div className="flex-1">
-            <label className="text-xs font-medium text-muted">Salary max ($/mo)</label>
-            <input name="salaryMax" type="number" defaultValue={profile.salary_max || undefined} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
+
+          <div className="aur-bezel-sm">
+            <div className="aur-bezel-inner aur-fs">
+              <h3>Skills &amp; preferences</h3>
+              <div>
+                <label className="aur-label">Skills</label>
+                <TagPicker glass name="skills" options={skillOptions} initial={JSON.parse(profile.skills || "[]")} />
+              </div>
+              <div>
+                <label className="aur-label">Positions you&apos;re looking for</label>
+                <TagPicker glass name="preferredPositions" options={positionOptions} initial={JSON.parse(profile.preferred_positions || "[]")} />
+                <p className="text-xs leading-[1.55] text-paper/50 mt-1.5">
+                  This is what &quot;For You&quot; uses to match you with roles — companies never see this list.
+                </p>
+              </div>
+              <div>
+                <label className="aur-label">Languages (optional)</label>
+                <LanguagePicker glass name="languages" initial={JSON.parse(profile.languages || "[]")} />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="aur-label">Salary min ($/mo)</label>
+                  <input name="salaryMin" type="number" defaultValue={profile.salary_min || undefined} required className="aur-field font-mono-num" />
+                </div>
+                <div>
+                  <label className="aur-label">Salary max ($/mo)</label>
+                  <input name="salaryMax" type="number" defaultValue={profile.salary_max || undefined} required className="aur-field font-mono-num" />
+                </div>
+              </div>
+              <label className="aur-check !text-sm">
+                <input type="checkbox" name="remoteOk" defaultChecked />
+                <span className="aur-check-box"><Check size={12} strokeWidth={2.4} /></span>
+                Open to remote roles
+              </label>
+            </div>
           </div>
-        </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="remoteOk" defaultChecked /> Open to remote roles
-        </label>
-        <div>
-          <label className="text-xs font-medium text-muted">About you (2-3 sentences)</label>
-          <RichEditor name="about" defaultValue={profile.about} required minHeight={80} />
-        </div>
-        <button type="submit" className="mt-2 px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
-          Save & browse roles
-        </button>
-      </form>
-    </div>
+
+          <div className="aur-bezel-sm">
+            <div className="aur-bezel-inner aur-fs">
+              <h3>About you (2-3 sentences)</h3>
+              <RichEditor glass name="about" defaultValue={profile.about} required minHeight={96} />
+            </div>
+          </div>
+
+          <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine justify-center w-full !py-3.5 !pl-6 !pr-2">
+            Save &amp; browse roles
+            <span className="aur-btn-icon"><ArrowRight size={14} /></span>
+          </button>
+        </form>
+      </div>
+    </GuestPage>
   );
 }

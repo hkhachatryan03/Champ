@@ -3,7 +3,8 @@ import { createPasswordResetOtp } from "@/lib/queries";
 import { sendPasswordResetOtp } from "@/lib/email";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import AuthShell from "@/components/auth/AuthShell";
+import GlassAuthShell from "@/components/auth/GlassAuthShell";
+import { ArrowRight } from "lucide-react";
 
 async function requestResetAction(formData: FormData) {
   "use server";
@@ -45,18 +46,18 @@ export default async function ForgotPasswordPage({
   const { error } = await searchParams;
 
   return (
-    <AuthShell
+    <GlassAuthShell
       eyebrow="Account recovery"
       title="Forgot your password?"
       subtitle="Enter your email and we'll send you a 6-digit code."
     >
       {error === "1" && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="aur-alert mb-4 !text-[13.5px] !leading-[1.5] !px-3.5 !py-[11px] !rounded-[13px]">
           Please enter your email.
         </div>
       )}
       {error === "noemail" && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="aur-alert mb-4 !text-[13.5px] !leading-[1.5] !px-3.5 !py-[11px] !rounded-[13px]">
           Password reset emails aren&apos;t set up on this deployment yet — use
           Contact Us instead and we&apos;ll reset it manually.
         </div>
@@ -64,27 +65,20 @@ export default async function ForgotPasswordPage({
 
       <form action={requestResetAction} className="flex flex-col gap-4">
         <div>
-          <label className="text-xs font-medium text-muted">Email</label>
-          <input
-            name="email"
-            type="email"
-            required
-            className="w-full mt-1 px-3 py-2.5 rounded-lg border border-line bg-white text-sm outline-none transition-shadow focus:ring-2 focus:ring-apricot/40 focus:border-apricot"
-          />
+          <label className="aur-label">Email</label>
+          <input name="email" type="email" required placeholder="you@example.com" className="aur-field" />
         </div>
-        <button
-          type="submit"
-          className="mt-2 px-5 py-3 rounded-full font-medium text-sm bg-apricot text-ink hover:bg-apricot-deep hover:text-paper transition-colors w-fit"
-        >
+        <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine justify-center w-full !py-3.5 !pl-5 !pr-2 mt-1">
           Send reset code
+          <span className="aur-btn-icon"><ArrowRight size={14} /></span>
         </button>
       </form>
 
-      <p className="text-sm text-muted mt-8 text-center">
-        <Link href="/login" className="underline text-ink font-medium">
+      <p className="text-[13.5px] text-paper/55 mt-[18px] text-center">
+        <Link href="/login" className="underline underline-offset-[3px] text-paper font-medium hover:text-apricot transition-colors">
           Back to login
         </Link>
       </p>
-    </AuthShell>
+    </GlassAuthShell>
   );
 }

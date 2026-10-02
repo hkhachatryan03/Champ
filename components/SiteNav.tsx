@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, List, MessageCircle, User, Info, Mail, Settings, LogOut } from "lucide-react";
+import { Sparkles, List, MessageCircle, User, Info, Mail, Settings, LogOut, Briefcase, Users, Inbox, Building2 } from "lucide-react";
 import { Logo } from "./ui";
 import NavTabs from "./NavTabs";
 
@@ -14,31 +14,33 @@ import NavTabs from "./NavTabs";
  * app, so a server-side choice would go stale after the first click.
  *
  *  - logged-out visitor on a public page  -> floating glass pill (guest)
- *  - candidate on a redesigned page       -> floating glass pill + tabs + account menu
- *  - everyone/everywhere else             -> the original bar, unchanged
+ *  - candidate / recruiter on any page of their own area (and the shared
+ *    pages)                               -> floating glass pill + tabs + account menu
+ *  - anything else (e.g. the admin area)  -> the original bar, unchanged
  */
 
 type Tab = [string, string, number];
 
-const GUEST_PAGES = ["/about", "/jobs", "/contact", "/login", "/signup"];
-const CANDIDATE_MODERN = [
-  "/candidate/jobs",
-  "/candidate/applications",
-  "/candidate/profile",
-  "/thread",
-  "/settings",
-  "/about",
-  "/contact",
-  "/jobs",
-];
+const GUEST_PAGES = ["/about", "/jobs", "/contact", "/login", "/signup", "/forgot-password", "/reset-password", "/verify-email"];
+// Pages every signed-in person can reach, whatever their role.
+const SHARED_MODERN = ["/thread", "/settings", "/about", "/contact", "/jobs", "/companies", "/verify-email", "/verify-email-pending"];
+const CANDIDATE_MODERN = ["/candidate", ...SHARED_MODERN];
+const COMPANY_MODERN = ["/company", ...SHARED_MODERN];
 
 const under = (path: string, base: string) => path === base || path.startsWith(base + "/");
 const isGuestPage = (p: string) => p === "/" || GUEST_PAGES.some((b) => under(p, b));
 // A candidate previewing their own profile lands on /company/candidates/<id>
 const isSelfPreviewPath = (p: string) => /^\/company\/candidates\/\d+\/?$/.test(p);
 const isCandidateModern = (p: string) => CANDIDATE_MODERN.some((b) => under(p, b)) || isSelfPreviewPath(p);
+const isCompanyModern = (p: string) => COMPANY_MODERN.some((b) => under(p, b));
 
 function tabIsActive(href: string, pathname: string): boolean {
+  // ---- recruiter tabs ----
+  if (href === "/company/dashboard") return pathname === href || under(pathname, "/company/jobs");
+  if (href === "/company/candidates") return pathname === href || pathname === href + "/"; // a single candidate's page highlights nothing
+  if (href === "/company/inbox") return under(pathname, href) || under(pathname, "/thread");
+  if (href === "/company/profile") return under(pathname, href);
+  // ---- candidate tabs ----
   if (href === "/candidate/jobs/for-you") return pathname === href;
   if (href === "/candidate/jobs") return pathname === href || (under(pathname, href) && pathname !== "/candidate/jobs/for-you");
   if (href === "/candidate/applications") return under(pathname, href) || under(pathname, "/thread");
@@ -51,19 +53,27 @@ function Badge({ count }: { count: number }) {
 }
 
 const DOCK_ICONS: Record<string, React.ReactNode> = {
+  "/company/dashboard": <Briefcase size={19} strokeWidth={1.4} />,
+  "/company/candidates": <Users size={19} strokeWidth={1.4} />,
+  "/company/inbox": <Inbox size={19} strokeWidth={1.4} />,
+  "/company/profile": <Building2 size={19} strokeWidth={1.4} />,
   "/candidate/jobs/for-you": <Sparkles size={19} strokeWidth={1.4} />,
   "/candidate/jobs": <List size={19} strokeWidth={1.4} />,
   "/candidate/applications": <MessageCircle size={19} strokeWidth={1.4} />,
   "/candidate/profile": <User size={19} strokeWidth={1.4} />,
 };
 const DOCK_LABELS: Record<string, string> = {
+  "/company/dashboard": "Roles",
+  "/company/candidates": "Candidates",
+  "/company/inbox": "Inbox",
+  "/company/profile": "Profile",
   "/candidate/jobs/for-you": "For you",
   "/candidate/jobs": "Roles",
   "/candidate/applications": "Applications",
   "/candidate/profile": "Profile",
 };
 
-function AccountMenu({ email, logoutAction }: { email: string; logoutAction: () => Promise<void> }) {
+function AccountMenu({ email, label, logoutAction }: { email: string; label: string; logoutAction: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -96,7 +106,7 @@ function AccountMenu({ email, logoutAction }: { email: string; logoutAction: () 
       <div className={`aur-menu ${open ? "open" : ""}`} role="menu">
         <div className="aur-menu-who">
           <b>{email}</b>
-          <small>Job seeker</small>
+          <small>{label}</small>
         </div>
         <Link href="/about" role="menuitem"><Info size={16} strokeWidth={1.4} /> What is Champ?</Link>
         <Link href="/contact" role="menuitem"><Mail size={16} strokeWidth={1.4} /> Contact us</Link>
@@ -143,12 +153,12 @@ export default function SiteNav({
     );
   }
 
-  // ---- candidate on a redesigned page: pill + tabs + account menu, dock on phones ----
-  if (role === "candidate" && isCandidateModern(pathname)) {
+  // ---- signed-in candidate / recruiter: pill + tabs + account menu, dock on phones ----
+  if ((role === "candidate" && isCandidateModern(pathname)) || (role === "company" && isCompanyModern(pathname))) {
     return (
       <>
         <nav className="aur-nav aur-nav-app" aria-label="Main">
-          <Link href="/candidate/jobs/for-you" className="aur-nav-logo">
+          <Link href={role === "company" ? "/company/dashboard" : "/candidate/jobs/for-you"} className="aur-nav-logo">
             <Logo />
           </Link>
           <div className="aur-tabs">
@@ -164,7 +174,7 @@ export default function SiteNav({
               </Link>
             ))}
           </div>
-          <AccountMenu key={pathname} email={email} logoutAction={logoutAction} /> {/* key = route: the menu closes itself on navigation */}
+          <AccountMenu key={pathname} email={email} label={role === "company" ? "Recruiter" : "Job seeker"} logoutAction={logoutAction} /> {/* key = route: the menu closes itself on navigation */}
         </nav>
         <nav className="aur-dock" aria-label="Main">
           {tabs.map(([href, , unread]) => (

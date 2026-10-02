@@ -9,6 +9,7 @@ import ThreadView from "@/components/ThreadView";
 import MultiCheckDropdown from "@/components/MultiCheckDropdown";
 import GuestPage from "@/components/GuestPage";
 import { ArrowLeft } from "lucide-react";
+import RefreshAfterOpen from "@/components/RefreshAfterOpen";
 
 const STATUSES = ["New", "Interviewing", "Offer", "Hired", "Not moving forward"];
 
@@ -105,7 +106,7 @@ export default async function MyApplicationsPage({
                               a.company_name?.charAt(0).toUpperCase() || "?"
                             )}
                           </span>
-                          {a.unread_count > 0 && (
+                          {a.unread_count > 0 && openId !== a.id && (
                             <span className="absolute -top-px -right-px w-[11px] h-[11px] rounded-full bg-apricot border-2 border-[#1d2026]" />
                           )}
                         </div>
@@ -128,6 +129,7 @@ export default async function MyApplicationsPage({
                   )}
                 </div>
 
+                {openId && (filtered.find((a) => a.id === openId)?.unread_count ?? 0) > 0 && <RefreshAfterOpen />}
                 {/* Open conversation */}
                 <div className={`aur-inbox-pane ${openId ? "max-md:flex-1" : "max-md:hidden"}`}>
                   {openId ? (

@@ -2,7 +2,8 @@ import { getSession } from "@/lib/auth";
 import { getCompanyProfile } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import AuthShell from "@/components/auth/AuthShell";
+import GlassAuthShell from "@/components/auth/GlassAuthShell";
+import { ArrowRight } from "lucide-react";
 
 export default async function CompanyPendingPage() {
   const session = await getSession();
@@ -35,25 +36,26 @@ export default async function CompanyPendingPage() {
   const state = copy[profile.review_status as "pending" | "pending_team" | "rejected"] || copy.pending;
 
   return (
-    <AuthShell eyebrow={state.eyebrow} title={state.title}>
-      <p className="text-sm text-muted leading-relaxed">{state.body}</p>
+    <GlassAuthShell eyebrow={state.eyebrow} title={state.title}>
+      <p className="text-sm text-paper/62 leading-[1.7]">{state.body}</p>
 
-      <div className="mt-8 flex flex-col gap-3">
+      <div className="mt-7 flex flex-col gap-3">
         <Link
           href="/company/profile"
-          className="px-5 py-3 rounded-full font-medium text-sm bg-apricot text-ink hover:bg-apricot-deep hover:text-paper transition-colors text-center"
+          className="aur-btn aur-btn-primary aur-btn-shine justify-center w-full !py-3.5 !pl-5 !pr-2"
         >
           Go to my profile
+          <span className="aur-btn-icon"><ArrowRight size={14} /></span>
         </Link>
         {profile.review_status === "rejected" && (
           <Link
             href="/contact"
-            className="px-5 py-3 rounded-full font-medium text-sm border border-line text-ink hover:border-ink/30 transition-colors text-center"
+            className="aur-btn justify-center w-full !py-3 border border-paper/15 text-paper !text-sm hover:border-paper/40"
           >
             Contact support
           </Link>
         )}
       </div>
-    </AuthShell>
+    </GlassAuthShell>
   );
 }

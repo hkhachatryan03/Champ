@@ -3,6 +3,9 @@ import { verifyPasswordResetOtp } from "@/lib/queries";
 import { hashPassword } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import GlassAuthShell from "@/components/auth/GlassAuthShell";
+import PasswordField from "@/components/auth/PasswordField";
+import { ArrowRight } from "lucide-react";
 
 async function resetPasswordAction(formData: FormData) {
   "use server";
@@ -42,39 +45,36 @@ export default async function ResetPasswordPage({
   };
 
   return (
-    <div className="px-6 py-12 max-w-md mx-auto">
-      <h1 className="font-display font-semibold text-2xl">Enter your reset code</h1>
-      <p className="text-sm text-muted mt-2 mb-6">
-        Check your email for a 6-digit code — it expires in 15 minutes.
-      </p>
-
+    <GlassAuthShell
+      eyebrow="Account recovery"
+      title="Enter your reset code"
+      subtitle="Check your email for a 6-digit code — it expires in 15 minutes."
+    >
       {error && (
-        <div className="mb-4 text-sm text-apricot-deep bg-apricot/10 rounded-lg px-3 py-2">
+        <div className="aur-alert mb-4 !text-[13.5px] !leading-[1.5] !px-3.5 !py-[11px] !rounded-[13px]">
           {ERRORS[error] || "Something went wrong."}
         </div>
       )}
 
       <form action={resetPasswordAction} className="flex flex-col gap-4">
         <div>
-          <label className="text-xs font-medium text-muted">Email</label>
-          <input name="email" type="email" defaultValue={email} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
+          <label className="aur-label">Email</label>
+          <input name="email" type="email" defaultValue={email} required placeholder="you@example.com" className="aur-field" />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted">6-digit code</label>
-          <input name="otp" required maxLength={6} placeholder="123456" className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num tracking-widest" />
+          <label className="aur-label">6-digit code</label>
+          <input name="otp" required maxLength={6} placeholder="123456" className="aur-field font-mono-num text-[19px] tracking-[.35em]" />
         </div>
-        <div>
-          <label className="text-xs font-medium text-muted">New password</label>
-          <input name="newPassword" type="password" required minLength={8} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none" />
-        </div>
-        <button type="submit" className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit">
+        <PasswordField label="New password" name="newPassword" minLength={8} />
+        <button type="submit" className="aur-btn aur-btn-primary aur-btn-shine justify-center w-full !py-3.5 !pl-5 !pr-2 mt-1">
           Reset password
+          <span className="aur-btn-icon"><ArrowRight size={14} /></span>
         </button>
       </form>
 
-      <p className="text-sm text-muted mt-6">
-        <Link href="/forgot-password" className="underline">Didn&apos;t get a code? Request another</Link>
+      <p className="text-[13.5px] text-paper/55 mt-[18px] text-center">
+        <Link href="/forgot-password" className="underline underline-offset-[3px] text-paper font-medium hover:text-apricot transition-colors">Didn&apos;t get a code? Request another</Link>
       </p>
-    </div>
+    </GlassAuthShell>
   );
 }

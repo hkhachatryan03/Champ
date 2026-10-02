@@ -356,3 +356,37 @@ form[data-dirty] .aur-savehint::before{background:var(--apricot);box-shadow:0 0 
 .aur-inl:hover{color:#F0B46A;text-decoration-color:currentColor}
 .aur-danger{padding:6px;border-radius:26px;background:rgba(234,154,46,.05);border:1px solid rgba(234,154,46,.28)}
 .aur-danger-inner{border-radius:20px;background:linear-gradient(180deg,rgba(234,154,46,.07),rgba(234,154,46,.02));border:1px solid rgba(234,154,46,.14)}
+
+/* ============================================================
+   Recruiter view — additive styles (nothing above is changed)
+   ============================================================ */
+/* applicants chart (role detail) */
+.aur-bars{display:flex;align-items:flex-end;gap:12px;height:160px;padding-top:6px}
+.aur-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:7px;height:100%;background:none;border:0;cursor:pointer;color:inherit;padding:0;min-width:0}
+.aur-bar i{display:block;width:100%;border-radius:8px 8px 3px 3px;background:var(--c);min-height:4px;transition:opacity .35s cubic-bezier(.32,.72,0,1),transform .5s cubic-bezier(.32,.72,0,1)}
+.aur-bar:hover i{transform:translateY(-3px)}
+.aur-bar b{font:500 13px 'IBM Plex Mono',monospace;color:var(--paper)}
+.aur-bar span{font-size:10.5px;color:rgba(250,246,238,.55);text-align:center;line-height:1.25;height:26px}
+.aur-bars.has-sel .aur-bar:not(.on) i{opacity:.3}
+.aur-bar:focus-visible{outline:2px solid var(--apricot);outline-offset:3px;border-radius:8px}
+/* a real checkbox drawn as a switch (e.g. "Active" on Edit role) */
+.aur-switchcb{position:relative;flex-shrink:0}
+.aur-switchcb input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0}
+.aur-switchcb-track{display:block;position:relative;width:46px;height:26px;border-radius:999px;border:1px solid var(--hair-strong);background:rgba(12,14,18,.6);transition:background .35s cubic-bezier(.32,.72,0,1),border-color .35s cubic-bezier(.32,.72,0,1);pointer-events:none}
+.aur-switchcb-track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:rgba(250,246,238,.7);transition:transform .4s cubic-bezier(.32,.72,0,1),background .3s cubic-bezier(.32,.72,0,1)}
+.aur-switchcb input:checked + .aur-switchcb-track{background:rgba(234,154,46,.25);border-color:rgba(234,154,46,.6)}
+.aur-switchcb input:checked + .aur-switchcb-track::after{transform:translateX(20px);background:var(--apricot)}
+.aur-switchcb input:focus-visible + .aur-switchcb-track{outline:2px solid var(--apricot);outline-offset:3px}
+
+/* ---------- onboarding / recovery / verification screens ---------- */
+.aur-cicon{width:60px;height:60px;border-radius:20px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;background:rgba(234,154,46,.12);border:1px solid rgba(234,154,46,.32);color:var(--apricot)}
+.aur-cicon.good{background:rgba(127,176,138,.14);border-color:rgba(127,176,138,.4);color:#8FC79B}
+.aur-cbody{margin-top:12px;font-size:14.5px;line-height:1.7;color:rgba(250,246,238,.62)}
+.aur-cbody strong{color:var(--paper);font-weight:500}
+.aur-cbody .aur-btn{margin-top:26px}
+.aur-steps{display:flex;align-items:center;gap:7px}
+.aur-steps i{width:26px;height:4px;border-radius:4px;background:rgba(250,246,238,.14)}
+.aur-steps i.on{background:var(--apricot)}
+.aur-steps em{font-style:normal;font:500 12px 'Inter',sans-serif;color:rgba(250,246,238,.5);margin-left:8px;letter-spacing:.04em}
+.aur-dropx{display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:14px;border:1px dashed rgba(250,246,238,.22);background:rgba(12,14,18,.4);cursor:pointer;font-size:13.5px;color:rgba(250,246,238,.6);transition:border-color .3s cubic-bezier(.32,.72,0,1),background .3s cubic-bezier(.32,.72,0,1)}
+.aur-dropx:hover{border-color:var(--apricot);background:rgba(234,154,46,.06)}
