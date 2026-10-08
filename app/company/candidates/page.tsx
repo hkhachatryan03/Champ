@@ -1,3 +1,4 @@
+import { CURRENCY, formatAmount, formatMoney, formatMoneyRange } from "@/lib/currency";
 import Link from "next/link";
 import { listActiveCandidatePool, parseSkills, CandidateFilters, listDistinctCandidateTitles } from "@/lib/queries";
 import { getSession } from "@/lib/auth";
@@ -37,10 +38,10 @@ export default async function CandidatesHubPage({
   }
   if (filters.salaryMin || filters.salaryMax) {
     const label = filters.salaryMin && filters.salaryMax
-      ? `$${filters.salaryMin}–$${filters.salaryMax}`
+      ? `${formatMoneyRange(filters.salaryMin, filters.salaryMax)}`
       : filters.salaryMin
-      ? `$${filters.salaryMin}+`
-      : `up to $${filters.salaryMax}`;
+      ? `${formatAmount(filters.salaryMin)}+ ${CURRENCY}`
+      : `up to ${formatMoney(filters.salaryMax)}`;
     chips.push({ key: ["salaryMin", "salaryMax"], label });
   }
 
@@ -81,9 +82,9 @@ export default async function CandidatesHubPage({
                         </div>
                         <div className="mt-3.5 flex items-center gap-3 flex-wrap justify-between">
                           <div className="aur-sal">
-                            <span>${c.salary_min}</span>
+                            <span>{formatAmount(c.salary_min)}</span>
                             <span className="aur-dots" />
-                            <span>${c.salary_max}</span>
+                            <span>{formatMoney(c.salary_max)}</span>
                             <small>/mo</small>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
@@ -143,7 +144,7 @@ export default async function CandidatesHubPage({
                     <p className="text-xs leading-[1.55] text-paper/50 mt-1.5">Matches candidates who have all selected skills.</p>
                   </div>
                   <div>
-                    <label className="aur-label">Salary ($/mo)</label>
+                    <label className="aur-label">Salary ({CURRENCY}/mo)</label>
                     <div className="mt-1">
                       <SalaryRangeFilter glass minName="salaryMin" maxName="salaryMax" defaultMin={filters.salaryMin} defaultMax={filters.salaryMax} />
                     </div>

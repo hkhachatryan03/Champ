@@ -1,3 +1,4 @@
+import { formatAmount, formatMoney } from "@/lib/currency";
 import Link from "next/link";
 import { Ledger, Tag } from "@/components/ui";
 import { formatPostedAge } from "@/lib/dates";
@@ -81,9 +82,9 @@ export default function JobCard({
 
             <div className="mt-4 flex items-center justify-between flex-wrap gap-3">
               <div className="aur-sal sm:min-w-[210px]">
-                <span>${job.salary_min}</span>
+                <span>{formatAmount(job.salary_min)}</span>
                 <span className="aur-dots" />
-                <span>${job.salary_max}</span>
+                <span>{formatMoney(job.salary_max)}</span>
                 <small>/mo</small>
               </div>
               {visibleSkills.length > 0 && (

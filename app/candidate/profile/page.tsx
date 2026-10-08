@@ -1,3 +1,4 @@
+import { CURRENCY, formatAmount, formatMoney } from "@/lib/currency";
 import { getSession } from "@/lib/auth";
 import { getCandidateProfile, updateCandidateProfile, getCandidateCompletionStatus, parseSkills, listExperiences, addExperience, updateExperience, deleteExperience, listCertifications, addCertification, updateCertification, deleteCertification, listEducation, addEducation, updateEducation, deleteEducation, DEGREE_OPTIONS, normalizeAndRegisterTerm, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
 import { formatTermCasing } from "@/lib/termCasing";
@@ -342,9 +343,9 @@ export default async function CandidateProfilePage({
                   {!!profile.remote_ok && <span className="aur-tag aur-tag-ok">Remote OK</span>}
                 </div>
                 <div className="aur-sal mt-4 w-full">
-                  <span>${profile.salary_min}</span>
+                  <span>{formatAmount(profile.salary_min)}</span>
                   <span className="aur-dots" />
-                  <span>${profile.salary_max}</span>
+                  <span>{formatMoney(profile.salary_max)}</span>
                   <small>/mo</small>
                 </div>
                 {languageList.length > 0 && (
@@ -590,11 +591,11 @@ export default async function CandidateProfilePage({
                     )}
                     <div className="grid sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="aur-label">Salary min ($/mo)</label>
+                        <label className="aur-label">Salary min ({CURRENCY}/mo)</label>
                         <input name="salaryMin" type="number" defaultValue={profile.salary_min} className="aur-field font-mono-num" />
                       </div>
                       <div>
-                        <label className="aur-label">Salary max ($/mo)</label>
+                        <label className="aur-label">Salary max ({CURRENCY}/mo)</label>
                         <input name="salaryMax" type="number" defaultValue={profile.salary_max} className="aur-field font-mono-num" />
                       </div>
                     </div>

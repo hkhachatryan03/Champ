@@ -1,5 +1,8 @@
 // Formats how long ago something was posted, as "Xd" for under a month,
-// then switching to "Xm" (months) past 30 days — e.g. "22d", "1m", "2m".
+// then switching to "Xmo" (months) past 30 days — e.g. "22d", "1mo", "2mo".
+// Months are deliberately "mo", never "m": "m" reads as minutes (which
+// formatLastActive below does use), and the two sit close enough on screen
+// that "1m" is genuinely ambiguous.
 export function formatPostedAge(dateStr: string): string {
   const posted = new Date(dateStr.replace(" ", "T"));
   if (isNaN(posted.getTime())) return dateStr;
@@ -10,7 +13,7 @@ export function formatPostedAge(dateStr: string): string {
   if (diffDays < 1) return "Today";
   if (diffDays < 30) return `${diffDays}d`;
   const months = Math.floor(diffDays / 30);
-  return `${months}m`;
+  return `${months}mo`;
 }
 
 // Formats a last-seen timestamp as "Online now" (within 2 minutes), then

@@ -1,3 +1,4 @@
+import { formatMoneyRange } from "@/lib/currency";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listJobsAdmin, countJobsAdmin, removeJobAsAdmin } from "@/lib/adminQueries";
@@ -72,7 +73,7 @@ export default async function AdminJobsPage({
                     )}
                   </p>
                   <p className="text-xs text-muted mt-1">
-                    ${j.salary_min}–${j.salary_max}/mo · {j.category} · {j.employment_type} · {statusLabel}
+                    {formatMoneyRange(j.salary_min, j.salary_max)}/mo · {j.category} · {j.employment_type} · {statusLabel}
                   </p>
                   {skills.length > 0 && (
                     <p className="text-xs text-muted mt-1 truncate">{skills.join(", ")}</p>

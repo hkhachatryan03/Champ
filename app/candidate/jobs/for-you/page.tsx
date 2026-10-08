@@ -1,3 +1,4 @@
+import { formatMoneyRange } from "@/lib/currency";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { listActiveJobsWithCompany, parseSkills, getAppliedJobIds } from "@/lib/queries";
@@ -30,7 +31,7 @@ export default async function ForYouPage() {
           {preferredPositions.length > 0 ? (
             <>
               Matched to roles like <span className="text-paper font-medium">{preferredPositions.join(", ")}</span>, in your{" "}
-              <span className="font-mono-num text-apricot">${profile.salary_min}–{profile.salary_max}</span> range.
+              <span className="font-mono-num text-apricot">{formatMoneyRange(profile.salary_min, profile.salary_max)}</span> range.
             </>
           ) : (
             <>

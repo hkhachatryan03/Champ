@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY } from "@/lib/currency";
 import { useActionState, useState } from "react";
 import TagPicker from "./TagPicker";
 import LanguagePicker from "./LanguagePicker";
@@ -138,11 +139,11 @@ export default function JobForm({
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="aur-label">Salary min ($/mo)</label>
+                  <label className="aur-label">Salary min ({CURRENCY}/mo)</label>
                   <input key={`smin${errKey}`} name="salaryMin" type="number" defaultValue={val("salaryMin", d.salary_min)} required placeholder="e.g. 2000" className="aur-field font-mono-num" />
                 </div>
                 <div>
-                  <label className="aur-label">Salary max ($/mo)</label>
+                  <label className="aur-label">Salary max ({CURRENCY}/mo)</label>
                   <input key={`smax${errKey}`} name="salaryMax" type="number" defaultValue={val("salaryMax", d.salary_max)} required placeholder="e.g. 3000" className="aur-field font-mono-num" />
                 </div>
               </div>
@@ -283,11 +284,11 @@ export default function JobForm({
       </div>
       <div className="flex gap-3">
         <div className="flex-1">
-          <label className="text-xs font-medium text-muted">Salary min ($/mo)</label>
+          <label className="text-xs font-medium text-muted">Salary min ({CURRENCY}/mo)</label>
           <input name="salaryMin" type="number" defaultValue={d.salary_min} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
         </div>
         <div className="flex-1">
-          <label className="text-xs font-medium text-muted">Salary max ($/mo)</label>
+          <label className="text-xs font-medium text-muted">Salary max ({CURRENCY}/mo)</label>
           <input name="salaryMax" type="number" defaultValue={d.salary_max} required className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none font-mono-num" />
         </div>
       </div>

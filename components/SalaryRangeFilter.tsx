@@ -1,5 +1,6 @@
 "use client";
 
+import { CURRENCY } from "@/lib/currency";
 import { useState } from "react";
 
 export default function SalaryRangeFilter({
@@ -8,8 +9,8 @@ export default function SalaryRangeFilter({
   defaultMin,
   defaultMax,
   floor = 0,
-  ceiling = 5000,
-  step = 50,
+  ceiling = 5_000_000,
+  step = 10_000,
   glass = false,
 }: {
   minName: string;
@@ -22,8 +23,38 @@ export default function SalaryRangeFilter({
   /** Dark "Ethereal Glass" look for the public guest pages. */
   glass?: boolean;
 }) {
-  const [minVal, setMinVal] = useState(defaultMin ? Number(defaultMin) : floor);
-  const [maxVal, setMaxVal] = useState(defaultMax ? Number(defaultMax) : ceiling);
+  const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), hi);
+  const initialMin = defaultMin ? clamp(Number(defaultMin) || floor, floor, ceiling) : floor;
+  const initialMax = defaultMax ? clamp(Number(defaultMax) || ceiling, floor, ceiling) : ceiling;
+
+  // The slider and the form values follow minVal/maxVal. The typed boxes show
+  // minText/maxText instead, so what someone is typing is never rewritten
+  // underneath them mid-keystroke (it's tidied up once they leave the box).
+  const [minVal, setMinVal] = useState(initialMin);
+  const [maxVal, setMaxVal] = useState(Math.max(initialMax, initialMin));
+  const [minText, setMinText] = useState(String(initialMin));
+  const [maxText, setMaxText] = useState(String(Math.max(initialMax, initialMin)));
+
+  const typeMin = (raw: string) => {
+    setMinText(raw);
+    const n = Number(raw);
+    if (raw.trim() !== "" && Number.isFinite(n)) setMinVal(clamp(n, floor, maxVal));
+  };
+  const typeMax = (raw: string) => {
+    setMaxText(raw);
+    const n = Number(raw);
+    if (raw.trim() !== "" && Number.isFinite(n)) setMaxVal(clamp(n, minVal, ceiling));
+  };
+  const settleMin = () => {
+    const v = clamp(minVal, floor, maxVal);
+    setMinVal(v);
+    setMinText(String(v));
+  };
+  const settleMax = () => {
+    const v = clamp(maxVal, minVal, ceiling);
+    setMaxVal(v);
+    setMaxText(String(v));
+  };
 
   const range = ceiling - floor;
   const leftPct = ((minVal - floor) / range) * 100;
@@ -48,27 +79,29 @@ export default function SalaryRangeFilter({
 
   return (
     <div>
+      {/* A handle left at its end-stop means "no limit", so nothing is sent —
+          otherwise every Apply would look like a salary filter was chosen. */}
+      {minVal > floor && <input type="hidden" name={minName} value={minVal} />}
+      {maxVal < ceiling && <input type="hidden" name={maxName} value={maxVal} />}
       <div className="flex items-center gap-2 mb-3">
         <input
           type="number"
-          name={minName}
-          value={minVal}
-          min={floor}
-          max={maxVal}
-          onChange={(e) => setMinVal(Math.min(Number(e.target.value) || floor, maxVal))}
+          inputMode="numeric"
+          value={minText}
+          onChange={(e) => typeMin(e.target.value)}
+          onBlur={settleMin}
           className={glass ? "aur-field aur-field-sm font-mono-num" : "w-full px-2 py-1.5 rounded-lg border border-line text-sm outline-none font-mono-num"}
-          placeholder="Min $"
+          placeholder={`Min ${CURRENCY}`}
         />
         <span className={glass ? "text-paper/50 text-sm" : "text-muted text-sm"}>–</span>
         <input
           type="number"
-          name={maxName}
-          value={maxVal}
-          min={minVal}
-          max={ceiling}
-          onChange={(e) => setMaxVal(Math.max(Number(e.target.value) || ceiling, minVal))}
+          inputMode="numeric"
+          value={maxText}
+          onChange={(e) => typeMax(e.target.value)}
+          onBlur={settleMax}
           className={glass ? "aur-field aur-field-sm font-mono-num" : "w-full px-2 py-1.5 rounded-lg border border-line text-sm outline-none font-mono-num"}
-          placeholder="Max $"
+          placeholder={`Max ${CURRENCY}`}
         />
       </div>
       <div className={glass ? "relative h-5 mx-1" : "relative h-4"}>
@@ -83,7 +116,11 @@ export default function SalaryRangeFilter({
           max={ceiling}
           step={step}
           value={minVal}
-          onChange={(e) => setMinVal(Math.min(Number(e.target.value), maxVal))}
+          onChange={(e) => {
+            const v = Math.min(Number(e.target.value), maxVal);
+            setMinVal(v);
+            setMinText(String(v));
+          }}
           className={thumbClass}
         />
         <input
@@ -92,7 +129,11 @@ export default function SalaryRangeFilter({
           max={ceiling}
           step={step}
           value={maxVal}
-          onChange={(e) => setMaxVal(Math.max(Number(e.target.value), minVal))}
+          onChange={(e) => {
+            const v = Math.max(Number(e.target.value), minVal);
+            setMaxVal(v);
+            setMaxText(String(v));
+          }}
           className={thumbClass}
         />
       </div>

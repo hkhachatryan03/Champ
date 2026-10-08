@@ -1,8 +1,53 @@
-# Champ — real codebase (v28)
+# Champ — real codebase (v30)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v30 — AMD style, real-scale slider, Home button
+
+- **Amounts are now written number-first: `1,700 AMD`** (was `AMD 1700`),
+  with thousands separators. Ranges carry the currency once, at the end:
+  `1,600 ········ 2,000 AMD /mo`, and filter chips read `400,000–900,000 AMD`.
+  All of it lives in `lib/currency.ts` (`formatAmount`, `formatMoney`,
+  `formatMoneyRange`). Grouping is hand-written rather than `toLocaleString`
+  so server and browser always print identical text.
+- **Salary slider is sized for AMD**: max **5,000,000**, one notch =
+  10,000 (`components/SalaryRangeFilter.tsx`).
+- **Slider no longer sends limits nobody chose.** Before, every "Apply
+  filters" submitted the end-stops (0 and the max) as if they were a real
+  filter, producing a junk "0–5,000,000 AMD" chip and silently hiding any
+  role above the ceiling. A handle left at its end-stop now sends nothing.
+- **Typing a salary no longer fights you.** The boxes used to clamp on
+  every keystroke, so with a minimum of 300,000 set, typing a maximum of
+  900,000 snapped back after the first digit. Boxes now keep what you type
+  and tidy it up when you leave the box.
+- **Home page "Browse open roles" button now browses.** It sat under
+  "Ready to see it for yourself?" but opened the sign-up form; it now goes
+  to the public roles list (`/jobs`).
+
+## What's new in v29 — AMD, "mo", and the Browse-open-roles fix
+
+- **Currency is now AMD everywhere** (was $). All money now goes through
+  one file, `lib/currency.ts` (`CURRENCY` + `formatMoney()`), so the code
+  and the way an amount is written are defined in a single place. Covers
+  job cards, job detail pages (applicant, guest, company), company
+  dashboard, candidate profile + company view of a candidate, For You,
+  the Candidates hub, filter chips and labels, the salary slider
+  placeholders, rate-asked lines in chat, onboarding/job forms, and the
+  admin BackOffice. The `$` icon on Home/About/chat became a neutral
+  banknote icon.
+- **Months are "mo", not "m"** on posted-age labels ("1mo", "2mo"), so
+  they can't be mistaken for minutes. Minutes keep "m" ("5m ago") and
+  "last active" already used "mo" for months.
+- **"Browse open roles" now lands applicants on All roles.** The About
+  page sent everyone to the guest listing; applicants now go to
+  `/candidate/jobs`. Also, `/jobs` itself now redirects signed-in
+  applicants to `/candidate/jobs` (keeping any filters), the same way
+  `/jobs/[id]` already redirected them, and the "Sign up" nudge is hidden
+  for anyone who is signed in.
+
+*(The slider caveat that used to be noted here is resolved in v30, below.)*
 
 ## What's new in v28
 

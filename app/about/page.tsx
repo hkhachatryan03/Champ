@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { DollarSign, MessageCircle, Gift, Code2, Building2, ArrowRight } from "lucide-react";
+import { Banknote, MessageCircle, Gift, Code2, Building2, ArrowRight } from "lucide-react";
 import GuestPage from "@/components/GuestPage";
 import Reveal from "@/components/Reveal";
 
@@ -118,7 +118,7 @@ export default async function AboutPage() {
         </Reveal>
         <div className="grid md:grid-cols-3 gap-5">
           {[
-            { icon: <DollarSign {...ICON} />, title: "Salary, upfront", body: "Every role shows its real range. No range, no listing — a hard rule, not a suggestion." },
+            { icon: <Banknote {...ICON} />, title: "Salary, upfront", body: "Every role shows its real range. No range, no listing — a hard rule, not a suggestion." },
             { icon: <MessageCircle {...ICON} />, title: "A real conversation", body: "Applying opens a message with an actual person, not a form disappearing into a queue." },
             { icon: <Gift {...ICON} />, title: "Free until it works", body: "Companies only pay a success fee once they actually hire someone through Champ — never before." },
           ].map((step, i, arr) => (
@@ -144,7 +144,7 @@ export default async function AboutPage() {
           <h2 className="font-display font-semibold text-[clamp(30px,5vw,42px)] text-paper">Come see for yourself.</h2>
           <div className="mt-8 flex flex-wrap gap-5 justify-center items-center">
             {(!session || session.role === "candidate") && (
-              <Link href="/jobs" className="aur-btn aur-btn-ghost">
+              <Link href={session?.role === "candidate" ? "/candidate/jobs" : "/jobs"} className="aur-btn aur-btn-ghost">
                 Browse open roles
                 <span className="aur-ring"><ArrowRight size={14} /></span>
               </Link>

@@ -1,3 +1,5 @@
+import { formatAmount, formatMoney } from "@/lib/currency";
+
 export function Logo() {
   return (
     <div className="flex items-center">
@@ -15,9 +17,9 @@ export function Logo() {
 export function Ledger({ min, max }: { min: number; max: number }) {
   return (
     <div className="flex items-baseline gap-2 font-mono-num text-[15px] text-apricot-deep">
-      <span>${min}</span>
+      <span>{formatAmount(min)}</span>
       <span className="flex-1 border-b border-dotted border-line" style={{ minWidth: 12 }} />
-      <span>${max}</span>
+      <span>{formatMoney(max)}</span>
       <span className="text-xs text-muted">/mo</span>
     </div>
   );

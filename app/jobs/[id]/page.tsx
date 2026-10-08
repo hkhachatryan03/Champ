@@ -1,3 +1,4 @@
+import { formatAmount, formatMoney } from "@/lib/currency";
 import Link from "next/link";
 import { getJobWithCompany, parseSkills } from "@/lib/queries";
 import { formatPostedAge } from "@/lib/dates";
@@ -75,9 +76,9 @@ export default async function PublicJobDetailPage({ params }: { params: Promise<
                 <div className="aur-bezel-inner px-6 py-5 md:px-[26px] flex flex-col gap-2">
                   <span className="text-xs font-medium tracking-[.12em] uppercase text-paper/50">Salary range</span>
                   <div className="flex items-baseline gap-3.5 font-mono-num font-medium text-[clamp(24px,4vw,32px)] text-apricot">
-                    <span>${job.salary_min}</span>
+                    <span>{formatAmount(job.salary_min)}</span>
                     <span className="flex-1 border-b border-dotted border-paper/30 min-w-5 -translate-y-1.5" />
-                    <span>${job.salary_max}</span>
+                    <span>{formatMoney(job.salary_max)}</span>
                     <span className="text-sm text-paper/50">/mo</span>
                   </div>
                 </div>

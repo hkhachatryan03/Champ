@@ -1,3 +1,4 @@
+import { formatMoneyRange } from "@/lib/currency";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -91,7 +92,7 @@ async function deleteUserAction(formData: FormData) {
 
 function fmtMoney(min: number, max: number) {
   if (!min && !max) return null;
-  return `$${min}–$${max}/mo`;
+  return `${formatMoneyRange(min, max)}/mo`;
 }
 
 export default async function AdminUserDetailPage({

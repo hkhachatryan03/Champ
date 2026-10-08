@@ -1,3 +1,4 @@
+import { formatAmount, formatMoney } from "@/lib/currency";
 import { getSession } from "@/lib/auth";
 import { listJobsForCompany } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
@@ -57,9 +58,9 @@ export default async function CompanyDashboard() {
                   </Link>
                   <div className="flex items-center gap-4 flex-shrink-0 max-md:w-full max-md:justify-between">
                     <div className="aur-sal">
-                      <span>${j.salary_min}</span>
+                      <span>{formatAmount(j.salary_min)}</span>
                       <span className="aur-dots" />
-                      <span>${j.salary_max}</span>
+                      <span>{formatMoney(j.salary_max)}</span>
                       <small>/mo</small>
                     </div>
                     <Link href={`/company/jobs/${j.id}/edit`} className="text-[12.5px] underline underline-offset-[3px] text-paper/60 hover:text-apricot whitespace-nowrap transition-colors">

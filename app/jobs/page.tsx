@@ -1,4 +1,7 @@
+import { CURRENCY, formatAmount, formatMoney, formatMoneyRange } from "@/lib/currency";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
 import {
   listActiveJobsWithCompany,
   parseSkills,
@@ -25,6 +28,21 @@ export default async function PublicJobsPage({
   searchParams: Promise<JobFilters>;
 }) {
   const filters = await searchParams;
+
+  // This is the *guest* listing. A signed-in applicant belongs on their own
+  // "All roles" page (same list, but with Applied badges, For you, etc. and
+  // links that go straight to apply) — so send them there, carrying any
+  // filters along so a bookmarked or shared filtered link still works.
+  // /jobs/[id] already does the same hop for single roles.
+  const session = await getSession();
+  if (session?.role === "candidate") {
+    const qs = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v) qs.set(k, v);
+    });
+    redirect(qs.toString() ? `/candidate/jobs?${qs.toString()}` : "/candidate/jobs");
+  }
+
   const allJobs = await listActiveJobsWithCompany(filters);
   const jobs = filters.language
     ? allJobs.filter((j) => parseSkills(j.languages || "[]").some((l) => l.toLowerCase().startsWith(filters.language!.toLowerCase())))
@@ -48,10 +66,10 @@ export default async function PublicJobsPage({
   if (filters.language) chips.push({ key: "language", label: filters.language });
   if (filters.salaryMin || filters.salaryMax) {
     const label = filters.salaryMin && filters.salaryMax
-      ? `$${filters.salaryMin}–$${filters.salaryMax}`
+      ? `${formatMoneyRange(filters.salaryMin, filters.salaryMax)}`
       : filters.salaryMin
-      ? `$${filters.salaryMin}+`
-      : `up to $${filters.salaryMax}`;
+      ? `${formatAmount(filters.salaryMin)}+ ${CURRENCY}`
+      : `up to ${formatMoney(filters.salaryMax)}`;
     chips.push({ key: ["salaryMin", "salaryMax"], label });
   }
 
@@ -62,8 +80,13 @@ export default async function PublicJobsPage({
           Open roles
         </h1>
         <p className="aur-hero-in text-[15px] text-paper/60 mt-2.5" style={{ animationDelay: ".1s" }}>
-          {jobs.length} roles posted right now.{" "}
-          <Link href="/signup?role=candidate" className="underline underline-offset-[3px] text-apricot">Sign up</Link> to apply or message a recruiter directly.
+          {jobs.length} roles posted right now.
+          {!session && (
+            <>
+              {" "}
+              <Link href="/signup?role=candidate" className="underline underline-offset-[3px] text-apricot">Sign up</Link> to apply or message a recruiter directly.
+            </>
+          )}
         </p>
         <ActiveFilterChips glass chips={chips} basePath="/jobs" currentParams={filters as Record<string, string | undefined>} />
 
@@ -145,7 +168,7 @@ export default async function PublicJobsPage({
                     </select>
                   </div>
                   <div>
-                    <label className="aur-label">Salary ($/mo)</label>
+                    <label className="aur-label">Salary ({CURRENCY}/mo)</label>
                     <div className="mt-1">
                       <SalaryRangeFilter glass minName="salaryMin" maxName="salaryMax" defaultMin={filters.salaryMin} defaultMax={filters.salaryMax} />
                     </div>

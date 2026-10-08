@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/currency";
 import { getSession } from "@/lib/auth";
 import {
   getApplicationContext,
@@ -20,7 +21,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { StatusPill } from "@/components/ui";
-import { ArrowLeft, DollarSign, FileText, Link2 } from "lucide-react";
+import { ArrowLeft, Banknote, FileText, Link2 } from "lucide-react";
 import { put } from "@vercel/blob";
 import MessageComposer from "@/components/MessageComposer";
 import MessageBubble from "@/components/MessageBubble";
@@ -301,7 +302,7 @@ export default async function ThreadView({
               )}
               {app.expected_salary && (
                 <span className="inline-flex items-center gap-1.5 font-mono-num text-apricot">
-                  <DollarSign size={14} strokeWidth={1.4} /> ${app.expected_salary}/mo asked
+                  <Banknote size={14} strokeWidth={1.4} /> {formatMoney(app.expected_salary)}/mo asked
                 </span>
               )}
             </div>
@@ -514,7 +515,7 @@ export default async function ThreadView({
                 </a>
               )}
               {app.expected_salary && (
-                <span className="font-mono-num text-apricot-deep">💰 ${app.expected_salary}/mo asked</span>
+                <span className="font-mono-num text-apricot-deep">💰 {formatMoney(app.expected_salary)}/mo asked</span>
               )}
             </div>
           );

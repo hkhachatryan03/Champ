@@ -1,3 +1,4 @@
+import { CURRENCY, formatAmount, formatMoney, formatMoneyRange } from "@/lib/currency";
 import { listActiveJobsWithCompany, parseSkills, JobFilters, getAppliedJobIds, listDistinctJobTitles, listDistinctCompanyNames } from "@/lib/queries";
 import { getSession } from "@/lib/auth";
 import { requireOnboardedCandidate } from "@/lib/guards";
@@ -46,10 +47,10 @@ export default async function BrowseJobsPage({
   if (filters.language) chips.push({ key: "language", label: filters.language });
   if (filters.salaryMin || filters.salaryMax) {
     const label = filters.salaryMin && filters.salaryMax
-      ? `$${filters.salaryMin}–$${filters.salaryMax}`
+      ? `${formatMoneyRange(filters.salaryMin, filters.salaryMax)}`
       : filters.salaryMin
-      ? `$${filters.salaryMin}+`
-      : `up to $${filters.salaryMax}`;
+      ? `${formatAmount(filters.salaryMin)}+ ${CURRENCY}`
+      : `up to ${formatMoney(filters.salaryMax)}`;
     chips.push({ key: ["salaryMin", "salaryMax"], label });
   }
   if (filters.hideApplied === "1") chips.push({ key: "hideApplied", label: "Hiding applied" });
@@ -140,7 +141,7 @@ export default async function BrowseJobsPage({
                     </select>
                   </div>
                   <div>
-                    <label className="aur-label">Salary ($/mo)</label>
+                    <label className="aur-label">Salary ({CURRENCY}/mo)</label>
                     <div className="mt-1">
                       <SalaryRangeFilter glass minName="salaryMin" maxName="salaryMax" defaultMin={filters.salaryMin} defaultMax={filters.salaryMax} />
                     </div>

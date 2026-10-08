@@ -1,3 +1,4 @@
+import { formatAmount, formatMoney } from "@/lib/currency";
 import { getSession } from "@/lib/auth";
 import {
   getCandidateProfile,
@@ -119,9 +120,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                       <p className="text-[14.5px] text-paper/62 mt-1.5">{profile.title} · {profile.years_experience} yrs experience</p>
                     </div>
                     <div className="aur-sal !px-4 !py-2 !text-sm max-md:w-full">
-                      <span>${profile.salary_min}</span>
+                      <span>{formatAmount(profile.salary_min)}</span>
                       <span className="aur-dots" />
-                      <span>${profile.salary_max}</span>
+                      <span>{formatMoney(profile.salary_max)}</span>
                       <small>/mo</small>
                     </div>
                   </div>
@@ -312,7 +313,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                     >
                       <div className="text-[14.5px] font-medium text-paper">{job.title}</div>
                       {expectedSalary && (
-                        <div className="text-xs font-mono-num text-apricot mt-0.5">${expectedSalary}/mo asked</div>
+                        <div className="text-xs font-mono-num text-apricot mt-0.5">{formatMoney(expectedSalary)}/mo asked</div>
                       )}
                       <div className="flex items-center justify-between mt-3">
                         <StatusPill glass status={status} />

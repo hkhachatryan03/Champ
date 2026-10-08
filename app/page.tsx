@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Reveal from "@/components/Reveal";
 import {
-  DollarSign,
+  Banknote,
   MessageCircle,
   Gift,
   Sparkles,
@@ -142,7 +142,7 @@ export default async function Home() {
               <div className="aur-bezel h-full">
                 <div className="aur-bezel-inner p-6 h-full">
                   <div className="w-10 h-10 rounded-full bg-apricot/15 border border-apricot/30 text-apricot flex items-center justify-center mb-4">
-                    <DollarSign size={18} />
+                    <Banknote size={18} />
                   </div>
                   <p className="font-medium mb-1.5 text-paper">No guessing on budget</p>
                   <p className="text-sm text-paper/60 leading-relaxed">
@@ -197,7 +197,7 @@ export default async function Home() {
                 <div className="aur-bezel h-full">
                   <div className="aur-bezel-inner p-6 h-full">
                     <div className="w-10 h-10 rounded-full bg-apricot/15 border border-apricot/30 flex items-center justify-center mb-4">
-                      <DollarSign size={18} className="text-apricot" />
+                      <Banknote size={18} className="text-apricot" />
                     </div>
                     <p className="font-medium mb-1.5 text-paper">Real ranges, every listing</p>
                     <p className="text-sm text-paper/60 leading-relaxed">
@@ -263,7 +263,7 @@ export default async function Home() {
               Ready to see it for yourself?
             </h2>
             <div className="mt-8 flex flex-wrap gap-5 justify-center">
-              <Link href="/signup?role=candidate" className="aur-btn aur-btn-primary">
+              <Link href="/jobs" className="aur-btn aur-btn-primary">
                 Browse open roles
                 <span className="aur-btn-icon">
                   <ArrowRight size={14} />

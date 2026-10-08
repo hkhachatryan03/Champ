@@ -1,3 +1,4 @@
+import { CURRENCY } from "@/lib/currency";
 import { getSession } from "@/lib/auth";
 import { getCandidateProfile, updateCandidateProfile, listExperiences, addExperience, deleteExperience, isEmailVerified, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
 import { redirect } from "next/navigation";
@@ -424,11 +425,11 @@ export default async function CandidateOnboarding({
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="aur-label">Salary min ($/mo)</label>
+                  <label className="aur-label">Salary min ({CURRENCY}/mo)</label>
                   <input name="salaryMin" type="number" defaultValue={profile.salary_min || undefined} required className="aur-field font-mono-num" />
                 </div>
                 <div>
-                  <label className="aur-label">Salary max ($/mo)</label>
+                  <label className="aur-label">Salary max ({CURRENCY}/mo)</label>
                   <input name="salaryMax" type="number" defaultValue={profile.salary_max || undefined} required className="aur-field font-mono-num" />
                 </div>
               </div>
