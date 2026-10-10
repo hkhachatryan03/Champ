@@ -12,6 +12,7 @@ import { ArrowRight, Check } from "lucide-react";
 const CANDIDATE_TOPICS = [
   "Question about my profile",
   "Question about an application",
+  "Privacy request",
   "Report a bug",
 ];
 
@@ -19,10 +20,11 @@ const COMPANY_TOPICS = [
   "Verification request",
   "Billing question",
   "Question about a candidate",
+  "Privacy request",
   "Report a bug",
 ];
 
-const GENERAL_TOPICS = ["General question", "Report a bug"];
+const GENERAL_TOPICS = ["General question", "Privacy request", "Report a bug"];
 
 async function contactAction(formData: FormData) {
   "use server";

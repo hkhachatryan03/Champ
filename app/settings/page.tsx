@@ -1,3 +1,4 @@
+import { deleteUserAccount } from "@/lib/accountDeletion";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import sql from "@/lib/db";
@@ -21,10 +22,9 @@ async function deleteAccountAction(formData: FormData) {
     redirect("/settings?error=deleteconfirm");
   }
 
-  // Every related row (profile, jobs, applications, messages, etc.) is set
-  // up with ON DELETE CASCADE, so removing the user row cleans up
-  // everything else automatically.
-  await sql`DELETE FROM users WHERE id = ${session.userId}`;
+  // Removes the account's rows (everything else cascades from the user row)
+  // AND its uploaded files, which live in separate storage.
+  await deleteUserAccount(session.userId);
   await destroySession();
   redirect("/?deleted=1");
 }

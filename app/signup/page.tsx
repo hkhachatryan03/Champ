@@ -1,3 +1,4 @@
+import { LEGAL } from "@/lib/legal";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import sql from "@/lib/db";
@@ -37,7 +38,8 @@ async function signupAction(formData: FormData) {
 
   const password_hash = await hashPassword(password);
   const insertRows = await sql`
-    INSERT INTO users (email, password_hash, role, auth_provider) VALUES (${email}, ${password_hash}, ${role}, 'password')
+    INSERT INTO users (email, password_hash, role, auth_provider, terms_accepted_at, terms_version)
+    VALUES (${email}, ${password_hash}, ${role}, 'password', to_char(now(), 'YYYY-MM-DD HH24:MI:SS'), ${LEGAL.version})
     RETURNING id
   `;
   const userId = Number(insertRows[0].id);
@@ -130,6 +132,17 @@ export default async function SignupPage({
           <span className="aur-btn-icon"><ArrowRight size={14} /></span>
         </button>
       </form>
+
+      {/* Acceptance notice — sits right under the button it relates to. The links open in a
+          new tab so nobody loses what they've typed. The moment (and text version) of
+          acceptance is saved with the account. */}
+      <p className="text-[12.5px] leading-[1.65] text-paper/50 mt-3.5 text-center">
+        {showOAuth ? "By creating an account — or continuing with Google or LinkedIn — you agree to our " : "By creating an account, you agree to our "}
+        <Link href="/terms" target="_blank" rel="noopener noreferrer" className="underline underline-offset-[3px] text-paper/70 hover:text-apricot transition-colors">Terms of Service</Link>
+        {" "}and{" "}
+        <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-[3px] text-paper/70 hover:text-apricot transition-colors">Privacy Policy</Link>
+        {role === "company" ? ", including the success fee described there." : "."}
+      </p>
 
       {showOAuth && (
         <>

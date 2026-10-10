@@ -1,8 +1,39 @@
-# Champ — real codebase (v31)
+# Champ — real codebase (v32)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v32 — Terms of Service and Privacy Policy
+
+**⚠ Database change.** Run `scripts/init-db.mjs` BEFORE pushing. It adds two
+columns to `users` (`terms_accepted_at`, `terms_version`). Sign-up now writes
+to them, so if the site is deployed before the script runs, new sign-ups fail.
+
+- **/terms and /privacy** — public pages, each starting with a plain-language
+  "short version" and a contents list. The text lives in `app/terms/page.tsx`
+  and `app/privacy/page.tsx`; layout in `components/legal/LegalPage.tsx`.
+- **`lib/legal.ts` is the one file to edit** for: legal name, address,
+  registration number, privacy email, the version/date, and the commercial
+  numbers (success-fee %, free months, attribution window, payment days).
+  Anything left empty is simply omitted — no placeholders ever show. **Change
+  `version` and `effectiveDate` whenever the legal text materially changes.**
+- **Footer on every page** (Terms · Privacy · Contact), except the BackOffice.
+- **Sign-up notice** under "Create account" (companies are also pointed at the
+  success fee), covering email, Google and LinkedIn sign-up. The time and the
+  version accepted are stored on the account. Accounts created before this
+  release have no record.
+- **Contact form** has a new "Privacy request" topic for everyone.
+- **"Delete account" now also deletes the uploaded files** (photo, CV,
+  certificates, attachments) from file storage, plus contact-form messages
+  from that email address. Before, only database rows were removed and the
+  files stayed online. Same for account deletion from the BackOffice
+  (`lib/accountDeletion.ts`). A storage failure never blocks deletion; it is
+  logged so the files can be cleaned up by hand.
+
+Known gaps the policy is honest about (worth fixing later): uploaded files are
+reachable by anyone with their exact address; companies see a candidate's full
+date of birth; deleting an account also cascades away `hires` records.
 
 ## What's new in v31 — drafts, positioning, share previews
 

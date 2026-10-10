@@ -1,3 +1,4 @@
+import { LEGAL } from "@/lib/legal";
 import { OAuth2Client } from "google-auth-library";
 import sql from "@/lib/db";
 import { createSession } from "@/lib/auth";
@@ -178,15 +179,15 @@ export async function resolveOAuthUser(
   let userId: number;
   if (identity.provider === "google") {
     const rows = await sql`
-      INSERT INTO users (email, password_hash, role, email_verified, auth_provider, google_sub)
-      VALUES (${identity.email}, NULL, ${role}, 1, 'google', ${identity.sub})
+      INSERT INTO users (email, password_hash, role, email_verified, auth_provider, google_sub, terms_accepted_at, terms_version)
+      VALUES (${identity.email}, NULL, ${role}, 1, 'google', ${identity.sub}, to_char(now(), 'YYYY-MM-DD HH24:MI:SS'), ${LEGAL.version})
       RETURNING id
     `;
     userId = Number(rows[0].id);
   } else {
     const rows = await sql`
-      INSERT INTO users (email, password_hash, role, email_verified, auth_provider, linkedin_sub)
-      VALUES (${identity.email}, NULL, ${role}, 1, 'linkedin', ${identity.sub})
+      INSERT INTO users (email, password_hash, role, email_verified, auth_provider, linkedin_sub, terms_accepted_at, terms_version)
+      VALUES (${identity.email}, NULL, ${role}, 1, 'linkedin', ${identity.sub}, to_char(now(), 'YYYY-MM-DD HH24:MI:SS'), ${LEGAL.version})
       RETURNING id
     `;
     userId = Number(rows[0].id);

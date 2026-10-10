@@ -440,6 +440,13 @@ async function main() {
   // if someone forgets a filter.
   await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS is_draft INTEGER NOT NULL DEFAULT 0`;
   console.log("Done. Eighteenth round of migrations applied.");
+
+  console.log("Applying nineteenth round of migrations (terms acceptance)...");
+  // When each person accepted the Terms/Privacy Policy, and which version of the
+  // text it was. Left empty for accounts created before the legal pages existed.
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_accepted_at TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_version TEXT`;
+  console.log("Done. Nineteenth round of migrations applied.");
 }
 
 main().catch((err) => {

@@ -1,3 +1,4 @@
+import SiteFooter from "@/components/SiteFooter";
 import type { Metadata } from "next";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
@@ -42,6 +43,7 @@ export default async function RootLayout({
       <body className="min-h-screen bg-paper text-ink">
         {!isAdminArea && <NavBar />}
         {children}
+        {!isAdminArea && <SiteFooter />}
       </body>
     </html>
   );

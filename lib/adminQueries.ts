@@ -1,3 +1,4 @@
+import { deleteUserAccount } from "./accountDeletion";
 import sql from "./db";
 import { verifyPassword } from "./auth";
 import { parseSkills } from "./queries";
@@ -168,7 +169,7 @@ export async function getUserDetail(userId: number) {
 export async function deleteUserAsAdmin(userId: number, adminEmail: string, reason: string) {
   const [user] = (await sql`SELECT email, role FROM users WHERE id = ${userId}`) as any[];
   if (!user) return;
-  await sql`DELETE FROM users WHERE id = ${userId}`;
+  await deleteUserAccount(userId);
   await logAdminAction(adminEmail, "deleted_user", "user", userId, `${user.role} ${user.email} — ${reason}`);
 }
 
