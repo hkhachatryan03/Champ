@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import sql from "@/lib/db";
 import { createPasswordResetOtp } from "@/lib/queries";
 import { sendPasswordResetOtp } from "@/lib/email";
@@ -37,6 +39,12 @@ async function requestResetAction(formData: FormData) {
 
   redirect(`/reset-password?email=${encodeURIComponent(email)}`);
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Forgot your password?",
+  description: "Request a code to reset your Champ password.",
+  noindex: true,
+});
 
 export default async function ForgotPasswordPage({
   searchParams,

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/auth";
 import { listApplicationsForCompany, listJobsForCompany } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
@@ -11,6 +13,12 @@ import { ArrowLeft } from "lucide-react";
 import RefreshAfterOpen from "@/components/RefreshAfterOpen";
 
 const STATUSES = ["New", "Interviewing", "Offer", "Hired", "Not moving forward"];
+
+export const metadata: Metadata = pageMetadata({
+  title: "Inbox",
+  description: "Your conversations with candidates, filterable by status and position.",
+  noindex: true,
+});
 
 export default async function InboxPage({
   searchParams,

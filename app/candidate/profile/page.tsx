@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { CURRENCY, formatAmount, formatMoney } from "@/lib/currency";
 import { getSession } from "@/lib/auth";
 import { getCandidateProfile, updateCandidateProfile, getCandidateCompletionStatus, parseSkills, listExperiences, addExperience, updateExperience, deleteExperience, listCertifications, addCertification, updateCertification, deleteCertification, listEducation, addEducation, updateEducation, deleteEducation, DEGREE_OPTIONS, normalizeAndRegisterTerm, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
@@ -275,6 +277,12 @@ async function updateAvatarAction(formData: FormData) {
     redirect("/candidate/profile?avatarError=1");
   }
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "My profile",
+  description: "Edit your Champ profile: experience, education, certifications, skills and the positions you want.",
+  noindex: true,
+});
 
 export default async function CandidateProfilePage({
   searchParams,

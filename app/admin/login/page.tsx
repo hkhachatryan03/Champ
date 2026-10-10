@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { verifyAdminLogin } from "@/lib/adminQueries";
 import { createAdminSession } from "@/lib/adminAuth";
 import { redirect } from "next/navigation";
@@ -15,6 +17,13 @@ async function adminLoginAction(formData: FormData) {
   await createAdminSession({ adminId: admin.id, email: admin.email, name: admin.name });
   redirect("/admin");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · Log in",
+  description: "Champ BackOffice sign-in.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminLoginPage({
   searchParams,

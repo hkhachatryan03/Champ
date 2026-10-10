@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { formatAmount, formatMoney } from "@/lib/currency";
 import Link from "next/link";
-import { getJobWithCompany, parseSkills } from "@/lib/queries";
+import { parseSkills } from "@/lib/queries";
+import { getJobCached, parseJobId } from "@/lib/jobCache";
+import { buildJobMetadata } from "@/lib/seo";
 import { formatPostedAge } from "@/lib/dates";
 import FormattedMessage from "@/components/FormattedMessage";
 import { getSession } from "@/lib/auth";
@@ -9,6 +12,15 @@ import { getJobLockReason, LOCK_BANNER_TEXT } from "@/lib/jobLock";
 import { LANGUAGE_LEVELS } from "@/lib/constants";
 import GuestPage from "@/components/GuestPage";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+
+// Each public role gets its own title and description built from the role
+// itself — "Senior Frontend Developer at LusarLabs (Remote)" — plus Open Graph
+// and Twitter tags, so a shared link previews properly on LinkedIn/Facebook.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const jobId = parseJobId(id);
+  return buildJobMetadata(jobId ? await getJobCached(jobId) : undefined);
+}
 
 export default async function PublicJobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -20,7 +32,8 @@ export default async function PublicJobDetailPage({ params }: { params: Promise<
   }
 
   const { id } = await params;
-  const job = await getJobWithCompany(Number(id));
+  const jobId = parseJobId(id);
+  const job = jobId ? await getJobCached(jobId) : undefined;
   if (!job) {
     return (
       <GuestPage>

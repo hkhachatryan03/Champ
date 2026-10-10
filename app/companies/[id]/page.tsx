@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/auth";
 import { getCompanyProfile, listActiveJobsForCompanyPublic, listSocialLinks } from "@/lib/queries";
 import { redirect } from "next/navigation";
@@ -6,6 +8,12 @@ import JobCard from "@/components/JobCard";
 import GuestPage from "@/components/GuestPage";
 import Reveal from "@/components/Reveal";
 import { MapPin, Phone } from "lucide-react";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Company profile",
+  description: "A company's profile and open roles on Champ.",
+  noindex: true,
+});
 
 export default async function PublicCompanyPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();

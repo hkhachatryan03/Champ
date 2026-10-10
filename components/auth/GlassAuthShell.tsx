@@ -1,8 +1,10 @@
+import { SAMPLE_LISTING } from "@/lib/sampleListing";
+import { formatAmount, formatMoney, formatMoneyRange } from "@/lib/currency";
 import GuestPage from "@/components/GuestPage";
 
 const HIGHLIGHTS = [
   "Every listing shows a real salary range",
-  "Built only for Armenia's tech community",
+  "Built for Armenia's tech companies and the people who work there",
   "No recruiter spam — every company is reviewed",
 ];
 
@@ -28,7 +30,7 @@ export default function GlassAuthShell({
         {/* Brand side */}
         <aside className="hidden md:block aur-hero-in pr-5">
           <h2 className="font-display font-semibold text-[clamp(34px,4.4vw,46px)] leading-[1.1] text-paper">
-            Tech jobs in Armenia, <span className="text-apricot">salaries visible.</span>
+            Jobs at Armenia&apos;s tech companies. <span className="text-apricot">Every salary visible.</span>
           </h2>
           <ul className="mt-8 flex flex-col gap-3 list-none p-0">
             {HIGHLIGHTS.map((item) => (
@@ -45,14 +47,20 @@ export default function GlassAuthShell({
           </ul>
           <div className="aur-bezel-sm aur-float-card mt-10 max-w-[330px]">
             <div className="aur-bezel-inner px-[18px] py-4">
-              <p className="font-display font-semibold text-base text-paper">Senior Backend Engineer</p>
-              <p className="text-[11.5px] text-paper/50">LusarLabs · Yerevan · Remote</p>
+              <p className="font-display font-semibold text-base text-paper">{SAMPLE_LISTING.title}</p>
+              <p className="text-[11.5px] text-paper/50">{SAMPLE_LISTING.company} · {SAMPLE_LISTING.where}</p>
               <div className="mt-2.5 flex items-baseline gap-2 font-mono-num text-[13px] text-apricot">
-                <span>$2200</span>
+                <span>{formatAmount(SAMPLE_LISTING.salaryMin)}</span>
                 <span className="flex-1 border-b border-dotted border-paper/30" />
-                <span>$2800</span>
+                <span>{formatMoney(SAMPLE_LISTING.salaryMax)}</span>
                 <span className="text-[11px] text-paper/50">/mo</span>
               </div>
+              <p className="mt-2.5 pt-2.5 border-t border-paper/10 text-[11px] leading-[1.5] text-paper/45">
+                Example listing. Typical in Armenia:{" "}
+                <span className="text-paper/65 font-mono-num">
+                  {formatMoneyRange(SAMPLE_LISTING.marketMin, SAMPLE_LISTING.marketMax)}
+                </span>
+              </p>
             </div>
           </div>
           <p className="mt-9 text-xs text-paper/40">© {new Date().getFullYear()} Champ</p>

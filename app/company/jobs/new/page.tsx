@@ -1,12 +1,15 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/auth";
-import { createJob, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
+import { createJob, listCustomTerms } from "@/lib/queries";
+import { readIntent, readJobFields, publishError } from "@/lib/jobFields";
+import { toJobRecord } from "@/lib/jobSubmission";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import JobForm, { JobFormState } from "@/components/JobForm";
 import GuestPage from "@/components/GuestPage";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { sanitizeRichText } from "@/lib/sanitize";
 import { COMMON_SKILLS } from "@/lib/constants";
 
 async function createJobAction(prevState: JobFormState, formData: FormData): Promise<JobFormState> {
@@ -14,43 +17,28 @@ async function createJobAction(prevState: JobFormState, formData: FormData): Pro
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
 
-  const rawSkills = String(formData.get("skills") || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const skills = await normalizeAndRegisterTerms("skill", rawSkills);
-  const description = sanitizeRichText(String(formData.get("description") || ""));
-  if (!description.replace(/<[^>]*>/g, "").trim()) return { error: "A description is required." };
+  const fields = readJobFields(formData);
 
-  const salaryMin = Number(formData.get("salaryMin") || 0);
-  const salaryMax = Number(formData.get("salaryMax") || 0);
-  if (salaryMax < salaryMin) {
-    return { error: "Max salary needs to be greater than or equal to min salary." };
+  // "Save draft": keep whatever is there, however unfinished. Private to this
+  // company — and its skills aren't added to the shared suggestion list yet.
+  if (readIntent(formData) === "draft") {
+    const record = await toJobRecord({ ...fields, title: fields.title || "Untitled draft" }, { registerTerms: false });
+    await createJob(session.userId, record, { isDraft: true });
+    redirect("/company/dashboard?notice=draft-saved");
   }
 
-  const experienceLevel = String(formData.get("experienceLevel") || "").trim() || null;
-  const languages = String(formData.get("languages") || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  await createJob(session.userId, {
-    title: String(formData.get("title") || ""),
-    category: String(formData.get("category") || "Tech") as "Tech" | "Non-tech",
-    employment_type: String(formData.get("employmentType") || "Full-time") as "Full-time" | "Part-time",
-    location: String(formData.get("location") || ""),
-    remote: formData.get("remote") ? 1 : 0,
-    salary_min: salaryMin,
-    salary_max: salaryMax,
-    skills: JSON.stringify(skills),
-    description,
-    experience_level: experienceLevel,
-    languages: JSON.stringify(languages),
-    client_name: String(formData.get("clientName") || "").trim(),
-  });
-
-  redirect("/company/dashboard");
+  // "Publish role": everything candidates rely on has to be there.
+  const error = publishError(fields);
+  if (error) return { error };
+  await createJob(session.userId, await toJobRecord(fields, { registerTerms: true }));
+  redirect("/company/dashboard?notice=published");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Post a role",
+  description: "Post a new role on Champ with a visible salary range, or save it as a draft and finish later.",
+  noindex: true,
+});
 
 export default async function NewJobPage() {
   const session = await getSession();
@@ -65,7 +53,7 @@ export default async function NewJobPage() {
         <ArrowLeft size={16} strokeWidth={1.25} /> Back to your roles
       </Link>
       <h1 className="aur-hero-in font-display font-semibold text-[clamp(34px,5vw,44px)] leading-[1.1] text-paper">Post a role</h1>
-      <p className="aur-hero-in text-[14.5px] text-paper/60 mt-2.5 mb-6" style={{ animationDelay: ".08s" }}>A visible salary range is required to post — it&apos;s the whole point of Champ.</p>
+      <p className="aur-hero-in text-[14.5px] text-paper/60 mt-2.5 mb-6" style={{ animationDelay: ".08s" }}>A visible salary range is required to post — it&apos;s the whole point of Champ. Not ready yet? Save it as a draft — only you will see it.</p>
       <JobForm
         glass
         action={createJobAction}

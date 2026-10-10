@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { formatMoneyRange } from "@/lib/currency";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
@@ -7,6 +9,12 @@ import { redirect } from "next/navigation";
 import JobCard from "@/components/JobCard";
 import GuestPage from "@/components/GuestPage";
 import Reveal from "@/components/Reveal";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Roles picked for you",
+  description: "Open roles matched to the positions and salary range on your Champ profile.",
+  noindex: true,
+});
 
 export default async function ForYouPage() {
   const session = await getSession();

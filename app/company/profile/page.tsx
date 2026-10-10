@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/auth";
 import { getCompanyProfile, updateCompanyProfile, listSocialLinks, addSocialLink, deleteSocialLink, SOCIAL_PLATFORMS } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
@@ -97,6 +99,12 @@ async function declineTeamMemberAction(formData: FormData) {
   await declineTeamMember(Number(formData.get("teammateId")), session.userId, session.email);
   revalidatePath("/company/profile");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Your company profile",
+  description: "Edit your company's profile, contacts and social links on Champ.",
+  noindex: true,
+});
 
 export default async function CompanyProfilePage({
   searchParams,

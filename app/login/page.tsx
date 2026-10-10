@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import sql from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -44,6 +46,12 @@ async function loginAction(formData: FormData) {
 }
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Log in",
+  description: "Log in to Champ to pick up your conversations with recruiters and candidates.",
+  path: "/login",
+});
 
 export default async function LoginPage({
   searchParams,

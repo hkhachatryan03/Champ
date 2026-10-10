@@ -1,8 +1,49 @@
-# Champ — real codebase (v30)
+# Champ — real codebase (v31)
 
 This is a working Next.js application — real hosted database (Neon
 Postgres), real password hashing, real sessions, real job/application/chat
 logic, and real cloud file storage (Vercel Blob) for CVs and photos.
+
+## What's new in v31 — drafts, positioning, share previews
+
+**⚠ This release has a database change.** Run `scripts/init-db.mjs` BEFORE
+pushing (it only adds one column, `jobs.is_draft`, defaulting to 0 — existing
+roles are untouched and the old site keeps working while it runs). If you push
+first, role pages will error until the script has run.
+
+- **Save draft.** Posting a role now has three options: Cancel, Save draft,
+  Publish role. A draft can be unfinished (no salary, no description) and is
+  visible only to its company, in a new "Drafts" section between "Your roles"
+  and "Archived roles". Continue editing, publish, or delete it. Publishing a
+  draft re-checks everything candidates rely on and restarts the posted date.
+  Drafts are stored with `is_draft = 1` and `active = 0`, so every existing
+  "active roles only" query already excludes them; `getJobWithCompany` (which
+  never filtered on active) and the admin lists were closed off explicitly.
+  Pressing Enter in a text box saves a draft (never publishes by accident).
+  A live role can't be turned back into a draft — use Pause.
+- **Publishing rules are now enforced on the server.** A salary of 0–0, a
+  missing title, or a missing location could previously slip through; not any
+  more (`lib/jobFields.ts`).
+- **Positioning.** "Jobs at Armenia's tech companies. Every salary visible."
+  on Home, login and sign-up; "built for Armenia's tech companies and the
+  people who work there"; the filter reads "Engineering & data" / "Business &
+  support". Only the visible names changed — the database still stores `Tech` /
+  `Non-tech` (a CHECK constraint requires it); `categoryLabel()` in
+  `lib/constants.ts` is the one place that translates.
+- **Example job cards** (Home + login/sign-up) are now AMD and read from one
+  file, `lib/sampleListing.ts`, with a market-range line. Two cards still had
+  hard-typed `$` amounts after v30 — fixed. No source is shown on the site.
+- **Share previews & page titles.** Every page has its own title and
+  description (`lib/seo.ts`); each role gets "Senior Frontend Developer at
+  LusarLabs (Remote)" plus a description with the salary; Open Graph + Twitter
+  tags; a default share image (`app/opengraph-image.png`). Private, utility and
+  admin pages are marked noindex. Links use `NEXT_PUBLIC_BASE_URL` (falls back
+  to Vercel's production domain).
+- **"Copy public link"** on a company's role page and a small "Copy link" on the
+  applicant's role page — always copies the public `/jobs/…` address, which is
+  the one that previews properly when shared.
+- **Google sign-in button** is now centered and drawn at the width of its card
+  (it was a fixed 320px in a wider box), and no longer re-initialises on resize.
 
 ## What's new in v30 — AMD style, real-scale slider, Home button
 

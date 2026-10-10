@@ -2,7 +2,7 @@ import { Logo } from "@/components/ui";
 
 const HIGHLIGHTS = [
   "Every listing shows a real salary range",
-  "Built only for Armenia's tech community",
+  "Built for Armenia's tech companies and the people who work there",
   "No recruiter spam — every company is reviewed",
 ];
 
@@ -37,7 +37,7 @@ export default function AuthShell({
 
         <div className="relative max-w-sm">
           <p className="font-display text-3xl leading-snug">
-            Tech jobs in Armenia, salaries visible.
+            Jobs at Armenia&apos;s tech companies. Every salary visible.
           </p>
           <ul className="mt-8 flex flex-col gap-4">
             {HIGHLIGHTS.map((item) => (

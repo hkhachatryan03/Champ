@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { formatAmount, formatMoney } from "@/lib/currency";
 import { getSession } from "@/lib/auth";
 import {
@@ -31,7 +33,7 @@ async function inviteAction(formData: FormData) {
   const message = String(formData.get("message") || "").trim();
 
   // Make sure this job actually belongs to this company before inviting.
-  const jobRows = await sql`SELECT id FROM jobs WHERE id = ${jobId} AND company_user_id = ${session.userId}`;
+  const jobRows = await sql`SELECT id FROM jobs WHERE id = ${jobId} AND company_user_id = ${session.userId} AND is_draft = 0`;
   if (!jobRows[0]) redirect("/company/dashboard");
 
   const existing = await findApplication(jobId, candidateUserId);
@@ -45,6 +47,12 @@ async function inviteAction(formData: FormData) {
   }
   redirect(`/thread/${applicationId}`);
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Candidate profile",
+  description: "A candidate's experience, education and skills — and your conversations with them.",
+  noindex: true,
+});
 
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();

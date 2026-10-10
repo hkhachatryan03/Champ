@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/auth";
 import { getCompanyProfile } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import GlassAuthShell from "@/components/auth/GlassAuthShell";
 import { ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Your company is under review",
+  description: "We're reviewing your company before you can post roles — usually within a day.",
+  noindex: true,
+});
 
 export default async function CompanyPendingPage() {
   const session = await getSession();

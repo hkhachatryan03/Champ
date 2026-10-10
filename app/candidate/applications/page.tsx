@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/auth";
 import { listApplicationsForCandidate } from "@/lib/queries";
 import { requireOnboardedCandidate } from "@/lib/guards";
@@ -12,6 +14,12 @@ import { ArrowLeft } from "lucide-react";
 import RefreshAfterOpen from "@/components/RefreshAfterOpen";
 
 const STATUSES = ["New", "Interviewing", "Offer", "Hired", "Not moving forward"];
+
+export const metadata: Metadata = pageMetadata({
+  title: "My applications",
+  description: "Your Champ applications and conversations with recruiters, filterable by status and position.",
+  noindex: true,
+});
 
 export default async function MyApplicationsPage({
   searchParams,

@@ -61,6 +61,7 @@ export type Job = {
   description: string;
   active: number;
   archived_at: string | null;
+  is_draft: number;
   created_at: string;
   experience_level: string | null;
   languages: string;
@@ -256,7 +257,7 @@ export async function getJobWithCompany(jobId: number) {
     SELECT jobs.*, company_profiles.name as company_name, company_profiles.verified as company_verified,
       company_profiles.avatar_url as company_avatar_url
     FROM jobs JOIN company_profiles ON company_profiles.user_id = jobs.company_user_id
-    WHERE jobs.id = ${jobId}
+    WHERE jobs.id = ${jobId} AND jobs.is_draft = 0
   `) as (Job & { company_name: string; company_verified: number; company_avatar_url: string | null })[];
   return rows[0] as (Job & { company_name: string; company_verified: number; company_avatar_url: string | null }) | undefined;
 }
@@ -275,14 +276,16 @@ export async function listJobsForCompany(companyUserId: number) {
 
 export async function createJob(
   companyUserId: number,
-  data: Omit<Job, "id" | "company_user_id" | "active" | "created_at" | "archived_at">
+  data: Omit<Job, "id" | "company_user_id" | "active" | "created_at" | "archived_at" | "is_draft">,
+  opts: { isDraft?: boolean } = {}
 ) {
+  const isDraft = opts.isDraft ? 1 : 0;
   const rows = await sql`
     INSERT INTO jobs
-      (company_user_id, title, category, employment_type, location, remote, salary_min, salary_max, skills, description, experience_level, languages, client_name)
+      (company_user_id, title, category, employment_type, location, remote, salary_min, salary_max, skills, description, experience_level, languages, client_name, active, is_draft)
     VALUES (${companyUserId}, ${data.title}, ${data.category}, ${data.employment_type}, ${data.location},
             ${data.remote}, ${data.salary_min}, ${data.salary_max}, ${data.skills}, ${data.description},
-            ${data.experience_level}, ${data.languages}, ${data.client_name || ""})
+            ${data.experience_level}, ${data.languages}, ${data.client_name || ""}, ${isDraft ? 0 : 1}, ${isDraft})
     RETURNING id
   `;
   return Number(rows[0].id);
@@ -439,8 +442,29 @@ export async function closeJobForApplication(applicationId: number) {
 export async function archiveJob(jobId: number, companyUserId: number) {
   await sql`
     UPDATE jobs SET active = 0, archived_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
-    WHERE id = ${jobId} AND company_user_id = ${companyUserId}
+    WHERE id = ${jobId} AND company_user_id = ${companyUserId} AND is_draft = 0
   `;
+}
+
+// Turns a draft into a live role in ONE statement (so it can never be half
+// published). The posted date restarts now — "posted 22d ago" should count
+// from when candidates could first see it, not from when it was started.
+export async function publishDraftJob(jobId: number, companyUserId: number): Promise<boolean> {
+  const rows = (await sql`
+    UPDATE jobs SET is_draft = 0, active = 1, created_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    WHERE id = ${jobId} AND company_user_id = ${companyUserId} AND is_draft = 1
+    RETURNING id
+  `) as { id: number }[];
+  return rows.length > 0;
+}
+
+// Only ever deletes a DRAFT — a published role is archived, never deleted here.
+export async function deleteDraftJob(jobId: number, companyUserId: number): Promise<boolean> {
+  const rows = (await sql`
+    DELETE FROM jobs WHERE id = ${jobId} AND company_user_id = ${companyUserId} AND is_draft = 1
+    RETURNING id
+  `) as { id: number }[];
+  return rows.length > 0;
 }
 
 export async function restoreArchivedJob(jobId: number, companyUserId: number) {

@@ -7,7 +7,7 @@ import LanguagePicker from "./LanguagePicker";
 import LocationSelect from "./LocationSelect";
 import RichEditor from "./RichEditor";
 import UnsavedChangesGuard from "./UnsavedChangesGuard";
-import { COMMON_SKILLS } from "@/lib/constants";
+import { COMMON_SKILLS, categoryLabel } from "@/lib/constants";
 import { ArrowRight, Check } from "lucide-react";
 
 export type JobFormState = { error?: string } | null;
@@ -20,6 +20,7 @@ export default function JobForm({
   skillOptions,
   showClientNameField,
   glass = false,
+  isDraft = false,
 }: {
   action: (prevState: JobFormState, formData: FormData) => Promise<JobFormState>;
   defaults?: {
@@ -43,6 +44,8 @@ export default function JobForm({
   showClientNameField?: boolean;
   /** Dark "Ethereal Glass" look. Default = original light form. */
   glass?: boolean;
+  /** Editing a role that hasn't been published yet. */
+  isDraft?: boolean;
 }) {
   const d = defaults || {};
 
@@ -98,8 +101,8 @@ export default function JobForm({
                 <div>
                   <label className="aur-label">Category</label>
                   <select key={`cat${errKey}`} name="category" defaultValue={String(val("category", d.category || "Tech"))} className="aur-field">
-                    <option>Tech</option>
-                    <option>Non-tech</option>
+                    <option value="Tech">{categoryLabel("Tech")}</option>
+                    <option value="Non-tech">{categoryLabel("Non-tech")}</option>
                   </select>
                 </div>
                 <div>
@@ -140,11 +143,11 @@ export default function JobForm({
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
                   <label className="aur-label">Salary min ({CURRENCY}/mo)</label>
-                  <input key={`smin${errKey}`} name="salaryMin" type="number" defaultValue={val("salaryMin", d.salary_min)} required placeholder="e.g. 2000" className="aur-field font-mono-num" />
+                  <input key={`smin${errKey}`} name="salaryMin" type="number" defaultValue={val("salaryMin", d.salary_min)} required placeholder="e.g. 800000" className="aur-field font-mono-num" />
                 </div>
                 <div>
                   <label className="aur-label">Salary max ({CURRENCY}/mo)</label>
-                  <input key={`smax${errKey}`} name="salaryMax" type="number" defaultValue={val("salaryMax", d.salary_max)} required placeholder="e.g. 3000" className="aur-field font-mono-num" />
+                  <input key={`smax${errKey}`} name="salaryMax" type="number" defaultValue={val("salaryMax", d.salary_max)} required placeholder="e.g. 1200000" className="aur-field font-mono-num" />
                 </div>
               </div>
               <p className="text-xs leading-[1.55] text-paper/50">A visible salary range is required to post — it&apos;s the whole point of Champ.</p>
@@ -173,7 +176,7 @@ export default function JobForm({
             </div>
           </div>
 
-          {isEdit && (
+          {isEdit && !isDraft && (
             <div className="aur-bezel-sm">
               <label className="aur-bezel-inner flex items-center justify-between gap-4 px-[22px] py-[18px] cursor-pointer">
                 <span>
@@ -190,15 +193,31 @@ export default function JobForm({
 
           <div className="aur-savebar">
             <span className="aur-savehint">
-              <span className="aur-sh-clean">{isEdit ? "All changes saved" : "Not published yet"}</span>
-              <span className="aur-sh-dirty">{isEdit ? "You have unsaved changes" : "Not published yet — you have changes"}</span>
+              <span className="aur-sh-clean">{isDraft ? "Draft — only you can see it" : isEdit ? "All changes saved" : "Not published yet"}</span>
+              <span className="aur-sh-dirty">{isDraft ? "Draft — you have unsaved changes" : isEdit ? "You have unsaved changes" : "Not published yet — you have changes"}</span>
             </span>
             <div className="flex items-center gap-1.5 max-md:w-full max-md:justify-between">
               <a href={cancelHref} className="px-4 py-2.5 text-[13.5px] text-paper/65 hover:text-paper underline underline-offset-[3px] transition-colors">
                 Cancel
               </a>
-              <button type="submit" disabled={isPending} className="aur-btn aur-btn-primary aur-btn-shine !py-3 !pl-[22px] !pr-2 disabled:opacity-60">
-                {isEdit ? "Save changes" : "Publish role"}
+              {/* Listed BEFORE Publish on purpose: pressing Enter in a text box submits
+                  the first button, and saving a draft by accident is harmless whereas
+                  publishing by accident is not. formNoValidate lets an unfinished form
+                  through the browser's "please fill this in" checks. */}
+              {(!isEdit || isDraft) && (
+                <button
+                  type="submit"
+                  name="intent"
+                  value="draft"
+                  formNoValidate
+                  disabled={isPending}
+                  className="aur-btn border border-paper/15 bg-paper/[.04] text-paper !text-[13.5px] !py-[11px] hover:border-apricot hover:text-apricot disabled:opacity-60"
+                >
+                  Save draft
+                </button>
+              )}
+              <button type="submit" name="intent" value="publish" disabled={isPending} className="aur-btn aur-btn-primary aur-btn-shine !py-3 !pl-[22px] !pr-2 disabled:opacity-60">
+                {isEdit && !isDraft ? "Save changes" : "Publish role"}
                 <span className="aur-btn-icon"><ArrowRight size={14} /></span>
               </button>
             </div>
@@ -239,8 +258,8 @@ export default function JobForm({
         <div className="flex-1">
           <label className="text-xs font-medium text-muted">Category</label>
           <select name="category" defaultValue={d.category || "Tech"} className="w-full mt-1 px-3 py-2 rounded-lg border border-line text-sm outline-none">
-            <option>Tech</option>
-            <option>Non-tech</option>
+            <option value="Tech">{categoryLabel("Tech")}</option>
+            <option value="Non-tech">{categoryLabel("Non-tech")}</option>
           </select>
         </div>
         <div className="flex-1">
@@ -293,7 +312,7 @@ export default function JobForm({
         </div>
       </div>
 
-      {isEdit && (
+      {isEdit && !isDraft && (
         <label className="flex items-center gap-2 text-sm p-3 rounded-lg border border-line">
           <input type="checkbox" name="active" defaultChecked={!!d.active} />
           Active (visible to candidates) — uncheck to pause this role
@@ -302,8 +321,13 @@ export default function JobForm({
 
       <p className="text-xs text-muted">A visible salary range is required to post — it&apos;s the whole point of Champ.</p>
       <div className="flex items-center gap-3 mt-2">
-        <button type="submit" disabled={isPending} className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit disabled:opacity-60">
-          {isEdit ? "Save changes" : "Publish role"}
+        {(!isEdit || isDraft) && (
+          <button type="submit" name="intent" value="draft" formNoValidate disabled={isPending} className="px-5 py-3 rounded-lg font-medium text-sm border border-line w-fit disabled:opacity-60">
+            Save draft
+          </button>
+        )}
+        <button type="submit" name="intent" value="publish" disabled={isPending} className="px-5 py-3 rounded-lg font-medium text-sm bg-apricot text-ink w-fit disabled:opacity-60">
+          {isEdit && !isDraft ? "Save changes" : "Publish role"}
         </button>
         <a href={cancelHref} className="text-sm text-muted underline">
           Cancel

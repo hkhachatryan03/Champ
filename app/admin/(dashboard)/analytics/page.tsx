@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import {
   getSignupsByDay,
   getApplicationsByDay,
@@ -6,6 +8,13 @@ import {
   getPlatformOverview,
 } from "@/lib/adminQueries";
 import AdminTimeSeriesChart from "@/components/AdminTimeSeriesChart";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · Analytics",
+  description: "Champ BackOffice — platform analytics.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminAnalyticsPage() {
   const [signups, applicationsByDay, responseRate, statusBreakdown, overview] = await Promise.all([

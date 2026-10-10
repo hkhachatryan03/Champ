@@ -146,7 +146,7 @@ export async function getUserDetail(userId: number) {
   const stats =
     user.role === "candidate"
       ? (await sql`SELECT COUNT(*) as n FROM applications WHERE candidate_user_id = ${userId}`)[0]
-      : (await sql`SELECT COUNT(*) as n FROM jobs WHERE company_user_id = ${userId}`)[0];
+      : (await sql`SELECT COUNT(*) as n FROM jobs WHERE company_user_id = ${userId} AND is_draft = 0`)[0];
 
   const experiences =
     user.role === "candidate"
@@ -194,6 +194,7 @@ export async function listJobsAdmin(opts: {
         (${status} = 'paused' AND j.archived_at IS NULL AND j.active = 0) OR
         (${status} = 'active' AND j.archived_at IS NULL AND j.active = 1)
       )
+      AND j.is_draft = 0
       AND (
         ${search} = '' OR
         LOWER(j.title) LIKE ${like} OR
@@ -217,6 +218,7 @@ export async function countJobsAdmin(opts: { status?: string; search?: string })
         (${status} = 'paused' AND j.archived_at IS NULL AND j.active = 0) OR
         (${status} = 'active' AND j.archived_at IS NULL AND j.active = 1)
       )
+      AND j.is_draft = 0
       AND (
         ${search} = '' OR
         LOWER(j.title) LIKE ${like} OR

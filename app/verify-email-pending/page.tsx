@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/auth";
 import { createEmailVerification } from "@/lib/queries";
 import { sendVerificationEmail } from "@/lib/email";
@@ -14,6 +16,12 @@ async function resendAction() {
   await sendVerificationEmail(session.email, `${baseUrl}/verify-email?token=${token}`);
   redirect("/verify-email-pending?sent=1");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Check your email",
+  description: "We've sent you a link to verify your email address — open it to continue setting up your Champ account.",
+  noindex: true,
+});
 
 export default async function VerifyEmailPendingPage({
   searchParams,

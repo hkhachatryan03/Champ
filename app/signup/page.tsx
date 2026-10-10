@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import sql from "@/lib/db";
 import { hashPassword, createSession } from "@/lib/auth";
 import { createEmailVerification } from "@/lib/queries";
@@ -73,6 +75,12 @@ const ERRORS: Record<string, string> = {
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
+export const metadata: Metadata = pageMetadata({
+  title: "Sign up",
+  description: "Create a free Champ account. Built for Armenia's tech companies and the people who work there — find your next role or start hiring.",
+  path: "/signup",
+});
+
 export default async function SignupPage({
   searchParams,
 }: {
@@ -91,7 +99,7 @@ export default async function SignupPage({
       subtitle={
         role === "candidate"
           ? "Build a profile once, apply everywhere."
-          : "Post a job and reach Armenia's tech talent."
+          : "Post a role and reach people who want to work in Armenia's tech scene."
       }
     >
       <RoleToggle role={role} />

@@ -1,3 +1,6 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+import { categoryLabel } from "@/lib/constants";
 import { formatMoneyRange } from "@/lib/currency";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -16,6 +19,13 @@ async function removeJobAction(formData: FormData) {
   await removeJobAsAdmin(jobId, session!.email, reason);
   redirect("/admin/jobs");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · Jobs",
+  description: "Champ BackOffice — roles across the platform.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminJobsPage({
   searchParams,
@@ -73,7 +83,7 @@ export default async function AdminJobsPage({
                     )}
                   </p>
                   <p className="text-xs text-muted mt-1">
-                    {formatMoneyRange(j.salary_min, j.salary_max)}/mo · {j.category} · {j.employment_type} · {statusLabel}
+                    {formatMoneyRange(j.salary_min, j.salary_max)}/mo · {categoryLabel(j.category)} · {j.employment_type} · {statusLabel}
                   </p>
                   {skills.length > 0 && (
                     <p className="text-xs text-muted mt-1 truncate">{skills.join(", ")}</p>

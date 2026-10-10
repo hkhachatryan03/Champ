@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+import { SAMPLE_LISTING } from "@/lib/sampleListing";
+import { formatAmount, formatMoney, formatMoneyRange } from "@/lib/currency";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -11,6 +15,13 @@ import {
   Users,
   ArrowRight,
 } from "lucide-react";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ — jobs at Armenia's tech companies, every salary visible",
+  description: "Find jobs at Armenia's tech companies — engineering, design, finance, HR and more — with the salary shown on every listing. Message recruiters directly; companies pay only when they hire.",
+  path: "/",
+  absoluteTitle: true,
+});
 
 export default async function Home() {
   const session = await getSession();
@@ -51,8 +62,7 @@ export default async function Home() {
                 className="aur-hero-in mt-6 text-base md:text-lg text-paper/70 max-w-md"
                 style={{ animationDelay: ".28s" }}
               >
-                A job platform built only for Armenia&apos;s tech community. Every
-                listing shows a real salary range — tech and non-tech roles alike.
+                Jobs at Armenia&apos;s tech companies. Every salary visible.
               </p>
               <div
                 className="aur-hero-in mt-9 flex flex-wrap items-center gap-5"
@@ -98,20 +108,20 @@ export default async function Home() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-display font-semibold text-lg text-paper">
-                        Senior Backend Engineer
+                        {SAMPLE_LISTING.title}
                       </p>
-                      <p className="text-xs text-paper/50 mt-0.5">LusarLabs · Yerevan · Remote</p>
+                      <p className="text-xs text-paper/50 mt-0.5">{SAMPLE_LISTING.company} · {SAMPLE_LISTING.where}</p>
                     </div>
                     <Sparkles size={16} className="text-apricot flex-shrink-0" />
                   </div>
                   <div className="mt-4 flex items-baseline gap-2 font-mono-num text-[15px] text-apricot">
-                    <span>$2200</span>
+                    <span>{formatAmount(SAMPLE_LISTING.salaryMin)}</span>
                     <span className="flex-1 border-b border-dotted border-paper/25" style={{ minWidth: 12 }} />
-                    <span>$2800</span>
+                    <span>{formatMoney(SAMPLE_LISTING.salaryMax)}</span>
                     <span className="text-xs text-paper/45">/mo</span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
-                    {["Tech", "Full-time", "Go"].map((t) => (
+                    {SAMPLE_LISTING.tags.map((t) => (
                       <span
                         key={t}
                         className="text-xs font-medium px-2 py-1 rounded-full border border-paper/15 text-paper/70"
@@ -122,8 +132,11 @@ export default async function Home() {
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-paper/35 text-center mt-4">
-                Every single listing on Champ, real examples only.
+              <p className="text-xs text-paper/45 text-center mt-4 leading-[1.6]">
+                Example listing. {SAMPLE_LISTING.marketLabel}:{" "}
+                <span className="text-paper/65 font-mono-num">
+                  {formatMoneyRange(SAMPLE_LISTING.marketMin, SAMPLE_LISTING.marketMax)}/mo
+                </span>
               </p>
             </div>
           </div>
@@ -229,8 +242,8 @@ export default async function Home() {
                     </div>
                     <p className="font-medium mb-1.5 text-paper">Built for Armenia&apos;s tech scene</p>
                     <p className="text-sm text-paper/60 leading-relaxed">
-                      Focused on local and diaspora tech talent — not a generic
-                      board with thousands of unrelated listings to wade through.
+                      Developer, designer, accountant or HR: if you want to work
+                      in Armenia&apos;s tech scene, this is for you.
                     </p>
                   </div>
                 </div>

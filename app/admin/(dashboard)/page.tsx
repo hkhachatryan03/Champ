@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { getPlatformOverview } from "@/lib/adminQueries";
 
@@ -10,6 +12,13 @@ function StatCard({ label, value, href }: { label: string; value: number | strin
   );
   return href ? <Link href={href}>{content}</Link> : content;
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · Overview",
+  description: "Champ BackOffice — platform overview.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminOverviewPage() {
   const o = await getPlatformOverview();

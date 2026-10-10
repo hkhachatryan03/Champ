@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import sql from "@/lib/db";
 import { getSession, hashPassword, destroySession } from "@/lib/auth";
 import { createPasswordResetOtp, verifyPasswordResetOtp } from "@/lib/queries";
@@ -87,6 +89,12 @@ const ERRORS: Record<string, string> = {
   invalid: "That code is wrong, expired, or already used.",
   deleteconfirm: "The email you typed doesn't match your account email.",
 };
+
+export const metadata: Metadata = pageMetadata({
+  title: "Settings",
+  description: "Manage your Champ account: email, password and account deletion.",
+  noindex: true,
+});
 
 export default async function SettingsPage({
   searchParams,

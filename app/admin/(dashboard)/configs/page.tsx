@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { redirect } from "next/navigation";
 import {
   listFeatureFlags,
@@ -66,6 +68,13 @@ const STATIC_CONTENT_PAGES = [
   { key: "terms_of_service", label: "Terms of Service" },
   { key: "privacy_policy", label: "Privacy Policy" },
 ];
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · Configs",
+  description: "Champ BackOffice — platform configuration.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminConfigsPage({
   searchParams,

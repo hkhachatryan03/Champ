@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { saveContactMessage } from "@/lib/queries";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -49,6 +51,12 @@ async function contactAction(formData: FormData) {
   await saveContactMessage(email, body, topic, attachmentUrl);
   redirect("/contact?sent=1");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Contact us",
+  description: "Questions, a bug to report, or feedback? Write to the Champ team — we usually reply within one business day.",
+  path: "/contact",
+});
 
 export default async function ContactPage({
   searchParams,

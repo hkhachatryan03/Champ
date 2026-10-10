@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { redirect } from "next/navigation";
 import {
   listContactMessages,
@@ -40,6 +42,13 @@ async function reopenAction(formData: FormData) {
   await reopenContactMessage(Number(formData.get("id")), session!.email);
   redirect("/admin/support?view=resolved");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · Support",
+  description: "Champ BackOffice — support messages.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminSupportPage({
   searchParams,

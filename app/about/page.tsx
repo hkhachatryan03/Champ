@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { Banknote, MessageCircle, Gift, Code2, Building2, ArrowRight } from "lucide-react";
@@ -5,6 +7,12 @@ import GuestPage from "@/components/GuestPage";
 import Reveal from "@/components/Reveal";
 
 const ICON = { size: 18, strokeWidth: 1.25 } as const;
+
+export const metadata: Metadata = pageMetadata({
+  title: "What is Champ?",
+  description: "Champ is a job platform for Armenia's tech companies and the people who work there: every salary visible, real conversations with recruiters, and no fees until a company hires.",
+  path: "/about",
+});
 
 export default async function AboutPage() {
   const session = await getSession();
@@ -79,10 +87,9 @@ export default async function AboutPage() {
                 <div className="aur-icon-chip"><Code2 {...ICON} /></div>
                 <h3 className="font-display font-semibold text-[22px] mt-5 mb-2.5 text-paper">Job seekers</h3>
                 <p className="text-[14.5px] leading-[1.75] text-paper/60">
-                  Armenian and diaspora tech talent — and the non-tech roles
-                  that keep tech companies running (ops, finance, HR,
-                  support, and more). If you&apos;re tired of applying blind,
-                  this is built for you.
+                  Developer, designer, accountant or HR: if you want to work
+                  in Armenia&apos;s tech scene, this is for you. Every role
+                  shows its salary before you ever apply.
                 </p>
               </div>
             </div>
@@ -95,7 +102,8 @@ export default async function AboutPage() {
                 <div className="aur-icon-chip"><Building2 {...ICON} /></div>
                 <h3 className="font-display font-semibold text-[22px] mt-5 mb-2.5 text-paper">Companies</h3>
                 <p className="text-[14.5px] leading-[1.75] text-paper/60">
-                  Teams hiring in or for Armenia who&apos;d rather message
+                  Tech companies hiring in or for Armenia — for any role,
+                  from engineering to finance — who&apos;d rather message
                   candidates directly than manage a black-box applicant
                   queue, and who are comfortable being upfront about what a
                   role actually pays.

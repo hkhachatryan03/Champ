@@ -1,4 +1,8 @@
-import { formatAmount, formatMoney } from "@/lib/currency";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+import { categoryLabel } from "@/lib/constants";
+import { formatAmount, formatMoney, formatMoneyRange } from "@/lib/currency";
+import { formatPostedAge } from "@/lib/dates";
 import { getSession } from "@/lib/auth";
 import { listJobsForCompany } from "@/lib/queries";
 import { requireOnboardedCompany } from "@/lib/guards";
@@ -7,15 +11,39 @@ import Link from "next/link";
 import GuestPage from "@/components/GuestPage";
 import Reveal from "@/components/Reveal";
 import { ArrowRight, Gift } from "lucide-react";
+import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
+import { deleteDraftAction } from "@/app/company/jobs/actions";
 
-export default async function CompanyDashboard() {
+const NOTICES: Record<string, string> = {
+  "draft-saved": "Draft saved. It's in Drafts below — only you can see it.",
+  published: "Role posted. Candidates can see it now.",
+  "draft-deleted": "Draft deleted.",
+};
+
+// "started 3d ago" / "started today"
+const startedAgo = (createdAt: string) => {
+  const age = formatPostedAge(createdAt);
+  return age === "Today" ? "today" : `${age} ago`;
+};
+
+export const metadata: Metadata = pageMetadata({
+  title: "Your roles",
+  description: "Your published roles, drafts and archived roles on Champ.",
+  noindex: true,
+});
+
+export default async function CompanyDashboard({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
   await requireOnboardedCompany(session.userId, { allowPending: true });
+  const { notice } = await searchParams;
 
   const allJobs = await listJobsForCompany(session.userId);
-  const jobs = allJobs.filter((j) => !j.archived_at);
-  const archivedJobs = allJobs.filter((j) => j.archived_at);
+  // Three groups, in the order they appear: live/paused roles, then drafts
+  // (unfinished, private), then archived roles.
+  const jobs = allJobs.filter((j) => !j.is_draft && !j.archived_at);
+  const draftJobs = allJobs.filter((j) => j.is_draft);
+  const archivedJobs = allJobs.filter((j) => !j.is_draft && j.archived_at);
 
   return (
     <GuestPage>
@@ -33,6 +61,10 @@ export default async function CompanyDashboard() {
             </div>
           </div>
         </div>
+
+        {notice && NOTICES[notice] && (
+          <div className="aur-hero-in aur-note mt-[18px]" role="status">{NOTICES[notice]}</div>
+        )}
 
         <div className="aur-hero-in flex items-center justify-between gap-4 flex-wrap mt-[30px]" style={{ animationDelay: ".08s" }}>
           <h1 className="font-display font-semibold text-[clamp(34px,5vw,44px)] leading-[1.1] text-paper">Your roles</h1>
@@ -53,7 +85,7 @@ export default async function CompanyDashboard() {
                       {!j.active && <span className="aur-tag">Paused</span>}
                     </div>
                     <div className="text-[12.5px] text-paper/55 mt-1">
-                      {j.category} · {j.employment_type} · posted {j.created_at}
+                      {categoryLabel(j.category)} · {j.employment_type} · posted {j.created_at}
                     </div>
                   </Link>
                   <div className="flex items-center gap-4 flex-shrink-0 max-md:w-full max-md:justify-between">
@@ -73,6 +105,44 @@ export default async function CompanyDashboard() {
           ))}
           {jobs.length === 0 && <p className="text-sm text-paper/55">You haven&apos;t posted a role yet.</p>}
         </div>
+
+        {draftJobs.length > 0 && (
+          <div id="drafts">
+            <h2 className="font-display font-semibold text-[22px] mt-[42px] mb-1.5 text-paper">Drafts</h2>
+            <p className="text-[13px] text-paper/55 mb-3.5">Only you can see these. Finish one and post it when you&apos;re ready.</p>
+            <div className="flex flex-col gap-2.5">
+              {draftJobs.map((j) => (
+                <div key={j.id} className="aur-bezel-sm">
+                  <div className="aur-bezel-inner flex items-center justify-between gap-[18px] px-[22px] py-4 max-md:flex-col max-md:items-start">
+                    <Link href={`/company/jobs/${j.id}/edit`} className="group flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="font-display font-semibold text-[18px] text-paper group-hover:text-apricot transition-colors">{j.title}</span>
+                        <span className="aur-tag">Draft</span>
+                      </div>
+                      <div className="text-[12.5px] text-paper/55 mt-1">
+                        {j.salary_min > 0 && j.salary_max > 0 ? `${formatMoneyRange(j.salary_min, j.salary_max)}/mo` : "No salary yet"} · started {startedAgo(j.created_at)}
+                      </div>
+                    </Link>
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                      <Link href={`/company/jobs/${j.id}/edit`} className="text-[13px] underline underline-offset-[3px] text-paper/70 hover:text-apricot whitespace-nowrap transition-colors">
+                        Continue editing →
+                      </Link>
+                      <form action={deleteDraftAction}>
+                        <input type="hidden" name="jobId" value={j.id} />
+                        <ConfirmSubmitButton
+                          message="Delete this draft? This can't be undone."
+                          className="text-[12.5px] underline underline-offset-[3px] text-paper/45 hover:text-apricot whitespace-nowrap transition-colors"
+                        >
+                          Delete
+                        </ConfirmSubmitButton>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {archivedJobs.length > 0 && (
           <div>

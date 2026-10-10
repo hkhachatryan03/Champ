@@ -1,3 +1,7 @@
+import CopyLinkButton from "@/components/CopyLinkButton";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+import { categoryLabel } from "@/lib/constants";
 import { formatAmount, formatMoney } from "@/lib/currency";
 import { getSession } from "@/lib/auth";
 import { listApplicationsForJob, parseSkills, archiveJob, restoreArchivedJob } from "@/lib/queries";
@@ -32,6 +36,12 @@ async function restoreJobAction(formData: FormData) {
   revalidatePath("/company/dashboard");
 }
 
+export const metadata: Metadata = pageMetadata({
+  title: "Role overview",
+  description: "A role's details, applicant statistics and applicants.",
+  noindex: true,
+});
+
 export default async function JobPositionPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
@@ -55,6 +65,9 @@ export default async function JobPositionPage({ params }: { params: Promise<{ id
       </GuestPage>
     );
   }
+
+  // A draft has no applicants and nothing to review — it opens in the editor.
+  if (job.is_draft) redirect(`/company/jobs/${job.id}/edit`);
 
   const applicants = await listApplicationsForJob(jobId, session.userId);
   const languages = parseSkills(job.languages || "[]");
@@ -84,15 +97,18 @@ export default async function JobPositionPage({ params }: { params: Promise<{ id
               ) : null}
             </div>
             <p className="text-[15px] text-paper/60 mt-2.5">
-              {job.category} · {job.employment_type} · {job.location}
+              {categoryLabel(job.category)} · {job.employment_type} · {job.location}
               {job.experience_level && ` · ${job.experience_level}`}
             </p>
           </div>
           {!job.archived_at && (
-            <Link href={`/company/jobs/${job.id}/edit`} className="aur-btn aur-btn-primary !py-[11px] !pl-5 !pr-2 whitespace-nowrap">
-              Edit role
-              <span className="aur-btn-icon"><Pencil size={13} /></span>
-            </Link>
+            <div className="flex items-center gap-3 flex-wrap">
+              {!!job.active && <CopyLinkButton path={`/jobs/${job.id}`} />}
+              <Link href={`/company/jobs/${job.id}/edit`} className="aur-btn aur-btn-primary !py-[11px] !pl-5 !pr-2 whitespace-nowrap">
+                Edit role
+                <span className="aur-btn-icon"><Pencil size={13} /></span>
+              </Link>
+            </div>
           )}
         </div>
 

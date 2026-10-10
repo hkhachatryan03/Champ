@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/auth";
-import { updateJob, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
+import { updateJob, publishDraftJob, listCustomTerms } from "@/lib/queries";
+import { readIntent, readJobFields, publishError } from "@/lib/jobFields";
+import { toJobRecord } from "@/lib/jobSubmission";
+import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
+import { deleteDraftAction } from "@/app/company/jobs/actions";
 import { requireOnboardedCompany } from "@/lib/guards";
 import { redirect } from "next/navigation";
 import GuestPage from "@/components/GuestPage";
@@ -8,7 +14,6 @@ import { ArrowLeft } from "lucide-react";
 import JobForm, { JobFormState } from "@/components/JobForm";
 import sql from "@/lib/db";
 import { Job } from "@/lib/queries";
-import { sanitizeRichText } from "@/lib/sanitize";
 import { COMMON_SKILLS } from "@/lib/constants";
 
 async function saveJobAction(
@@ -20,44 +25,45 @@ async function saveJobAction(
   const session = await getSession();
   if (!session || session.role !== "company") redirect("/login");
 
-  const rawSkills = String(formData.get("skills") || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const skills = await normalizeAndRegisterTerms("skill", rawSkills);
-  const description = sanitizeRichText(String(formData.get("description") || ""));
-  if (!description.replace(/<[^>]*>/g, "").trim()) return { error: "A description is required." };
+  const rows = (await sql`
+    SELECT is_draft FROM jobs WHERE id = ${jobId} AND company_user_id = ${session.userId}
+  `) as { is_draft: number }[];
+  if (!rows[0]) return { error: "This role no longer exists." };
+  const wasDraft = Number(rows[0].is_draft) === 1;
 
-  const salaryMin = Number(formData.get("salaryMin") || 0);
-  const salaryMax = Number(formData.get("salaryMax") || 0);
-  if (salaryMax < salaryMin) {
-    return { error: "Max salary needs to be greater than or equal to min salary." };
+  const fields = readJobFields(formData);
+
+  // Still a draft, and the person pressed "Save draft".
+  if (wasDraft && readIntent(formData) === "draft") {
+    const record = await toJobRecord({ ...fields, title: fields.title || "Untitled draft" }, { registerTerms: false });
+    await updateJob(jobId, session.userId, { ...record, active: 0 });
+    redirect("/company/dashboard?notice=draft-saved");
   }
 
-  const experienceLevel = String(formData.get("experienceLevel") || "").trim() || null;
-  const languages = String(formData.get("languages") || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  // Everything else is a real save/publish, so the full rules apply. (A forged
+  // "draft" request against an already-live role lands here too, and is simply
+  // treated as a normal save — it can never un-publish a role.)
+  const error = publishError(fields);
+  if (error) return { error };
+  const record = await toJobRecord(fields, { registerTerms: true });
 
-  await updateJob(jobId, session.userId, {
-    title: String(formData.get("title") || ""),
-    category: String(formData.get("category") || "Tech") as "Tech" | "Non-tech",
-    employment_type: String(formData.get("employmentType") || "Full-time") as "Full-time" | "Part-time",
-    location: String(formData.get("location") || ""),
-    remote: formData.get("remote") ? 1 : 0,
-    salary_min: salaryMin,
-    salary_max: salaryMax,
-    skills: JSON.stringify(skills),
-    description,
-    active: formData.get("active") ? 1 : 0,
-    experience_level: experienceLevel,
-    languages: JSON.stringify(languages),
-    client_name: String(formData.get("clientName") || "").trim(),
-  });
+  if (wasDraft) {
+    // Save while still hidden, then flip to live in ONE statement — so a
+    // failure part-way can never leave a half-published role visible.
+    await updateJob(jobId, session.userId, { ...record, active: 0 });
+    await publishDraftJob(jobId, session.userId);
+    redirect("/company/dashboard?notice=published");
+  }
 
+  await updateJob(jobId, session.userId, { ...record, active: formData.get("active") ? 1 : 0 });
   redirect(`/company/jobs/${jobId}`);
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Edit role",
+  description: "Edit a role's details, salary range and visibility on Champ.",
+  noindex: true,
+});
 
 export default async function EditJobPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -88,16 +94,17 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
   return (
     <GuestPage>
      <div className="px-6 pt-[calc(var(--nav-h)+2rem)] pb-14 max-w-[760px] mx-auto">
-      <Link href={`/company/jobs/${job.id}`} className="aur-hero-in inline-flex items-center gap-2 text-[13.5px] text-paper/60 hover:text-paper hover:-translate-x-[3px] transition-[color,transform] duration-300 mb-4">
-        <ArrowLeft size={16} strokeWidth={1.25} /> Back to the role
+      <Link href={job.is_draft ? "/company/dashboard" : `/company/jobs/${job.id}`} className="aur-hero-in inline-flex items-center gap-2 text-[13.5px] text-paper/60 hover:text-paper hover:-translate-x-[3px] transition-[color,transform] duration-300 mb-4">
+        <ArrowLeft size={16} strokeWidth={1.25} /> {job.is_draft ? "Back to your roles" : "Back to the role"}
       </Link>
-      <h1 className="aur-hero-in font-display font-semibold text-[clamp(34px,5vw,44px)] leading-[1.1] text-paper">Edit role</h1>
-      <p className="aur-hero-in text-[14.5px] text-paper/60 mt-2.5 mb-6" style={{ animationDelay: ".08s" }}>Changes go live as soon as you save.</p>
+      <h1 className="aur-hero-in font-display font-semibold text-[clamp(34px,5vw,44px)] leading-[1.1] text-paper">{job.is_draft ? "Edit draft" : "Edit role"}</h1>
+      <p className="aur-hero-in text-[14.5px] text-paper/60 mt-2.5 mb-6" style={{ animationDelay: ".08s" }}>{job.is_draft ? "Only you can see this draft. Post it when it's ready." : "Changes go live as soon as you save."}</p>
       <JobForm
         glass
         action={boundAction}
         isEdit
-        cancelHref={`/company/jobs/${job.id}`}
+        isDraft={!!job.is_draft}
+        cancelHref={job.is_draft ? "/company/dashboard" : `/company/jobs/${job.id}`}
         skillOptions={skillOptions}
         defaults={{
           title: job.title,
@@ -116,6 +123,17 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
         }}
         showClientNameField={profile.recruiter_type === "agency"}
       />
+      {!!job.is_draft && (
+        <form action={deleteDraftAction} className="mt-7">
+          <input type="hidden" name="jobId" value={job.id} />
+          <ConfirmSubmitButton
+            message="Delete this draft? This can't be undone."
+            className="text-[13px] underline underline-offset-[3px] text-paper/50 hover:text-apricot transition-colors"
+          >
+            Delete this draft
+          </ConfirmSubmitButton>
+        </form>
+      )}
      </div>
     </GuestPage>
   );

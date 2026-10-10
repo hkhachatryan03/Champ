@@ -1,3 +1,7 @@
+import CopyLinkButton from "@/components/CopyLinkButton";
+import type { Metadata } from "next";
+import { getJobCached, parseJobId } from "@/lib/jobCache";
+import { pageMetadata, jobTitleText, jobDescriptionText } from "@/lib/seo";
 import { CURRENCY, formatAmount, formatMoney } from "@/lib/currency";
 import { getJobWithCompany, parseSkills, createApplication, sendMessage, getCandidateProfile, getCandidateCompletionStatus, findApplication } from "@/lib/queries";
 import { formatPostedAge } from "@/lib/dates";
@@ -69,6 +73,15 @@ async function applyAction(formData: FormData) {
   redirect(`/thread/${applicationId}`);
 }
 
+// Private page (login required), but the browser tab should still name the role.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const jobId = parseJobId(id);
+  const job = jobId ? await getJobCached(jobId) : undefined;
+  if (!job) return pageMetadata({ title: "Role details", description: "A role on Champ.", noindex: true });
+  return pageMetadata({ title: jobTitleText(job), description: jobDescriptionText(job), noindex: true });
+}
+
 export default async function JobDetailPage({
   params,
   searchParams,
@@ -82,7 +95,7 @@ export default async function JobDetailPage({
 
   const { id } = await params;
   const { error } = await searchParams;
-  const job = await getJobWithCompany(Number(id));
+  const job = await getJobCached(Number(id));
   if (!job) {
     return (
       <GuestPage>
@@ -137,6 +150,7 @@ export default async function JobDetailPage({
                   <Link href={`/companies/${job.company_user_id}`} className="underline underline-offset-[3px] text-paper hover:text-apricot transition-colors">{job.company_name}</Link> · {job.location}
                   {!!job.remote && " · Remote"} · Posted {formatPostedAge(job.created_at)}
                 </p>
+                <CopyLinkButton path={`/jobs/${job.id}`} variant="text" />
               </div>
             </header>
 

@@ -1,7 +1,16 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { listUsers, countUsers } from "@/lib/adminQueries";
 
 const PAGE_SIZE = 30;
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · Users",
+  description: "Champ BackOffice — all users.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminUsersPage({
   searchParams,

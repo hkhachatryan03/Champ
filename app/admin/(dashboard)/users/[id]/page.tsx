@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { formatMoneyRange } from "@/lib/currency";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -94,6 +96,13 @@ function fmtMoney(min: number, max: number) {
   if (!min && !max) return null;
   return `${formatMoneyRange(min, max)}/mo`;
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · User",
+  description: "Champ BackOffice — a single user's account.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminUserDetailPage({
   params,

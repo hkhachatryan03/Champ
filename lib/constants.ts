@@ -137,3 +137,25 @@ export const COMMON_SKILLS = [
   "TypeScript",
   "Vue",
 ];
+
+// ---------------------------------------------------------------------------
+// Job categories
+//
+// Every company on Champ is a tech company; what differs is the *kind of role*
+// at that company. So the visible names describe the work, not the employer.
+//
+// IMPORTANT: the stored values stay "Tech" / "Non-tech". The jobs table has a
+// CHECK constraint that only accepts those two strings, and every existing job
+// uses them. Treat them as internal keys — never show them to a person; always
+// go through categoryLabel(). Renaming what people *see* is then a one-line
+// change here, with no data migration.
+// ---------------------------------------------------------------------------
+export const JOB_CATEGORIES = [
+  { value: "Tech", label: "Engineering & data" },
+  { value: "Non-tech", label: "Business & support" },
+] as const;
+
+export function categoryLabel(value: string | null | undefined): string {
+  if (!value) return "";
+  return JOB_CATEGORIES.find((c) => c.value === value)?.label ?? value;
+}

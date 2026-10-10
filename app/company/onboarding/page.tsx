@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/auth";
 import { updateCompanyProfile, isEmailVerified, getCompanyProfile } from "@/lib/queries";
 import { redirect } from "next/navigation";
@@ -34,6 +36,12 @@ async function saveCompanyAction(formData: FormData) {
 
   redirect("/company/dashboard");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Set up your company",
+  description: "Tell candidates about your company before you post your first role.",
+  noindex: true,
+});
 
 export default async function CompanyOnboarding({
   searchParams,

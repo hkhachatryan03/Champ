@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import sql from "@/lib/db";
 import { verifyPasswordResetOtp } from "@/lib/queries";
 import { hashPassword } from "@/lib/auth";
@@ -30,6 +32,12 @@ async function resetPasswordAction(formData: FormData) {
 
   redirect("/login?reset=1");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Choose a new password",
+  description: "Enter your reset code and choose a new Champ password.",
+  noindex: true,
+});
 
 export default async function ResetPasswordPage({
   searchParams,

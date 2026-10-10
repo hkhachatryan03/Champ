@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { CURRENCY, formatAmount, formatMoney, formatMoneyRange } from "@/lib/currency";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -9,7 +11,7 @@ import {
   listDistinctJobTitles,
   listDistinctCompanyNames,
 } from "@/lib/queries";
-import { ARMENIAN_LOCATIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
+import { ARMENIAN_LOCATIONS, LANGUAGE_OPTIONS, categoryLabel } from "@/lib/constants";
 import SalaryRangeFilter from "@/components/SalaryRangeFilter";
 import ActiveFilterChips, { FilterChip } from "@/components/ActiveFilterChips";
 import MultiSelectFilter from "@/components/MultiSelectFilter";
@@ -22,6 +24,12 @@ import { ArrowRight, SlidersHorizontal } from "lucide-react";
 // Public — no login required. Anyone can browse what's posted; applying
 // (or seeing full contact/chat features) requires signing up, same as any
 // job board works.
+export const metadata: Metadata = pageMetadata({
+  title: "Open roles at Armenia's tech companies",
+  description: "Browse open roles at Armenia's tech companies. Every listing shows its monthly salary range in AMD — filter by position, company, location, level and pay.",
+  path: "/jobs",
+});
+
 export default async function PublicJobsPage({
   searchParams,
 }: {
@@ -58,7 +66,7 @@ export default async function PublicJobsPage({
   if (filters.company) {
     filters.company.split(",").filter(Boolean).forEach((c) => chips.push({ key: "company", label: c, removeValue: c }));
   }
-  if (filters.category) chips.push({ key: "category", label: filters.category });
+  if (filters.category) chips.push({ key: "category", label: categoryLabel(filters.category) });
   if (filters.employmentType) chips.push({ key: "employmentType", label: filters.employmentType });
   if (filters.experienceLevel) chips.push({ key: "experienceLevel", label: filters.experienceLevel });
   if (filters.remote) chips.push({ key: "remote", label: filters.remote === "remote" ? "Remote" : "On-site" });
@@ -123,8 +131,8 @@ export default async function PublicJobsPage({
                     <label className="aur-label">Category</label>
                     <select name="category" defaultValue={filters.category || ""} className="aur-field aur-field-sm">
                       <option value="">Any</option>
-                      <option>Tech</option>
-                      <option>Non-tech</option>
+                      <option value="Tech">{categoryLabel("Tech")}</option>
+                      <option value="Non-tech">{categoryLabel("Non-tech")}</option>
                     </select>
                   </div>
                   <div>

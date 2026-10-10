@@ -1,8 +1,17 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { listApplicationsAdmin, countApplicationsAdmin } from "@/lib/adminQueries";
 
 const PAGE_SIZE = 30;
 const STATUSES = ["New", "Interviewing", "Offer", "Hired", "Not moving forward"];
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · Applications",
+  description: "Champ BackOffice — applications across the platform.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminApplicationsPage({
   searchParams,

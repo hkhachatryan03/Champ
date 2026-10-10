@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { CURRENCY, formatAmount, formatMoney, formatMoneyRange } from "@/lib/currency";
 import Link from "next/link";
 import { listActiveCandidatePool, parseSkills, CandidateFilters, listDistinctCandidateTitles } from "@/lib/queries";
@@ -12,6 +14,12 @@ import GuestPage from "@/components/GuestPage";
 import Reveal from "@/components/Reveal";
 import FilterPanel from "@/components/FilterPanel";
 import { ArrowRight, SlidersHorizontal } from "lucide-react";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Candidates",
+  description: "Browse candidates who are actively looking, filtered by position, location, experience, skills and salary.",
+  noindex: true,
+});
 
 export default async function CandidatesHubPage({
   searchParams,

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { CURRENCY } from "@/lib/currency";
 import { getSession } from "@/lib/auth";
 import { getCandidateProfile, updateCandidateProfile, listExperiences, addExperience, deleteExperience, isEmailVerified, normalizeAndRegisterTerms, listCustomTerms } from "@/lib/queries";
@@ -162,6 +164,12 @@ const BackLink = () => (
     <ArrowLeft size={16} strokeWidth={1.25} /> Change method
   </a>
 );
+
+export const metadata: Metadata = pageMetadata({
+  title: "Set up your profile",
+  description: "Build your Champ profile once and apply to roles with a message.",
+  noindex: true,
+});
 
 export default async function CandidateOnboarding({
   searchParams,

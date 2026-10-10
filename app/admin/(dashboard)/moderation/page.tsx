@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -51,6 +53,13 @@ async function reconsiderCompanyAction(formData: FormData) {
   await reconsiderCompany(Number(formData.get("userId")), session!.email);
   redirect("/admin/moderation");
 }
+
+export const metadata: Metadata = pageMetadata({
+  title: "Champ BackOffice · Moderation",
+  description: "Champ BackOffice — flags and company reviews.",
+  absoluteTitle: true,
+  noindex: true,
+});
 
 export default async function AdminModerationPage() {
   const [flags, pendingCompanies, rejectedCompanies] = await Promise.all([

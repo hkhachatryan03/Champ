@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { CURRENCY, formatAmount, formatMoney, formatMoneyRange } from "@/lib/currency";
 import { listActiveJobsWithCompany, parseSkills, JobFilters, getAppliedJobIds, listDistinctJobTitles, listDistinctCompanyNames } from "@/lib/queries";
 import { getSession } from "@/lib/auth";
 import { requireOnboardedCandidate } from "@/lib/guards";
 import { redirect } from "next/navigation";
-import { ARMENIAN_LOCATIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
+import { ARMENIAN_LOCATIONS, LANGUAGE_OPTIONS, categoryLabel } from "@/lib/constants";
 import SalaryRangeFilter from "@/components/SalaryRangeFilter";
 import ActiveFilterChips, { FilterChip } from "@/components/ActiveFilterChips";
 import MultiSelectFilter from "@/components/MultiSelectFilter";
@@ -12,6 +14,12 @@ import GuestPage from "@/components/GuestPage";
 import Reveal from "@/components/Reveal";
 import FilterPanel from "@/components/FilterPanel";
 import { ArrowRight, Check, SlidersHorizontal } from "lucide-react";
+
+export const metadata: Metadata = pageMetadata({
+  title: "All roles",
+  description: "Every open role on Champ, with filters for position, company, location, level and salary.",
+  noindex: true,
+});
 
 export default async function BrowseJobsPage({
   searchParams,
@@ -39,7 +47,7 @@ export default async function BrowseJobsPage({
   if (filters.company) {
     filters.company.split(",").filter(Boolean).forEach((c) => chips.push({ key: "company", label: c, removeValue: c }));
   }
-  if (filters.category) chips.push({ key: "category", label: filters.category });
+  if (filters.category) chips.push({ key: "category", label: categoryLabel(filters.category) });
   if (filters.employmentType) chips.push({ key: "employmentType", label: filters.employmentType });
   if (filters.experienceLevel) chips.push({ key: "experienceLevel", label: filters.experienceLevel });
   if (filters.remote) chips.push({ key: "remote", label: filters.remote === "remote" ? "Remote" : "On-site" });
@@ -96,8 +104,8 @@ export default async function BrowseJobsPage({
                     <label className="aur-label">Category</label>
                     <select name="category" defaultValue={filters.category || ""} className="aur-field aur-field-sm">
                       <option value="">Any</option>
-                      <option>Tech</option>
-                      <option>Non-tech</option>
+                      <option value="Tech">{categoryLabel("Tech")}</option>
+                      <option value="Non-tech">{categoryLabel("Non-tech")}</option>
                     </select>
                   </div>
                   <div>

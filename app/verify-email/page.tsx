@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { verifyEmailToken } from "@/lib/queries";
 import sql from "@/lib/db";
 import Link from "next/link";
 import GlassStateCard from "@/components/auth/GlassStateCard";
 import { AlertTriangle, Check, Hourglass, ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Verify your email",
+  description: "Confirming your email address for your Champ account.",
+  noindex: true,
+});
 
 export default async function VerifyEmailPage({
   searchParams,

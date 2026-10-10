@@ -432,6 +432,14 @@ async function main() {
   // real company record (the end client doesn't need a Champ profile).
   await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS client_name TEXT NOT NULL DEFAULT ''`;
   console.log("Done. Seventeenth round of migrations applied.");
+
+  console.log("Applying eighteenth round of migrations (draft roles)...");
+  // A draft is a role the company is still writing. It is stored with
+  // is_draft = 1 AND active = 0, so every existing "only show active roles"
+  // query already excludes it — drafts can't leak into public listings even
+  // if someone forgets a filter.
+  await sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS is_draft INTEGER NOT NULL DEFAULT 0`;
+  console.log("Done. Eighteenth round of migrations applied.");
 }
 
 main().catch((err) => {
